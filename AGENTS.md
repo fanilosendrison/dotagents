@@ -27,13 +27,5 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 
 ## Skills
 
-Les skills sont dans `~/.agents/skills/`. Pour en ajouter un, créer un dossier avec
-un `SKILL.md` (format Agent Skills standard) :
-
-```
-~/.agents/skills/mon-skill/
-├── SKILL.md
-├── scripts/
-├── references/
-└── assets/
-```
+Les skills sont dans `~/.agents/skills/`. Pour créer ou modifier un skill, toujours
+utiliser le skill [`skill-creator`](skills/skill-creator/SKILL.md) (`/skill:skill-creator`).
