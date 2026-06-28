@@ -1,33 +1,25 @@
-# dotagents
+# Shared Agent Conventions
 
-Ce repo contient la configuration partagée entre tous les harnesses d'agent
-(Pi, Claude Code, Codex). Il est symlinké vers `~/.agents/`.
-
-## Structure
-
-```
-dotagents/
-├── skills/          ← Skills partagés (tous harnesses)
-├── agent-hooks/     ← Hooks agent (validateurs, linters, etc.)
-├── AGENTS.md        ← Ce fichier
-└── .gitignore
-```
+Conventions partagées entre tous les harnesses (Pi, Claude Code, Codex).
 
 ## Skills
 
-Les skills dans `skills/` sont disponibles pour :
-- **Pi** : découverte native de `~/.agents/skills/`
-- **Claude Code** : via symlink `~/.claude/skills → ~/.agents/skills/`
-- **Codex** : via symlink `~/.codex/skills → ~/.agents/skills/`
-
-### Ajouter un skill
-
-Créer un dossier dans `skills/` avec un `SKILL.md` (format Agent Skills standard) :
+Les skills sont dans `~/.agents/skills/`. Pour en ajouter un, créer un dossier avec
+un `SKILL.md` (format Agent Skills standard) :
 
 ```
-skills/mon-skill/
+~/.agents/skills/mon-skill/
 ├── SKILL.md
 ├── scripts/
 ├── references/
 └── assets/
+```
+
+## Commit après modification
+
+Toute modification dans `~/.agents/` doit être commitée :
+
+```bash
+REPO=$(dirname "$(readlink ~/.agents/skills)")
+cd "$REPO" && /git-commits-push
 ```
