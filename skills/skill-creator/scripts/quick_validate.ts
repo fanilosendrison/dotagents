@@ -8,54 +8,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { readdirSync, statSync } from "node:fs";
-
-// ── Minimal YAML frontmatter parser ──
-
-function parseFrontmatter(text: string): Record<string, unknown> | null {
-  const lines = text.split("\n");
-  const result: Record<string, unknown> = {};
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    if (trimmed === "" || trimmed.startsWith("#")) continue;
-
-    // Multiline continuation (indented)
-    if (i > 0 && (line.startsWith(" ") || line.startsWith("\t"))) {
-      // Simple indented continuation: append to previous key's value
-      const prevKey = Object.keys(result).at(-1);
-      if (prevKey && typeof result[prevKey] === "string") {
-        result[prevKey] += " " + trimmed;
-      }
-      continue;
-    }
-
-    const colonIdx = line.indexOf(":");
-    if (colonIdx === -1) continue;
-
-    const key = line.slice(0, colonIdx).trim();
-    let value = line.slice(colonIdx + 1).trim();
-
-    // Unquoted empty
-    if (value === "") {
-      result[key] = "";
-      continue;
-    }
-
-    // Quoted strings
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      result[key] = value.slice(1, -1);
-      continue;
-    }
-
-    result[key] = value;
-  }
-
-  return Object.keys(result).length > 0 ? result : null;
-}
+import yaml from "js-yaml";
 
 // ── Constants ──
 
@@ -67,12 +20,6 @@ const TEMPLATE_MARKERS = [
   "[TODO: Add content here",
   'Delete this entire "Structuring This Skill" section',
 ];
-
-const EXAMPLE_FILE_MARKERS: Record<string, string> = {
-  "scripts/example.py": "This is a placeholder script",
-  "references/api_reference.md": "This is a placeholder for detailed reference",
-  "assets/example_asset.txt": "This placeholder represents where asset files",
-};
 
 const ALLOWED_PROPERTIES = new Set([
   "name",
@@ -86,14 +33,26 @@ const ALLOWED_PROPERTIES = new Set([
 
 // ── Helpers ──
 
+/** Strip fenced code blocks (```...```) to avoid false positives. */
 function stripCodeBlocks(text: string): string {
   return text.replace(/```[\s\S]*?```/g, "");
 }
 
+/**
+ * Find resource paths referenced via actual markdown links: [text](scripts/foo.py).
+ * Ignores bare paths in prose examples that aren't real links.
+ */
 function findFileReferences(body: string): Set<string> {
   const clean = stripCodeBlocks(body);
-  const pattern = /(?:scripts|references|assets)\/[\w._/-]+/g;
-  return new Set(clean.match(pattern) ?? []);
+  const linkPattern = /\[[^\]]*\]\((scripts|references|assets)\/[\w._\-\/]+\)/g;
+  const refs = new Set<string>();
+
+  for (const match of clean.matchAll(linkPattern)) {
+    // match[0] = "[text](scripts/foo.py)", match[1] = "scripts"
+    const url = match[0].slice(match[0].indexOf("(") + 1, -1);
+    refs.add(url);
+  }
+  return refs;
 }
 
 function walkFiles(dir: string): string[] {
@@ -142,9 +101,14 @@ function validateSkillFull(skillPath: string): ValidationResult {
   const frontmatterText = frontmatterMatch[1];
   const body = content.slice(frontmatterMatch[0].length).trim();
 
-  const frontmatter = parseFrontmatter(frontmatterText);
-  if (!frontmatter) {
-    return { errors: ["Frontmatter must be a YAML dictionary"], warnings: [] };
+  let frontmatter: Record<string, unknown>;
+  try {
+    frontmatter = yaml.load(frontmatterText) as Record<string, unknown>;
+    if (!frontmatter || typeof frontmatter !== "object" || Array.isArray(frontmatter)) {
+      return { errors: ["Frontmatter must be a YAML dictionary"], warnings: [] };
+    }
+  } catch (e: any) {
+    return { errors: [`Invalid YAML in frontmatter: ${e.message}`], warnings: [] };
   }
 
   // Unexpected keys
@@ -237,7 +201,7 @@ function validateSkillFull(skillPath: string): ValidationResult {
 
   // ── Cross-reference checks ──
 
-  // Referenced files not found (warning, not error)
+  // Referenced files not found (warning, not error — prose examples trigger these)
   const referencedFiles = findFileReferences(body);
   for (const ref of [...referencedFiles].sort()) {
     if (!existsSync(join(skillPath, ref))) {
@@ -252,19 +216,9 @@ function validateSkillFull(skillPath: string): ValidationResult {
 
     for (const filePath of walkFiles(dirPath)) {
       const rel = relative(skillPath, filePath);
+      // Skip files referenced only via code blocks (e.g., quick_validate.ts in a ```bash block)
       if (!referencedFiles.has(rel)) {
         warnings.push(`Unreferenced file: ${rel}`);
-      }
-    }
-  }
-
-  // Uncustomized example files
-  for (const [exampleFile, marker] of Object.entries(EXAMPLE_FILE_MARKERS)) {
-    const filePath = join(skillPath, exampleFile);
-    if (existsSync(filePath)) {
-      const fileContent = readFileSync(filePath, "utf-8");
-      if (fileContent.includes(marker)) {
-        warnings.push(`Uncustomized template file: ${exampleFile}`);
       }
     }
   }
@@ -275,7 +229,7 @@ function validateSkillFull(skillPath: string): ValidationResult {
 // ── CLI ──
 
 if (import.meta.main) {
-  const args = Bun.argv.slice(2); // Bun.argv[0] = bun, [1] = script path
+  const args = Bun.argv.slice(2);
   if (args.length !== 1) {
     console.log("Usage: bun quick_validate.ts <skill_directory>");
     process.exit(1);
