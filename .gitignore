@@ -1,2 +1,1 @@
-# Rien à ignorer — tous les fichiers de dotagents sont versionnés.
-# Les secrets éventuels (tokens, clés) doivent être stockés hors de ce repo.
+node_modules/
