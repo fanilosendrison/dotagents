@@ -5,9 +5,9 @@ description: Document a new harness modification (extension, patch, or conventio
 
 # Document a Harness Modification
 
-Reference `~/.pi/agent/CONTEXT.md` for writing conventions and the existing index.
-This file is already in context — use its Quick Navigation table, Writing Rules,
-and Folder Structure to stay consistent with existing docs.
+First read `~/.pi/agent/CONTEXT.md`. It contains the Quick Navigation table
+(current entries and their descriptions), Writing Rules (English, aligned tables,
+placeholders), and Folder Structure. Use these to stay consistent with existing docs.
 
 ## Step 1: Write the CONTEXT.md
 
