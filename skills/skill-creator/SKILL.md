@@ -184,9 +184,9 @@ Create the skill under `~/.agents/skills/`:
 mkdir -p ~/.agents/skills/<skill-name>/{scripts,references,assets}
 ```
 
-Then write `SKILL.md` with the frontmatter and body. Start from the table in
-[Frontmatter](#frontmatter) above — fill in `name` and `description` at minimum.
-See [assets/template-skill/SKILL.md](assets/template-skill/SKILL.md) for a minimal starting point.
+Then write `SKILL.md` with the frontmatter and body — use the table above to fill in
+`name` and `description` at minimum. See [assets/template-skill/SKILL.md](assets/template-skill/SKILL.md)
+for a minimal starting point.
 
 Delete any directories you don't need (`scripts/`, `references/`, `assets/` are optional).
 
