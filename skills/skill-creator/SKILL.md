@@ -152,8 +152,9 @@ Follow these steps in order. Skip a step only if there's a clear reason.
 2. Plan reusable contents (scripts, references, assets)
 3. Create the skill directory and SKILL.md
 4. Edit: implement resources and write SKILL.md
-5. Validate with `quick_validate.py`
+5. Validate with [quick_validate.ts](scripts/quick_validate.ts)
 6. Iterate after real usage
+7. Commit to the dotagents repo
 
 ### Step 1: Understand
 
@@ -224,5 +225,17 @@ cross-references, and orphan files. Fix all errors before delivering the skill.
 
 Use the skill on real tasks. When you notice struggles or inefficiencies, update SKILL.md
 or the bundled resources.
+
+### Step 7: Commit
+
+Skills live in a git-tracked repo symlinked from `~/.agents/skills/`. Always commit
+after creation:
+
+```bash
+REPO=$(dirname "$(readlink ~/.agents/skills)")
+git -C "$REPO" add "skills/<name>" && git -C "$REPO" commit -m "Add skill: <name>"
+```
+
+This works from any directory — the symlink resolves to the actual repo path.
 
 
