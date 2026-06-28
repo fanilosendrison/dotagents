@@ -51,7 +51,7 @@ Adjust sections as needed for the specific analysis type.
 
 ## Examples Pattern
 
-For skills where output quality depends on seeing examples, provide input/output pairs:
+When output quality depends on seeing examples, provide input/output pairs:
 
 ```markdown
 ## Commit message format
@@ -79,4 +79,5 @@ Use UTC timestamps consistently across report generation
 Follow this style: type(scope): brief description, then detailed explanation.
 ```
 
-Examples help the agent understand the desired style and level of detail more clearly than descriptions alone.
+Examples help you understand the desired style and level of detail more clearly than
+descriptions alone.

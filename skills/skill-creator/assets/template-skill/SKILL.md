@@ -1,6 +1,6 @@
 ---
 name: template-skill
-description: Replace with description of the skill and when the agent should use it.
+description: Replace with a description of what this skill does and when you should use it.
 ---
 
-# Insert instructions below
+# Replace with the skill title

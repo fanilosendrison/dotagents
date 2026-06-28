@@ -2,7 +2,8 @@
 
 ## Sequential Workflows
 
-For complex tasks, break operations into clear, sequential steps. Give the agent an overview of the process at the beginning of SKILL.md:
+For complex tasks, break operations into clear, sequential steps. Give yourself an overview
+of the process at the beginning of SKILL.md:
 
 ```markdown
 Filling a PDF form involves these steps:
@@ -16,7 +17,7 @@ Filling a PDF form involves these steps:
 
 ## Conditional Workflows
 
-For tasks with branching logic, guide the agent through decision points:
+For tasks with branching logic, guide yourself through decision points:
 
 ```markdown
 1. Determine the modification type:
