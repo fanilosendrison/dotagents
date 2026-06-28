@@ -78,14 +78,14 @@ description: Helps with PDFs.
 
 Instructions you follow after the skill triggers. Use relative paths:
 
-```markdown
+~~~markdown
 Run the setup:
 ```bash
 ./scripts/setup.sh
 ```
 
 For advanced usage, see [the reference guide](references/REFERENCE.md).
-```
+~~~
 
 ### Progressive Disclosure
 
