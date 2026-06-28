@@ -1,6 +1,6 @@
 ---
 name: document-self-modif
-description: Document a new harness modification (extension, patch, or convention) in the dotpi repo. Use when the user says "documente cette modif", "ajoute une entrée dans les docs", or after creating a new extension/patch that needs a CONTEXT.md entry.
+description: Document a modification to the Pi harness (new extension, patch, or convention). Use when the user says "documente cette modif", "ajoute une entrée dans les docs", or after creating something that needs a CONTEXT.md entry. This is a harness modification task — AGENTS.md will load CONTEXT.md.
 ---
 
 # Document a Harness Modification
