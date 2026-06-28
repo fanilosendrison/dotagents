@@ -228,14 +228,14 @@ or the bundled resources.
 
 ### Step 7: Commit
 
-Skills live in a git-tracked repo symlinked from `~/.agents/skills/`. Always commit
-after creation:
+Skills live in a git-tracked repo symlinked from `~/.agents/skills/`. Commit using
+Conventional Commits via `/git-commits-push`:
 
 ```bash
 REPO=$(dirname "$(readlink ~/.agents/skills)")
-git -C "$REPO" add "skills/<name>" && git -C "$REPO" commit -m "Add skill: <name>"
+cd "$REPO" && /git-commits-push
 ```
 
-This works from any directory — the symlink resolves to the actual repo path.
+The skill will generate a proper commit message and auto-push.
 
 
