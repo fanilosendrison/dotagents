@@ -8,28 +8,22 @@ description: Guide for creating effective skills. This skill should be used when
 You are reading this because someone wants you to create or update a skill. This guide
 tells you how.
 
-## About Skills
+## What Goes in a Skill
 
-Skills are modular, self-contained packages that extend your capabilities with specialized
-knowledge, workflows, and tools. They transform you from a general-purpose agent into a
-specialized one, equipped with procedural knowledge no model fully possesses.
+A skill bundles four things:
 
-A skill provides:
-
-1. Specialized workflows — multi-step procedures for specific domains
-2. Tool integrations — instructions for working with specific file formats or APIs
-3. Domain expertise — company-specific knowledge, schemas, business logic
-4. Bundled resources — scripts, references, and assets for complex or repetitive tasks
+1. **Workflows** — step-by-step procedures for specific tasks
+2. **Tool instructions** — how to work with specific file formats or APIs
+3. **Domain knowledge** — company schemas, business rules, conventions
+4. **Reusable resources** — scripts (run them), references (read them), assets (copy them into output)
 
 ## Core Principles
 
 ### Concise is Key
 
-Context is a shared resource. Every token you consume in a skill is a token not available for
-conversation history, other skills, or the user's actual request.
+Context is a shared resource. Every token you consume in a skill is a token not available for conversation history, other skills, or the user's actual request.
 
-**Default assumption: you are already very smart.** Only add information you don't already
-have. Before writing anything, ask yourself: "Do I really need this? Is this worth the tokens?"
+**Default assumption: you are already very smart.** Only add information you don't already have. Before writing anything, ask yourself: "Do I really need this? Is this worth the tokens?"
 
 Prefer concise examples over verbose explanations.
 
@@ -68,8 +62,7 @@ YAML frontmatter followed by Markdown instructions.
 | `allowed-tools` | No | Pre-approved tools (Pi, experimental) |
 | `disable-model-invocation` | No | If `true`, skill is hidden from your system prompt. Users must invoke it explicitly via `/skill:name` (Pi) or equivalent |
 
-**Description is everything.** It's the only part always in your context and the sole trigger.
-Be specific about both what AND when:
+**Description is everything.** It's the only part always in your context and the sole trigger. Be specific about both what AND when:
 
 Good:
 ```yaml
@@ -157,9 +150,9 @@ Follow these steps in order. Skip a step only if there's a clear reason.
 
 1. Understand the skill with concrete examples
 2. Plan reusable contents (scripts, references, assets)
-3. Initialize with `init_skill.py`
+3. Create the skill directory and SKILL.md
 4. Edit: implement resources and write SKILL.md
-5. Test with `test_skill.py`
+5. Validate with `quick_validate.py`
 6. Iterate after real usage
 
 ### Step 1: Understand
@@ -182,14 +175,18 @@ For each example, identify reusable resources:
 | "Build a todo app" | Same boilerplate every time | `assets/hello-world/` template |
 | "How many users logged in?" | Schemas rediscovered each time | `references/schema.md` |
 
-### Step 3: Initialize
+### Step 3: Create the Skill Directory
+
+Create the skill structure:
 
 ```bash
-scripts/init_skill.py <skill-name> --path <output-directory>
+mkdir -p skills/<skill-name>/{scripts,references,assets}
 ```
 
-This creates the directory, a SKILL.md with frontmatter placeholders, and example
-`scripts/`, `references/`, `assets/` directories. Customize or delete as needed.
+Then write `SKILL.md` with the frontmatter and body. Start from the table in
+[Frontmatter](#frontmatter) above — fill in `name` and `description` at minimum.
+
+Delete any directories you don't need (`scripts/`, `references/`, `assets/` are optional).
 
 ### Step 4: Edit
 
@@ -211,19 +208,14 @@ Design patterns for reference:
 
 Delete any example files and directories you don't need.
 
-### Step 5: Test
+### Step 5: Validate
 
 ```bash
-scripts/test_skill.py <path/to/skill-folder>
+scripts/quick_validate.py <path/to/skill-folder>
 ```
 
-Checks:
-1. **Structure** — frontmatter, naming, required fields, description quality
-2. **Content** — TODO markers, uncustomized templates, body length
-3. **Cross-references** — referenced files exist, no orphan files
-4. **Scripts** — Python syntax (`py_compile`), Bash syntax (`bash -n`), shebangs, permissions
-
-Fix all errors before delivering the skill.
+Requires `pyyaml`. Checks frontmatter, naming, description quality, TODO markers,
+cross-references, and orphan files. Fix all errors before delivering the skill.
 
 ### Step 6: Iterate
 
@@ -242,8 +234,8 @@ or the bundled resources.
 
 ### Claude Code
 - Auto-discovers skills in `~/.claude/skills/`
-- `package_skill.py` creates distributable `.skill` files (zip archives)
 - Only `name` and `description` are read from frontmatter; `compatibility` rarely needed
+- To distribute a skill, zip the directory and rename to `.skill`
 
 ### Codex
 - Auto-discovers skills in `~/.codex/skills/`
