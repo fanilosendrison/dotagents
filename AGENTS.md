@@ -1,8 +1,5 @@
 # Shared Agent Conventions
 
-You are an agent. These rules apply regardless of which harness (Pi, Claude Code, Codex)
-you run under.
-
 ## Symlink Structure — CRITICAL
 
 Every `~/.` path you use below is a symlink. When you write through it, you are
