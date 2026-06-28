@@ -1,23 +1,25 @@
 # Shared Agent Conventions
 
-Conventions partagées entre tous les harnesses (Pi, Claude Code, Codex).
+You are an agent. These rules apply regardless of which harness (Pi, Claude Code, Codex)
+you run under.
 
 ## Symlink Structure — CRITICAL
 
-Every `~/.` path below is a symlink to a git-tracked `dot*` repo:
+Every `~/.` path you use below is a symlink. When you write through it, you are
+writing into a git-tracked `dot*` repo. You never need to know the physical path.
 
-| Path | Résout vers |
-|------|-------------|
-| `~/.pi/agent/` (files individuels) | `~/Developper/Projects/dotpi/` |
-| `~/.agents/` (files individuels) | `~/Developper/Projects/dotagents/` |
-| `~/.claude/skills/` | `~/Developper/Projects/dotclaude/skills/` |
+| You write to | It lands in |
+|-------------|-------------|
+| `~/.pi/agent/` (individual files) | dotpi git repo |
+| `~/.agents/` (individual files) | dotagents git repo |
+| `~/.claude/skills/` | dotclaude git repo |
 
-**Règle absolue :**
-- Toujours écrire via `~/.` (ex: `~/.agents/skills/mon-skill/`)
-- Ne **jamais** écrire directement dans `dot*`
-- Les symlinks écrivent automatiquement dans le repo git correspondant
+**Absolute rule:**
+- Always write through `~/.` (e.g., `~/.agents/skills/my-skill/`)
+- Never write directly to any `dot*` path
+- The symlink handles the rest — your writes are git-tracked automatically
 
-**Pour commiter :**
+**When you need to commit:**
 
 ```bash
 cd $(dirname "$(readlink ~/.agents/skills)") && /git-commits-push    # dotagents
@@ -27,5 +29,6 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 
 ## Skills
 
-Les skills sont dans `~/.agents/skills/`. Pour créer ou modifier un skill, toujours
-utiliser le skill [`skill-creator`](skills/skill-creator/SKILL.md) (`/skill:skill-creator`).
+Skills live in `~/.agents/skills/`. To create or modify a skill, always invoke
+[`skill-creator`](skills/skill-creator/SKILL.md) (`/skill:skill-creator`). It will guide
+you through the full process: design, creation, validation, and commit.
