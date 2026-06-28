@@ -1,0 +1,11 @@
+{
+  "overrides": [
+    {
+      "token": "4864535ad9321d0e96ab94ed",
+      "sessionId": "019e798f-49fd-72e1-98e8-23d6320132a9",
+      "commandHash": "1793d07f4894232df7a3aad4b2ff403609878d74994665d1a98fb05db5c103ce",
+      "command": "killall rg",
+      "createdAt": "2026-05-30T15:46:05.689Z"
+    }
+  ]
+}
