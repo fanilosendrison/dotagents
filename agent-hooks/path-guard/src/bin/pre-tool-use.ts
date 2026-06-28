@@ -2,7 +2,7 @@
 
 import { readHookInput } from "../../../shared/runtime/read-hook-input";
 import { exitAllow, respondPreToolDeny } from "../../../shared/runtime/respond";
-import { checkPath } from "../core/path-guard";
+import { checkPath, checkBashCommand } from "../core/path-guard";
 
 async function main() {
   const input = await readHookInput();
@@ -10,18 +10,28 @@ async function main() {
     process.exit(0);
   }
 
-  if (input.tool_name !== "Write" && input.tool_name !== "Edit") {
-    process.exit(0);
+  // Guard Write and Edit
+  if (input.tool_name === "Write" || input.tool_name === "Edit") {
+    const filePath = input.tool_input?.file_path;
+    if (typeof filePath === "string" && filePath) {
+      const result = checkPath(filePath);
+      if (!result.allowed) {
+        respondPreToolDeny(result.reason!);
+      }
+    }
+    exitAllow();
   }
 
-  const filePath = input.tool_input?.file_path;
-  if (typeof filePath !== "string" || !filePath) {
-    process.exit(0);
-  }
-
-  const result = checkPath(filePath);
-  if (!result.allowed) {
-    respondPreToolDeny(result.reason!);
+  // Guard Bash
+  if (input.tool_name === "Bash") {
+    const command = input.tool_input?.command;
+    if (typeof command === "string" && command) {
+      const result = checkBashCommand(command);
+      if (!result.allowed) {
+        respondPreToolDeny(result.reason!);
+      }
+    }
+    exitAllow();
   }
 
   exitAllow();

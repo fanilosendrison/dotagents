@@ -37,6 +37,66 @@ function resolveReal(givenPath: string): string | null {
 }
 
 /**
+ * Extract candidate file paths from a bash command string.
+ *
+ * Looks for absolute paths, ~/ paths, and targets of > / >> redirects.
+ * Returns deduplicated list of paths to check.
+ */
+export function extractBashPaths(command: string): string[] {
+  const paths = new Set<string>();
+
+  // Strip single-quoted and double-quoted strings to avoid false positives
+  // from redirect operators inside quotes.
+  const stripped = command
+    .replace(/'[^']*'/g, " ")
+    .replace(/"[^"]*"/g, " ")
+    .replace(/\\"/g, ""); // escaped quotes
+
+  // Match redirect targets: >path, >>path, 2>path, &>path, 1>path
+  // (with optional space after operator)
+  const redirectRe = /(?:[12&]?>>?)\s*(\S+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = redirectRe.exec(stripped)) !== null) {
+    const target = m[1].replace(/["']/g, "");
+    if (target.startsWith("/") || target.startsWith("~/")) {
+      paths.add(target);
+    }
+  }
+
+  // Match tee targets
+  const teeRe = /tee\s+(?:-a\s+)?(\S+)/g;
+  while ((m = teeRe.exec(stripped)) !== null) {
+    const target = m[1].replace(/["']/g, "");
+    if (target.startsWith("/") || target.startsWith("~/")) {
+      paths.add(target);
+    }
+  }
+
+  // Extract all space-separated tokens that look like absolute paths
+  for (const token of stripped.split(/\s+/)) {
+    const clean = token.replace(/^["']|["']$/g, "");
+    if (clean.startsWith("/") || clean.startsWith("~/")) {
+      paths.add(clean);
+    }
+  }
+
+  return [...paths];
+}
+
+/**
+ * Check whether a bash command writes to any blocked dot* path.
+ * Returns the first blocked result, or { allowed: true }.
+ */
+export function checkBashCommand(command: string): PathGuardResult {
+  const paths = extractBashPaths(command);
+  for (const p of paths) {
+    const result = checkPath(p);
+    if (!result.allowed) return result;
+  }
+  return { allowed: true };
+}
+
+/**
  * Check whether a write to `givenPath` is allowed.
  *
  * Returns { allowed: true } if the path is safe. Returns { allowed: false,
@@ -70,7 +130,9 @@ export function checkPath(givenPath: string): PathGuardResult {
       reason:
         `Write through ${gatewayDisplay}, not directly to ${repoDir}/.\n` +
         `  Given:  ${givenPath}\n` +
-        `  Use:    ${gatewayDisplay}${relative.slice(repoDir.length + 1)}`,
+        `  Use:    ${gatewayDisplay}${relative.slice(repoDir.length + 1)}
+` +
+        `  Git:    cd ~/Developper/Projects/${repoDir}/ && git commit`,
     };
   }
 
