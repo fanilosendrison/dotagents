@@ -5,7 +5,6 @@ import {
 	readHookInput,
 } from "../../../shared/runtime/read-hook-input";
 import {
-	respondPreToolDecision,
 	respondPreToolDeny,
 } from "../../../shared/runtime/respond";
 
@@ -51,7 +50,7 @@ async function main(): Promise<void> {
 	}
 
 	// Block if commit is not followed by push
-	if (!/git\s+push\b/.test(command)) {
+	if (!/git\s+push/.test(command)) {
 		respondPreToolDeny(
 			"Always push after commit. Use: git commit ... && git push\n" +
 			"Or invoke /git-commits-push which handles this automatically.",
