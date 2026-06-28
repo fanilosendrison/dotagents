@@ -56,16 +56,21 @@ export function checkPath(givenPath: string): PathGuardResult {
   if (!repoDir.startsWith("dot")) return { allowed: true };
 
   const name = repoDir.slice(3);
-  const gateway = join(homedir(), "." + name);
+  // dotpi files live under ~/.pi/agent/, not directly under ~/.pi/
+  const gateway = name === "pi"
+    ? join(homedir(), ".pi", "agent")
+    : join(homedir(), "." + name);
+
+  const gatewayDisplay = name === "pi" ? "~/.pi/agent/" : `~/.${name}/`;
 
   if (!givenPath.startsWith(gateway)) {
     return {
       allowed: false,
-      gateway: "~/.${name}/",
+      gateway: gatewayDisplay,
       reason:
-        `Write through ~/.${name}/, not directly to ${repoDir}/.\n` +
+        `Write through ${gatewayDisplay}, not directly to ${repoDir}/.\n` +
         `  Given:  ${givenPath}\n` +
-        `  Use:    ~/.${name}/${relative.slice(repoDir.length + 1)}`,
+        `  Use:    ${gatewayDisplay}${relative.slice(repoDir.length + 1)}`,
     };
   }
 

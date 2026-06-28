@@ -2,7 +2,7 @@
 
 import { readHookInput } from "../../../shared/runtime/read-hook-input";
 import { exitAllow, respondPreToolDeny } from "../../../shared/runtime/respond";
-import { checkPath } from "../../../shared/core/path-guard";
+import { checkPath } from "../core/path-guard";
 
 async function main() {
   const input = await readHookInput();

@@ -14,7 +14,7 @@ import {
 	isLinterCompatible,
 	readStackConfig,
 	runLintPipeline,
-} from "../../../../../.claude/scripts/lib/stack-tools/src/index.ts";
+} from "../../../../../../..//.claude/scripts/lib/stack-tools/src/index.ts";
 import { extractTouchedFilesFromApplyPatch } from "../core/patch-files";
 
 function getTouchedFiles(input: Awaited<ReturnType<typeof readHookInput>>): string[] {

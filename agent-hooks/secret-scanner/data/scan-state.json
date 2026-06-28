@@ -1,11 +1,10 @@
 {
   "cleanScans": [
     {
-      "sessionId": "019ef4cf-ce34-7d03-834c-8d133ea885e0",
-      "commandHash": "8dee57cd0e09484a12c64961b89ef295027d9836342aecfaac15f91fc1708f33",
-      "command": "git commit -m \"feat: add Rhondda analysis script\"",
-      "createdAt": "2026-06-23T14:12:52.453Z",
-      "consumedAt": "2026-06-23T14:12:55.032Z"
+      "sessionId": "test-9",
+      "commandHash": "77da8b5745ae9802caf0a651bf3c096cf86c1814f0731ead2f57be1be4cbf103",
+      "command": "git commit -m \"test\"",
+      "createdAt": "2026-06-28T16:57:02.664Z"
     }
   ]
 }
