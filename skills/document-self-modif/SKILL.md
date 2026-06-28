@@ -5,9 +5,9 @@ description: Document a new harness modification (extension, patch, or conventio
 
 # Document a Harness Modification
 
-First read `~/.pi/agent/CONTEXT.md`. It contains the Quick Navigation table
-(current entries and their descriptions), Writing Rules (English, aligned tables,
-placeholders), and Folder Structure. Use these to stay consistent with existing docs.
+Use `~/.pi/agent/CONTEXT.md` (in context via AGENTS.md harness instructions).
+It contains the Quick Navigation table, Writing Rules, and Folder Structure —
+match these exactly.
 
 ## Step 1: Write the CONTEXT.md
 
