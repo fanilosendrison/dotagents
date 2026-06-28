@@ -177,10 +177,10 @@ For each example, identify reusable resources:
 
 ### Step 3: Create the Skill Directory
 
-Create the skill structure:
+Create the skill under `~/.agents/skills/`:
 
 ```bash
-mkdir -p skills/<skill-name>/{scripts,references,assets}
+mkdir -p ~/.agents/skills/<skill-name>/{scripts,references,assets}
 ```
 
 Then write `SKILL.md` with the frontmatter and body. Start from the table in
@@ -211,10 +211,10 @@ Delete any example files and directories you don't need.
 ### Step 5: Validate
 
 ```bash
-scripts/quick_validate.py <path/to/skill-folder>
+bun scripts/quick_validate.ts <path/to/skill-folder>
 ```
 
-Requires `pyyaml`. Checks frontmatter, naming, description quality, TODO markers,
+Zero dependencies. Checks frontmatter, naming, description quality, TODO markers,
 cross-references, and orphan files. Fix all errors before delivering the skill.
 
 ### Step 6: Iterate
@@ -222,22 +222,4 @@ cross-references, and orphan files. Fix all errors before delivering the skill.
 Use the skill on real tasks. When you notice struggles or inefficiencies, update SKILL.md
 or the bundled resources.
 
----
 
-## Harness-Specific Notes
-
-### Pi
-- Auto-discovers skills in `~/.pi/agent/skills/` and `~/.agents/skills/`
-- Invoke explicitly: `/skill:name`
-- Supports `metadata`, `allowed-tools`, `disable-model-invocation`
-- No packaging needed — skills live as plain directories
-
-### Claude Code
-- Auto-discovers skills in `~/.claude/skills/`
-- Only `name` and `description` are read from frontmatter; `compatibility` rarely needed
-- To distribute a skill, zip the directory and rename to `.skill`
-
-### Codex
-- Auto-discovers skills in `~/.codex/skills/`
-- Supports `metadata` in frontmatter (e.g., `short-description`)
-- System skills live under `.system/`
