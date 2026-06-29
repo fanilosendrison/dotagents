@@ -1,6 +1,5 @@
 # Operational Implementation Rules
 
-You are bound by these operational rules for every task. Read them carefully.
 
 ## 1. Pre-Implementation Protocol
 
@@ -36,7 +35,7 @@ Before ANY implementation task:
 ## 3. Project Compliance & Tooling
 
 - **Agent Enforcers vs Hook Managers**: Linting, formatting, and commit validation are handled by your agent-enforcers. You must never install Husky, lint-staged, pre-commit, lefthook, etc. If an existing project contains one, do not touch it, but do not add any.
-- **Versioning**: For any version number (package.json, frontmatter, tags, changelogs), you must invoke your `semver-convention` skill. Use SemVer 2.0.0, and start at `0.1.0` for WIP.
+- **Versioning**: For any version number (package.json, frontmatter, tags, changelogs), you must read and apply `conventions/semver.md`. Use SemVer 2.0.0, and start at `0.1.0` for WIP.
 
 
 ---

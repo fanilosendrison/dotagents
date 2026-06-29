@@ -14,7 +14,9 @@ cd $(dirname "$(readlink ~/.pi/agent/AGENTS.md)") && /git-commits-push  # dotpi
 cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotclaude
 ```
 
+
 ---
+
 
 ## Folder Structure
 
@@ -22,6 +24,8 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ~/.agents/
 ├── AGENTS.md                 ← You are here.
 ├── operational-implementation-rules.md ← How you must implement code
+├── conventions/              ← Passive rules and conventions
+│   └── semver.md             ← SemVer 2.0.0 guidelines
 ├── docs/                     ← Documentation for agent enforcers
 │   ├── CONTEXT.md            ← Index of all enforcers
 │   ├── command-validator/
@@ -45,13 +49,16 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 └── skills/                   ← Your auto-discovered capabilities (listed in your system prompt)
 ```
 
+
 ---
+
 
 ## Quick Navigation
 
 | Want to... | Go here |
 |-----------------------------------------------------|----------------------------------------------|
 | Know how you must implement code                    | `operational-implementation-rules.md`        |
+| Know about passive rules and conventions            | `conventions/`                               |
 | Know about the way you verify bash commands         | `docs/command-validator/CONTEXT.md`          |
 | Know about the way you validate commit messages     | `docs/commit-msg-validator/CONTEXT.md`       |
 | Know about how you enforce git commit and push      | `docs/git-commits-push-enforcer/CONTEXT.md`  |
@@ -59,13 +66,19 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 | Know how you prevents yourself from leaking secrets | `docs/secret-scanner/CONTEXT.md`             |
 | See all agent enforcers                             | `docs/CONTEXT.md`                            |
 
+
 ---
+
 
 ## Skills
 
 To document a new agent-enforcer script (security rule, validator, or linter),
 you must invoke your `/document-agent-enforcement` skill. It will walk you through creating the
 `CONTEXT.md`, updating the router, and keeping every index in sync.
+
+
+---
+
 
 ## Writing Rules
 
@@ -74,7 +87,9 @@ you must invoke your `/document-agent-enforcement` skill. It will walk you throu
 - You must produce no markdown lint violations.
 - **Prevent Data Leaks:** You must always use generic placeholders (e.g., `<project>`, `<api_key>`) in documentation and tracked files. You must keep real project names, configurations, and secrets strictly in `.gitignored` files.
 
+
 ---
+
 
 ## Implementation Tasks
 

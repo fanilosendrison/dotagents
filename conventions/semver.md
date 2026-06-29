@@ -1,13 +1,3 @@
----
-name: semver-convention
-description: >-
-  Semantic Versioning (SemVer 2.0.0) convention for all version numbers.
-  Apply when generating, updating, or validating a version number anywhere
-  (package.json, YAML frontmatter, pipeline files, tags, changelogs).
-  Use when the user says version, bump version, quelle version, SemVer,
-  numéro de version, or when any file contains a version field to set.
----
-
 # SemVer Convention
 
 You apply Semantic Versioning 2.0.0 for every version number you produce or update.
