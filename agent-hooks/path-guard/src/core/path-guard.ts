@@ -21,19 +21,99 @@ export interface PathGuardResult {
 /**
  * Resolve the real path, walking up to the first existing ancestor if the
  * target file doesn't exist yet (common for Write/Edit on new files).
+ *
+ * Walks at most `MAX_ANCESTOR_DEPTH` steps and bails out as soon as a
+ * strip step does not change the path. Both guards prevent infinite loops
+ * for inputs that have no `/` left to strip (e.g. unresolved `~`).
  */
+const MAX_ANCESTOR_DEPTH = 64;
+
 function resolveReal(givenPath: string): string | null {
   try {
     return realpathSync(givenPath);
   } catch {
     let ancestor = givenPath.replace(/\/[^/]+$/, "") || "/";
-    while (ancestor && !existsSync(ancestor)) {
-      ancestor = ancestor.replace(/\/[^/]+$/, "") || "/";
+    for (let i = 0; i < MAX_ANCESTOR_DEPTH; i++) {
+      if (existsSync(ancestor)) break;
+      const next = ancestor.replace(/\/[^/]+$/, "") || "/";
+      if (next === ancestor) return null; // no progress, give up
+      ancestor = next;
     }
-    if (!ancestor || !existsSync(ancestor)) return null;
+    if (!existsSync(ancestor)) return null;
     const rel = givenPath.slice(ancestor.length + 1);
     return realpathSync(ancestor) + "/" + rel;
   }
+}
+
+/**
+ * Unwrap common command wrappers to expose the real command being run.
+ *
+ * Handles:
+ *   env, env -i, env --ignore-environment
+ *   /usr/bin/env, /bin/env
+ *   sudo [-u user]
+ *   nohup
+ *   bash -c '...' / sh -c '...'
+ *
+ * Recursive: env -i bash -c 'find ...' unwraps to 'find ...'.
+ *
+ * This prevents bypassing path-guard by wrapping commands in indirections.
+ */
+function unwrapCommand(command: string): string {
+  let cmd = command.trim();
+  const maxDepth = 10;
+  for (let depth = 0; depth < maxDepth; depth++) {
+    let changed = false;
+
+    // env [-i] [--ignore-environment] [-S arg] [VAR=value ...] command [args...]
+    // Also matches /usr/bin/env, /bin/env, etc.
+    const envRe = /^(?:\S*\/)?env\s+(?:-i\s+|--ignore-environment\s+)?(?:-[A-Za-z]+\s+)?(?:[A-Za-z_]\w*=\S+\s+)*(\S(?:.|\n)*)$/;
+    const envMatch = cmd.match(envRe);
+    if (envMatch) {
+      cmd = envMatch[1];
+      changed = true;
+      continue;
+    }
+
+    // sudo [-u user] [VAR=value ...] command [args...]
+    const sudoRe = /^sudo\s+(?:-[A-Za-z]+\s+\S+\s+)?(?:[A-Za-z_]\w*=\S+\s+)*(\S(?:.|\n)*)$/;
+    const sudoMatch = cmd.match(sudoRe);
+    if (sudoMatch) {
+      cmd = sudoMatch[1];
+      changed = true;
+      continue;
+    }
+
+    // nohup command [args...]
+    const nohupRe = /^nohup\s+(\S(?:.|\n)*)$/;
+    const nohupMatch = cmd.match(nohupRe);
+    if (nohupMatch) {
+      cmd = nohupMatch[1];
+      changed = true;
+      continue;
+    }
+
+    // bash -c '...' / sh -c '...' / zsh -c '...' / dash -c '...'
+    // Extract the command string from inside the -c argument
+    const cShellRe = /^(?:bash|sh|zsh|dash|ksh)\s+-c\s+'([^']*)'\s*(.*)$/;
+    const cMatchSingle = cmd.match(cShellRe);
+    if (cMatchSingle) {
+      cmd = (cMatchSingle[1] + " " + cMatchSingle[2]).trim();
+      changed = true;
+      continue;
+    }
+    const cShellReDbl = /^(?:bash|sh|zsh|dash|ksh)\s+-c\s+"([^"]*)"\s*(.*)$/;
+    const cMatchDouble = cmd.match(cShellReDbl);
+    if (cMatchDouble) {
+      cmd = (cMatchDouble[1] + " " + cMatchDouble[2]).trim();
+      changed = true;
+      continue;
+    }
+
+    if (!changed) break;
+  }
+
+  return cmd;
 }
 
 /**
@@ -45,9 +125,13 @@ function resolveReal(givenPath: string): string | null {
 export function extractBashPaths(command: string): string[] {
   const paths = new Set<string>();
 
+  // Unwrap command wrappers (env -i, bash -c, etc.) before extracting paths.
+  // This prevents bypassing path-guard by wrapping the real command.
+  const unwrapped = unwrapCommand(command);
+
   // Strip single-quoted and double-quoted strings to avoid false positives
   // from redirect operators inside quotes.
-  const stripped = command
+  const stripped = unwrapped
     .replace(/'[^']*'/g, " ")
     .replace(/"[^"]*"/g, " ")
     .replace(/\\"/g, ""); // escaped quotes
@@ -104,7 +188,15 @@ export function checkBashCommand(command: string): PathGuardResult {
  * going through its ~/. prefix gateway.
  */
 export function checkPath(givenPath: string): PathGuardResult {
-  const real = resolveReal(givenPath);
+  // Expand a leading `~` or `~/...` to the user's home directory. Without
+  // this, resolveReal walks ancestors that never exist (e.g. `~/Developper`
+  // → `~` which doesn't exist) and deadlocks in a strip-no-progress loop.
+  const expanded =
+    givenPath === "~" || givenPath.startsWith("~/")
+      ? homedir() + givenPath.slice(1)
+      : givenPath;
+
+  const real = resolveReal(expanded);
   if (!real) return { allowed: true };
 
   if (!real.startsWith(PROJECTS + "/")) return { allowed: true };
