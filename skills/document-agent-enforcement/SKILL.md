@@ -72,3 +72,15 @@ When an action is blocked by this enforcer, you will receive an error message. *
 | `action` | Short imperative action (e.g. "Validate bash commands") |
 | `date` | Today's date in `YYYY-MM-DD` |
 | `content` | The full CONTEXT.md text drafted above |
+
+---
+
+## STEP 3. Run the bootstrap script (mechanical)
+
+Pipe the JSON from STEP 2 into the script bundled with this skill:
+
+```bash
+echo '<json>' | ./scripts/bootstrap-enforcer-docs
+```
+
+It creates the folder, writes `CONTEXT.md` in `~/.agents/docs/`, and updates the docs index all in one shot. **Zero LLM calls after STEP 2.**

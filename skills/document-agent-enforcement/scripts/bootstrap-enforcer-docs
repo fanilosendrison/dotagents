@@ -1,0 +1,58 @@
+#!/usr/bin/env bun
+/**
+ * Bootstrap a new enforcer docs/<topic>/ from a single JSON blob.
+ * Reads JSON from stdin — see lib.ts Input interface for schema.
+ */
+
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import {
+  type Input,
+  validateInput,
+  computeNextIndex,
+  formatIndexEntry,
+} from "./lib";
+
+const HARNESS = join(homedir(), ".agents");
+
+// ── read stdin ────────────────────────────────────────────────
+let raw = "";
+for await (const chunk of Bun.stdin.stream()) {
+  raw += Buffer.from(chunk).toString();
+}
+
+let inp: Input;
+try {
+  inp = JSON.parse(raw);
+} catch {
+  console.error("ERROR: invalid JSON on stdin");
+  process.exit(1);
+}
+
+const err = validateInput(inp);
+if (err) {
+  console.error(`ERROR: ${err}`);
+  process.exit(1);
+}
+
+const { topic, title, date, content } = inp;
+
+// ── 1. Create folder + write CONTEXT.md ──────────────────────
+const docDir = join(HARNESS, "docs", topic);
+mkdirSync(docDir, { recursive: true });
+writeFileSync(join(docDir, "CONTEXT.md"), content, "utf8");
+console.log(`✓ docs/${topic}/CONTEXT.md`);
+
+// ── 2. Append to docs/CONTEXT.md index ───────────────────────
+const indexPath = join(HARNESS, "docs", "CONTEXT.md");
+const indexContent = readFileSync(indexPath, "utf8");
+const next = computeNextIndex(indexContent);
+writeFileSync(
+  indexPath,
+  indexContent + formatIndexEntry(next, title, date, topic),
+  "utf8",
+);
+console.log(`✓ docs/CONTEXT.md (entry ${next})`);
+
+console.log("Done.");
