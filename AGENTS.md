@@ -5,7 +5,8 @@ This file is your map to `~/.agents/` — your core brain and governance center.
 ## Your 3 Symlink Folders — CRITICAL
 
 `~/.agents/`, `~/.pi/agent/`, and `~/.claude/skills/` are symlinks to git repos.
-**Edit directly** through the `~/.` paths. **To commit**, you must first resolve the symlink:
+**Edit directly** through the `~/.` paths. 
+**To commit**, you must first resolve the symlink:
 
 ```bash
 cd $(dirname "$(readlink ~/.agents/skills)") && /git-commits-push       # dotagents
@@ -17,7 +18,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 
 ```
 ~/.agents/
-├── AGENTS.md                 ← You are here. These are your shared laws.
+├── AGENTS.md                 ← You are here.
 ├── agent-enforcers/          ← Your core logic for security and validation rules
 │   ├── command-validator/    ← Bash commands you are forbidden from running
 │   ├── commit-msg-validator/ ← Rules for your git commits
