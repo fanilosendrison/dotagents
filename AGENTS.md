@@ -1,28 +1,33 @@
 # Shared Agent Conventions
 
-This file is your map to `~/.agents/` — your core brain and governance center. Whether you are running as Claude, Codex, or Pi, you are bound by these absolute conventions, security rules, and shared methodologies. You loaded this file because it acts as your fundamental instruction manual and system guardrails. Read it carefully.
+This file is your map to `~/.agents/` — your core brain and governance center. You are bound by these absolute conventions.
 
-## Symlink Structure — CRITICAL
+## The 3 Ecosystem Folders (Symlinks) — CRITICAL
 
-Every `~/.` path you use below is a symlink. When you write through it, you are actually writing into a git-tracked `dot*` repo. **You never need to know or use the physical path.**
+You will frequently modify files in your configuration folders. You must know that **these 3 specific folders are symlinks** pointing to git-tracked repositories (`dot*` repos).
 
-| You write to | It lands in |
-|-------------|-------------|
-| `~/.pi/agent/` (individual files) | dotpi git repo |
-| `~/.agents/` (individual files) | dotagents git repo |
-| `~/.claude/skills/` | dotclaude git repo |
+| Ecosystem | Your Working Path (Symlink) | Underlying Git Repo |
+|-----------|-----------------------------|---------------------|
+| **Pi** | `~/.pi/agent/` | `dotpi` |
+| **Agents Core** | `~/.agents/` | `dotagents` |
+| **Claude** | `~/.claude/skills/` | `dotclaude` |
 
-**Your Absolute Rules:**
-- **Always** write through `~/.` (e.g., `~/.agents/skills/my-skill/`)
-- **Never** write directly to any `dot*` path
-- The symlink handles the rest — your writes are git-tracked automatically. Do not overcomplicate it.
+**Your Edit Rule:**
+- **Always** write directly to the `~/.` path (e.g., `~/.agents/skills/my-skill/`). 
+- **Never** try to resolve or write directly to the underlying `dot*` repo. The symlink handles it perfectly.
 
-**When you need to commit:**
+**Your Commit Rule:**
+When you are done editing and need to commit your changes, you cannot run `git status` inside the symlink. You must resolve the symlink to `cd` into the actual git repository first:
 
 ```bash
-cd $(dirname "$(readlink ~/.agents/skills)") && /git-commits-push    # dotagents
-cd $(dirname "$(readlink ~/.pi/agent/AGENTS.md)") && /git-commits-push  # dotpi
-cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotclaude
+# If you modified files in ~/.agents/
+cd $(dirname "$(readlink ~/.agents/skills)") && /git-commits-push
+
+# If you modified files in ~/.pi/agent/
+cd $(dirname "$(readlink ~/.pi/agent/AGENTS.md)") && /git-commits-push
+
+# If you modified files in ~/.claude/skills/
+cd $(readlink ~/.claude/skills)/.. && /git-commits-push
 ```
 
 ## Folder Structure
