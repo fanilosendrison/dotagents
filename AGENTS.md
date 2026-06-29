@@ -22,15 +22,15 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ├── docs/                     ← Documentation for agent enforcers and shared logic
 │   ├── CONTEXT.md            ← Index
 │   ├── command-validator/
-│   │   └── CONTEXT.md        ← Validate bash commands
+│   │   └── CONTEXT.md        ← Forces you to verify bash commands
 │   ├── commit-msg-validator/
-│   │   └── CONTEXT.md        ← Validate commit messages
+│   │   └── CONTEXT.md        ← Forces you to validate commit messages
 │   ├── git-commits-push-enforcer/
-│   │   └── CONTEXT.md        ← Enforce git commit and push
+│   │   └── CONTEXT.md        ← Forces you to push after you commit
 │   ├── path-guard/
-│   │   └── CONTEXT.md        ← Enforce symlink paths
+│   │   └── CONTEXT.md        ← Shows you how to operate in symlink folders
 │   └── secret-scanner/
-│       └── CONTEXT.md        ← Scan for secrets
+│       └── CONTEXT.md        ← Prevents you to leak secrets
 ├── agent-enforcers/          ← Your core logic for security and validation rules
 │   ├── command-validator/
 │   ├── commit-msg-validator/
@@ -45,10 +45,10 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ## Quick Navigation
 
 | Want to... | Go here |
-|-----------------------------|-----------------------------------------------------------------------------|
-| Validate bash commands      | `docs/command-validator/CONTEXT.md` (Validate bash commands)                |
-| Validate commit messages    | `docs/commit-msg-validator/CONTEXT.md` (Validate commit messages)           |
-| Enforce git commit and push | `docs/git-commits-push-enforcer/CONTEXT.md` (Enforce git commit and push)   |
-| Enforce symlink paths       | `docs/path-guard/CONTEXT.md` (Enforce symlink paths)                        |
-| Scan for secrets            | `docs/secret-scanner/CONTEXT.md` (Scan for secrets)                         |
-| See all agent enforcers     | `docs/CONTEXT.md`                                                           |
+|---------------------------------------------|-------------------------------------------------------------------------------------------|
+| Forces you to verify bash commands          | `docs/command-validator/CONTEXT.md` (Forces you to verify bash commands)                  |
+| Forces you to validate commit messages      | `docs/commit-msg-validator/CONTEXT.md` (Forces you to validate commit messages)           |
+| Forces you to push after you commit         | `docs/git-commits-push-enforcer/CONTEXT.md` (Forces you to push after you commit)         |
+| Shows you how to operate in symlink folders | `docs/path-guard/CONTEXT.md` (Shows you how to operate in symlink folders)                |
+| Prevents you to leak secrets                | `docs/secret-scanner/CONTEXT.md` (Prevents you to leak secrets)                           |
+| See all agent enforcers                     | `docs/CONTEXT.md`                                                                         |
