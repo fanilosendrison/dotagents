@@ -20,7 +20,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ~/.agents/
 ├── AGENTS.md                 ← You are here.
 ├── docs/                     ← Documentation for agent enforcers
-│   ├── CONTEXT.md            ← Index
+│   ├── CONTEXT.md            ← Index of all enforcers
 │   ├── command-validator/
 │   │   └── CONTEXT.md        ← Forces you to verify bash commands
 │   ├── commit-msg-validator/
@@ -31,7 +31,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 │   │   └── CONTEXT.md        ← Shows you how to operate in symlink folders
 │   └── secret-scanner/
 │       └── CONTEXT.md        ← Prevents you to leak secrets
-├── agent-enforcers/          ← Your core logic for security and validation rules
+├── agent-enforcers/          ← scripts for security and validation rules
 │   ├── command-validator/
 │   ├── commit-msg-validator/
 │   ├── git-commits-push-enforcer/
@@ -52,3 +52,9 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 | Know how to operate in symlink folders              | `docs/path-guard/CONTEXT.md`                 |
 | Know how you prevents yourself from leaking secrets | `docs/secret-scanner/CONTEXT.md`             |
 | See all agent enforcers                             | `docs/CONTEXT.md`                            |
+
+## Skills
+
+To document a new agent-enforcer script (security rule, validator, or linter),
+invoke the `/document-agent-enforcement` skill. It will walk through creating the
+`CONTEXT.md`, updating the router, and keeping every index in sync.
