@@ -11,17 +11,24 @@ match these exactly.
 
 Follow these steps to document a harness modification.
 
-## STEP 1. Choose the title and write CONTEXT.md
+## STEP 1. Write CONTEXT.md and output metadata
 
-Start with a good title: `# <Action or Domain>`. Keep it short and `kebab-case` ready (e.g. `Managing API Keys` → `managing-api-keys`).
+Write `docs/<topic>/CONTEXT.md` — the file with the full documentation.
+Derive `<topic>` from the title: `# Managing API Keys` → `managing-api-keys`.
 
-You are writing for your future self — when you read this again, you need to understand what was done and how to act on it immediately. Reference `docs/managing-api-keys/CONTEXT.md` as the canonical example for tone, table formatting, and section depth.
+Start with a good title: `# <Action or Domain>`. Keep it short and `kebab-case` ready.
+
+You are writing for your future self — when you read this again, you need to
+understand what was done and how to act on it immediately. Reference
+`docs/managing-api-keys/CONTEXT.md` as the canonical example for tone, table
+formatting, and section depth.
 
 Sections, in this order:
 
 **Where / What** — critical context first.
 - If keys/resources: where they live.
-- If a convention: state it upfront with placeholders for infra (e.g. project `<agent_name>`, config `<config>`).
+- If a convention: state it upfront with placeholders for infra
+  (e.g. project `<agent_name>`, config `<config>`).
 - Use a table if there are multiple items.
 
 **How It Works** — operational details.
@@ -36,47 +43,61 @@ Sections, in this order:
 
 ---
 
-The steps below are mechanical. Execute them exactly.
+**Then, output this JSON block** — it feeds the mechanical steps below.
+Do NOT include it in the CONTEXT.md file, output it after writing.
+
+```json
+{
+  "topic": "managing-api-keys",
+  "title": "Managing API Keys",
+  "description": "Doppler-based auth",
+  "action": "Add / modify an API key",
+  "date": "2026-06-29"
+}
+```
+
+| Field | Source |
+|-------|--------|
+| `topic` | Title in kebab-case |
+| `title` | The title, without `# ` |
+| `description` | Short summary from the first sentence or frontmatter — 6 words max |
+| `action` | "Want to..." completion for Quick Navigation (imperative, starts with a verb) |
+| `date` | Today's date in `YYYY-MM-DD` |
 
 ---
 
-## STEP 2. Write the file
-
-Derive `<topic>` from the title you chose in STEP 1: `# Managing API Keys` → `managing-api-keys`. Write to:
-
-```
-docs/<topic>/CONTEXT.md
-```
+The steps below are mechanical — execute them exactly, using the JSON above.
+**No LLM call needed for steps 2 and 3.**
 
 ---
 
-## STEP 3. Update the index
+## STEP 2. Update the index (mechanical)
 
 Add an entry in `docs/CONTEXT.md` under "Existing Modifications":
+
 ```
-### N. <Title>
-- **Date** : YYYY-MM-DD
-- **Doc** : [`<topic>/CONTEXT.md`](<topic>/CONTEXT.md)
+### N. {{title}}
+- **Date** : {{date}}
+- **Doc** : [`{{topic}}/CONTEXT.md`]({{topic}}/CONTEXT.md)
 ```
+
+`N` is the next sequential number. Replace `{{...}}` with JSON values.
 
 ---
 
-## STEP 4. Update the router
+## STEP 3. Update the router (mechanical)
 
-Add a row in the `CONTEXT.md` Quick Navigation table **and** add the
-new `docs/<topic>/` folder in the Folder Structure tree.
+In `~/.pi/agent/CONTEXT.md`, do both:
 
-**Quick Navigation** row format:
+**Quick Navigation** — add a row:
 ```
-| <action> | `docs/<topic>/CONTEXT.md` (<description>) |
-```
-
-**Folder Structure** entry format (under `docs/`):
-```
-│   ├── <topic>/
-│   │   └── CONTEXT.md         ← <description>
+| {{action}} | `docs/{{topic}}/CONTEXT.md` ({{description}}) |
 ```
 
-The `<description>` is a short summary of the topic — take it from the
-content already written in STEP 2 (title, first sentence, or frontmatter
-description). Do not invent a new one.
+**Folder Structure** — add under `docs/`:
+```
+│   ├── {{topic}}/
+│   │   └── CONTEXT.md         ← {{description}}
+```
+
+Replace `{{...}}` with JSON values. No thinking required — copy from the JSON.
