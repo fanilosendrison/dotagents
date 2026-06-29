@@ -76,7 +76,7 @@ you must invoke your `/document-agent-enforcement` skill. It will walk you throu
 
 ## Operational Implementation Rules
 
-**You must never implement** without explaining first. Before ANY implementation task:
+**Never implement** without explaining first. Before ANY implementation task:
 
 1. **Summarize your strategy**: explain which files you will create/modify and why.
 2. **Justify your choices**: explain why you chose this approach rather than another.
@@ -100,27 +100,27 @@ you must invoke your `/document-agent-enforcement` skill. It will walk you throu
 
 ## Trade-offs
 
-1. You must choose the approach that best respects the **fundamental properties of the project** (refer to the project's CLAUDE.md).
+1. You must choose the approach that best respects the **fundamental properties of the project** (refer to the project's AGENTS.md).
 2. All else being equal → **you must choose the simplest approach**.
 3. If you are in real doubt → you must present both options to me with their trade-offs.
 
 ## What You Must NEVER Do
 
-- You must never ignore a failing test — fix it or report it.
-- You must never use weak generic types (`any`, `Object`, `interface{}`, `dynamic`) without commenting your justification.
-- You must never put business logic in the infrastructure layer — your logic belongs in `domain/`.
-- You must never create files whose names no longer accurately describe their content — split them.
-- You must never invent behavior not specified in the specs — ask me first.
-- You must never delete or modify compliance tests without explicit validation.
-- You must never use `print`/`console.log`/`println` for debugging — use the project's logging system.
-- You must never leave dead code, commented code, or obsolete comments — delete them.
-- You must never make things configurable if they come from the specs — hardcoded values are intentional.
-- You must never hardcode environment-dependent things — addresses, ports, keys, paths → use env vars or config.
-- You must never put a secret in the code or in a versioned file.
+- Never ignore a failing test — fix it.
+- Never use weak generic types (`any`, `Object`, `interface{}`, `dynamic`) without commenting your justification.
+- Never put business logic in the infrastructure layer — your logic belongs in `domain/`.
+- Never create files whose names no longer accurately describe their content — split them.
+- Never invent behavior not specified in the specs — ask me first.
+- Never delete or modify compliance tests without explicit validation.
+- Never use `print`/`console.log`/`println` for debugging — use the project's logging system.
+- Never leave dead code, commented code, or obsolete comments — delete them.
+- Never make things configurable if they come from the specs — hardcoded values are intentional.
+- Never hardcode environment-dependent things — addresses, ports, keys, paths → use env vars or config.
+- Never put a secret in the code or in a versioned file.
 
 ## What You MUST Always Do
 
-- You must name things explicitly: if a name is too long, so be it.
-- You must prefer readable code over clever code. If a trick is necessary, comment why you used it.
-- You must report inconsistencies you find (between specs, between specs and existing code).
-- You must propose improvements when you see a problem, even if I did not ask.
+- Name things explicitly: if a name is too long, so be it.
+- Prefer readable code over clever code. If a trick is necessary, comment why you used it.
+- Report inconsistencies you find (between specs, between specs and existing code).
+- Propose improvements when you see a problem, even if I did not ask.
