@@ -4,30 +4,13 @@ This file is your map to `~/.agents/` — your core brain and governance center.
 
 ## Your 3 Symlink Folders — CRITICAL
 
-You must know that **these 3 specific folders are symlinks** pointing to git-tracked repositories (`dot*` repos).
-
-| Your Working Path (Symlink) | Underlying Git Repo |
-|-----------------------------|---------------------|
-| `~/.pi/agent/` | `dotpi` |
-| `~/.agents/` | `dotagents` |
-| `~/.claude/skills/` | `dotclaude` |
-
-**Your Edit Rule:**
-- **Always** write directly to the `~/.` path (e.g., `~/.agents/skills/my-skill/`). 
-- **Never** try to resolve or write directly to the underlying `dot*` repo. The symlink handles it perfectly.
-
-**Your Commit Rule:**
-When you are done editing and need to commit your changes, you cannot run `git status` inside the symlink. You must resolve the symlink to `cd` into the actual git repository first:
+`~/.agents/`, `~/.pi/agent/`, and `~/.claude/skills/` are symlinks to git repos.
+**Edit directly** through the `~/.` paths. **To commit**, you must first resolve the symlink:
 
 ```bash
-# If you modified files in ~/.agents/
-cd $(dirname "$(readlink ~/.agents/skills)") && /git-commits-push
-
-# If you modified files in ~/.pi/agent/
-cd $(dirname "$(readlink ~/.pi/agent/AGENTS.md)") && /git-commits-push
-
-# If you modified files in ~/.claude/skills/
-cd $(readlink ~/.claude/skills)/.. && /git-commits-push
+cd $(dirname "$(readlink ~/.agents/skills)") && /git-commits-push       # dotagents
+cd $(dirname "$(readlink ~/.pi/agent/AGENTS.md)") && /git-commits-push  # dotpi
+cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotclaude
 ```
 
 ## Folder Structure
