@@ -5,57 +5,62 @@ description: Document a modification to the Pi harness (new extension, patch, or
 
 # Document a Harness Modification
 
-Use `~/.pi/agent/CONTEXT.md` (in context via AGENTS.md harness instructions).
+Read `~/.pi/agent/CONTEXT.md`.
 It contains the Quick Navigation table, Writing Rules, and Folder Structure —
 match these exactly.
 
-## Step 1: Write the CONTEXT.md
+Follow these steps to document a harness modification.
 
-Derive `<topic>` as kebab-case from the title (e.g. `# Managing API Keys` → `managing-api-keys`).
+## STEP 1. Choose the title and write CONTEXT.md
 
-Write `docs/<topic>/CONTEXT.md` with this header:
+Start with a good title: `# <Action or Domain>`. Keep it short and `kebab-case` ready (e.g. `Managing API Keys` → `managing-api-keys`).
+
+You are writing for your future self — when you read this again, you need to understand what was done and how to act on it immediately. Reference `docs/managing-api-keys/CONTEXT.md` as the canonical example for tone, table formatting, and section depth.
+
+Sections, in this order:
+
+**Where / What** — critical context first.
+- If keys/resources: where they live.
+- If a convention: state it upfront with placeholders for infra (e.g. project `<agent_name>`, config `<config>`).
+- Use a table if there are multiple items.
+
+**How It Works** — operational details.
+- Show the exact command or code block.
+- Include a placeholders reference table if the command has variables.
+- Mention any noteworthy behavior (e.g. "executed on every request, no caching").
+
+**Relevant Files** — table with columns: File, Purpose, Versioned (✅/❌).
+- Every file the agent might need to read or edit.
+
+**Background** — brief: what was changed and why. Keep it short.
+
+---
+
+The steps below are mechanical. Execute them exactly.
+
+---
+
+## STEP 2. Write the file
+
+Derive `<topic>` from the title you chose in STEP 1: `# Managing API Keys` → `managing-api-keys`. Write to:
 
 ```
-# <Title>
-
-- **Date**: YYYY-MM-DD
-- **Type**: Extension | Patch | Convention
-- **File**: `~/.pi/agent/<path>`
+docs/<topic>/CONTEXT.md
 ```
 
-Then these sections, in order:
+---
 
-**What** — critical context first. What was done, where it lives.
-**Why** — the problem it solves.
-**How It Works** — operational details (code block, command, behavior).
-**Relevant Files** — table: `File | Purpose | Versioned (✅/❌)`.
-**Background** — brief: what changed and why. Keep it short.
+## STEP 3. Update the index
 
-### Style reference
-
-Read `docs/managing-api-keys/CONTEXT.md` for the canonical example:
-- Tables use `|` with aligned columns
-- Sections separated by `---`
-- Placeholders use `<angle_brackets>`
-
-## Step 2: Update the index
-
-Add an entry in `docs/CONTEXT.md` under "Existing Modifications" at the end:
-
+Add an entry in `docs/CONTEXT.md` under "Existing Modifications":
 ```
 ### N. <Title>
 - **Date** : YYYY-MM-DD
 - **Doc** : [`<topic>/CONTEXT.md`](<topic>/CONTEXT.md)
 ```
 
-Increment N from the last existing entry (currently 7 entries).
+---
 
-## Step 3: Update the router
+## STEP 4. Update the router
 
-Add a row to the Quick Navigation table in `~/.pi/agent/CONTEXT.md`:
-
-```
-| Understand the <lowercase description> | `docs/<topic>/CONTEXT.md` (<one-line summary>) |
-```
-
-Match the table format exactly — separator dashes must align with header widths.
+Add a row in the `CONTEXT.md` Quick Navigation table.
