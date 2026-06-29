@@ -5,7 +5,8 @@ description: Document an agent-enforcer script (security rule, validator, linter
 
 # Document an Agent Enforcer
 
-You are documenting a strict security rule or guardrail from the `~/.agents/agent-enforcers/` directory.
+Read `~/.agent/AGENTS.md`.
+You are documenting a strict security rule or guardrail script located in the `~/.agents/agent-enforcers/` directory.
 
 ## STEP 1. Read the Source Code
 
@@ -16,7 +17,7 @@ First, read the target enforcer's source code. You must understand:
 
 ## STEP 2. Draft the Documentation and fill the JSON
 
-Draft the full `CONTEXT.md` content for this enforcer. It will eventually live in `~/.agents/docs/<enforcer-name>/CONTEXT.md`.
+Draft the full `CONTEXT.md` content for this enforcer.
 Do not use client-specific terms like `PreToolUse` or `PostToolUse` — keep it entirely agnostic.
 
 ### Template
