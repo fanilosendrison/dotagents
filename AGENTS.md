@@ -74,3 +74,8 @@ you must invoke your `/document-agent-enforcement` skill. It will walk you throu
 - You must produce no markdown lint violations.
 - **Prevent Data Leaks:** You must always use generic placeholders (e.g., `<project>`, `<api_key>`) in documentation and tracked files. You must keep real project names, configurations, and secrets strictly in `.gitignored` files.
 
+---
+
+## Implementation Tasks
+
+If the user wants to think about an implementation or asks you to implement a feature, **you must first read** `operational-implementation-rules.md` before taking any action.
