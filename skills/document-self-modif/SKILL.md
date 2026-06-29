@@ -118,10 +118,10 @@ Replace `{{...}}` with JSON values. Pure append — no decision required.
 
 ## STEP 6. Update the Folder Structure (mechanical)
 
-Run the insertion script:
+Run the insertion script bundled with this skill:
 
 ```bash
-~/.pi/agent/bin/insert-docs-entry "{{topic}}" "{{description}}"
+./insert-docs-entry "{{topic}}" "{{description}}"
 ```
 
 Replace `{{...}}` with JSON values from STEP 1. The script handles
