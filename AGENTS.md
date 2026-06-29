@@ -87,9 +87,3 @@ you must invoke your `/document-agent-enforcement` skill. It will walk you throu
 - You must produce no markdown lint violations.
 
 
----
-
-
-## Implementation Tasks
-
-If the user wants to think about an implementation or asks you to implement a feature, **you must first read** `operational-implementation-rules.md` before taking any action.
