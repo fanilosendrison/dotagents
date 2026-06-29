@@ -12,6 +12,7 @@ import {
   validateInput,
   computeNextIndex,
   formatIndexEntry,
+  insertFolderEntry,
 } from "./lib";
 
 const HARNESS = join(homedir(), ".agents");
@@ -36,7 +37,7 @@ if (err) {
   process.exit(1);
 }
 
-const { topic, title, date, content } = inp;
+const { topic, title, action, date, content } = inp;
 
 // ── 1. Create folder + write CONTEXT.md ──────────────────────
 const docDir = join(HARNESS, "docs", topic);
@@ -54,5 +55,17 @@ writeFileSync(
   "utf8",
 );
 console.log(`✓ docs/CONTEXT.md (entry ${next})`);
+
+// ── 3. Insert into Folder Structure tree ─────────────────────
+const routerPath = join(HARNESS, "AGENTS.md");
+try {
+  const routerContent = readFileSync(routerPath, "utf8");
+  const fsUpdated = insertFolderEntry(routerContent, topic, action);
+  writeFileSync(routerPath, fsUpdated, "utf8");
+  console.log(`✓ Folder Structure (docs/${topic}/)`);
+} catch (e: any) {
+  console.error(`ERROR: ${e.message}`);
+  process.exit(1);
+}
 
 console.log("Done.");

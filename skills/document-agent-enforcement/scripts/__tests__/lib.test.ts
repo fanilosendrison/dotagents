@@ -3,6 +3,10 @@ import {
   validateInput,
   computeNextIndex,
   formatIndexEntry,
+  findDocsSection,
+  parseDocEntries,
+  buildDocTree,
+  insertFolderEntry,
 } from "../lib";
 
 describe("lib", () => {
@@ -44,6 +48,56 @@ describe("lib", () => {
       expect(entry).toContain("### 2. Test Tool");
       expect(entry).toContain("- **Date** : 2026-06-29");
       expect(entry).toContain("[`test-tool/CONTEXT.md`](test-tool/CONTEXT.md)");
+    });
+  });
+
+  describe("Folder Structure parsing", () => {
+    const lines = [
+      "~/.agents/",
+      "├── AGENTS.md",
+      "├── docs/",
+      "│   ├── CONTEXT.md",
+      "│   └── alpha/",
+      "│       └── CONTEXT.md        ← Alpha",
+      "├── agent-enforcers/",
+      "└── skills/"
+    ];
+
+    it("findDocsSection finds boundaries", () => {
+      const section = findDocsSection(lines);
+      expect(section).toEqual({ start: 2, end: 6 });
+    });
+
+    it("parseDocEntries extracts header and entries", () => {
+      const sectionLines = lines.slice(3, 6);
+      const { header, entries } = parseDocEntries(sectionLines);
+      expect(header).toEqual(["│   ├── CONTEXT.md"]);
+      expect(entries).toEqual([{ name: "alpha", desc: "Alpha" }]);
+    });
+
+    it("buildDocTree reconstructs block", () => {
+      const header = ["│   ├── CONTEXT.md"];
+      const entries = [
+        { name: "alpha", desc: "Alpha" },
+        { name: "beta", desc: "Beta" }
+      ];
+      const rebuilt = buildDocTree("├── docs/", header, entries);
+      expect(rebuilt).toEqual([
+        "├── docs/",
+        "│   ├── CONTEXT.md",
+        "│   ├── alpha/",
+        "│   │   └── CONTEXT.md        ← Alpha",
+        "│   └── beta/",
+        "│       └── CONTEXT.md        ← Beta"
+      ]);
+    });
+
+    it("insertFolderEntry modifies routerContent", () => {
+      const router = lines.join("\n");
+      const updated = insertFolderEntry(router, "beta", "Beta");
+      expect(updated).toContain("│   ├── alpha/");
+      expect(updated).toContain("│   └── beta/");
+      expect(updated).toContain("│       └── CONTEXT.md        ← Beta");
     });
   });
 });

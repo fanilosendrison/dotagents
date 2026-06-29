@@ -5,6 +5,20 @@ import { tmpdir } from "node:os";
 
 const SCRIPT = join(import.meta.dir, "..", "bootstrap-enforcer-docs");
 
+const ROUTER_FIXTURE = `
+## Folder Structure
+
+\`\`\`
+~/.agents/
+├── AGENTS.md
+├── docs/
+│   ├── CONTEXT.md
+│   └── alpha-tool/
+│       └── CONTEXT.md        ← First
+├── agent-enforcers/
+\`\`\`
+`;
+
 const INDEX_FIXTURE = `# Docs
 
 ## Existing Enforcers
@@ -22,6 +36,7 @@ function setupHarness(): string {
   const home = join(tmpdir(), `bs-int-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
   const agent = join(home, ".agents");
   mkdirSync(join(agent, "docs"), { recursive: true });
+  writeFileSync(join(agent, "AGENTS.md"), ROUTER_FIXTURE, "utf8");
   writeFileSync(join(agent, "docs", "CONTEXT.md"), INDEX_FIXTURE, "utf8");
   return home;
 }
@@ -93,6 +108,16 @@ describe("bootstrap-enforcer-docs CLI integration", () => {
     });
   });
 
+  describe("Folder Structure", () => {
+    it("inserts alphabetically with correct box-drawing chars", async () => {
+      await run(makeJson({ topic: "gamma-tool", action: "Gamma" }), home);
+      const router = readFileSync(join(home, ".agents", "AGENTS.md"), "utf8");
+      expect(router).toContain("│   ├── alpha-tool/");
+      expect(router).toContain("│   └── gamma-tool/");
+      expect(router).toContain("│       └── CONTEXT.md        ← Gamma");
+    });
+  });
+
   describe("end-to-end", () => {
     it("simulates a real new extension documentation", async () => {
       const json = JSON.stringify({
@@ -108,6 +133,7 @@ describe("bootstrap-enforcer-docs CLI integration", () => {
       expect(exitCode).toBe(0);
       expect(stdout).toContain("✓ docs/path-guard/CONTEXT.md");
       expect(stdout).toContain("✓ docs/CONTEXT.md (entry 3)");
+      expect(stdout).toContain("✓ Folder Structure (docs/path-guard/)");
       expect(stdout).toContain("Done.");
 
       const agent = join(home, ".agents");
@@ -116,6 +142,11 @@ describe("bootstrap-enforcer-docs CLI integration", () => {
 
       const index = readFileSync(join(agent, "docs", "CONTEXT.md"), "utf8");
       expect(index).toContain("### 3. Path Guard");
+
+      const router = readFileSync(join(agent, "AGENTS.md"), "utf8");
+      expect(router).toContain("│   ├── alpha-tool/");
+      expect(router).toContain("│   └── path-guard/");
+      expect(router).toContain("│       └── CONTEXT.md        ← Enforce paths");
     });
   });
 });
