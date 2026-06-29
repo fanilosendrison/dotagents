@@ -76,3 +76,7 @@ new `docs/<topic>/` folder in the Folder Structure tree.
 │   ├── <topic>/
 │   │   └── CONTEXT.md         ← <description>
 ```
+
+The `<description>` is a short summary of the topic — take it from the
+content already written in STEP 2 (title, first sentence, or frontmatter
+description). Do not invent a new one.
