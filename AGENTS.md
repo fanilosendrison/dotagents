@@ -58,7 +58,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 | Want to... | Go here |
 |-----------------------------------------------------|----------------------------------------------|
 | Know how you must implement code                    | `operational-implementation-rules.md`        |
-| Know about the SemVer 2.0.0 convention              | `conventions/semver.md`                      |
+| Know how to numerote version                        | `conventions/semver.md`                      |
 | Know about the way you verify bash commands         | `docs/command-validator/CONTEXT.md`          |
 | Know about the way you validate commit messages     | `docs/commit-msg-validator/CONTEXT.md`       |
 | Know about how you enforce git commit and push      | `docs/git-commits-push-enforcer/CONTEXT.md`  |
