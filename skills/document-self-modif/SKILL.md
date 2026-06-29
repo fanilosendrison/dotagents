@@ -108,15 +108,25 @@ Add an entry in `docs/CONTEXT.md` under "Existing Modifications":
 
 In `~/.pi/agent/CONTEXT.md`, do both:
 
-**Quick Navigation** — add a row:
+**Quick Navigation** — add a row at the end of the table:
 ```
 | {{action}} | `docs/{{topic}}/CONTEXT.md` ({{description}}) |
 ```
 
-**Folder Structure** — add under `docs/`:
+**Folder Structure** — insert a new entry under `docs/`, alphabetically sorted.
+
+Insertion rules (the tree uses box-drawing chars, treat them precisely):
+
+1. Read the `docs/` block in the Folder Structure. Find where `<topic>` belongs
+   alphabetically among the existing `├── <name>/` / `└── <name>/` entries.
+2. If inserting **before** the current last entry:
+   - Insert `│   ├── {{topic}}/` at the found position, keep the last's `└──` unchanged.
+3. If inserting **as the new last** entry:
+   - Change the old last entry's `└──` to `├──`.
+   - Insert the new entry with `└──`:
 ```
-│   ├── {{topic}}/
-│   │   └── CONTEXT.md         ← {{description}}
+│   └── {{topic}}/
+│       └── CONTEXT.md         ← {{description}}
 ```
 
-Replace `{{...}}` with JSON values. No thinking — copy from the JSON.
+Replace `{{...}}` with JSON values.
