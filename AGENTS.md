@@ -58,3 +58,10 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 To document a new agent-enforcer script (security rule, validator, or linter),
 invoke the `/document-agent-enforcement` skill. It will walk through creating the
 `CONTEXT.md`, updating the router, and keeping every index in sync.
+
+## Writing Rules
+
+- All English.
+- Tables: separator dashes match header column widths exactly.
+- No markdown lint violations.
+- **Prevent Data Leaks:** Always use generic placeholders (e.g., `<project>`, `<api_key>`) in documentation and tracked files. Real project names, configurations, and secrets must strictly remain in `.gitignored` files.
