@@ -63,8 +63,8 @@ Sections, in this order:
 
 ---
 
-The steps below are **purely mechanical** — execute them exactly, using the
-JSON above. **No LLM call needed for steps 2–5.**
+The steps below are **purely mechanical** for steps 2–5. **Step 6 needs the
+LLM** (alphabetical tree insertion with box-drawing chars).
 
 ---
 
@@ -104,21 +104,28 @@ Add an entry in `docs/CONTEXT.md` under "Existing Modifications":
 
 ---
 
-## STEP 5. Update the router (mechanical)
+## STEP 5. Update the Quick Navigation (mechanical)
 
-In `~/.pi/agent/CONTEXT.md`, do both:
+In `~/.pi/agent/CONTEXT.md`, add a row at the end of the table:
 
-**Quick Navigation** — add a row at the end of the table:
 ```
 | {{action}} | `docs/{{topic}}/CONTEXT.md` ({{description}}) |
 ```
 
-**Folder Structure** — insert a new entry under `docs/`, alphabetically sorted.
+Replace `{{...}}` with JSON values. Pure append — no decision required.
 
-Insertion rules (the tree uses box-drawing chars, treat them precisely):
+---
+
+## STEP 6. Update the Folder Structure (requires LLM)
+
+This step reads the tree and inserts alphabetically — it needs the LLM because
+of box-drawing character management (`├──` / `└──`). It's the only non-mechanical
+step besides STEP 1.
+
+In `~/.pi/agent/CONTEXT.md`, insert a new entry under `docs/`, alphabetically sorted.
 
 1. Read the `docs/` block in the Folder Structure. Find where `<topic>` belongs
-   alphabetically among the existing `├── <name>/` / `└── <name>/` entries.
+   alphabetically among the existing entries.
 2. If inserting **before** the current last entry:
    - Insert `│   ├── {{topic}}/` at the found position, keep the last's `└──` unchanged.
 3. If inserting **as the new last** entry:
@@ -129,4 +136,4 @@ Insertion rules (the tree uses box-drawing chars, treat them precisely):
 │       └── CONTEXT.md         ← {{description}}
 ```
 
-Replace `{{...}}` with JSON values.
+Replace `{{...}}` with JSON values from STEP 1.
