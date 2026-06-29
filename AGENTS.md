@@ -19,7 +19,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ```
 ~/.agents/
 ├── AGENTS.md                 ← You are here.
-├── docs/                     ← Documentation for agent enforcers and shared logic
+├── docs/                     ← Documentation for agent enforcers
 │   ├── CONTEXT.md            ← Index
 │   ├── command-validator/
 │   │   └── CONTEXT.md        ← Forces you to verify bash commands
@@ -45,10 +45,10 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ## Quick Navigation
 
 | Want to... | Go here |
-|-----------------------------|-----------------------------------------------------------------------------|
-| Validate bash commands      | `docs/command-validator/CONTEXT.md` (Validate bash commands)                |
-| Validate commit messages    | `docs/commit-msg-validator/CONTEXT.md` (Validate commit messages)           |
-| Enforce git commit and push | `docs/git-commits-push-enforcer/CONTEXT.md` (Enforce git commit and push)   |
-| Enforce symlink paths       | `docs/path-guard/CONTEXT.md` (Enforce symlink paths)                        |
-| Scan for secrets            | `docs/secret-scanner/CONTEXT.md` (Scan for secrets)                         |
-| See all agent enforcers     | `docs/CONTEXT.md`                                                           |
+|-----------------------------------------------------|----------------------------------------------|
+| Know about the way you verify bash commands         | `docs/command-validator/CONTEXT.md`          |
+| Know about the way you validate commit messages     | `docs/commit-msg-validator/CONTEXT.md`       |
+| Know about how you enforce git commit and push      | `docs/git-commits-push-enforcer/CONTEXT.md`  |
+| Know how to operate in symlink folders              | `docs/path-guard/CONTEXT.md`                 |
+| Know how you prevents yourself from leaking secrets | `docs/secret-scanner/CONTEXT.md`             |
+| See all agent enforcers                             | `docs/CONTEXT.md`                            |
