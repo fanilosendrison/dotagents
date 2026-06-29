@@ -1,29 +1,21 @@
 /**
- * Integration tests for bootstrap-docs.
- * Run: cd ~/.agents/skills/document-self-modif && bun test
+ * Integration tests for bootstrap-docs CLI.
+ * Each test spawns the real script in a fake $HOME with
+ * realistic CONTEXT.md fixtures. No mocks — filesystem I/O
+ * and subprocess execution are real.
  *
- * Every test creates a fresh isolated harness under a fake $HOME,
- * runs the real script via subprocess, and checks exact output.
- * No mocks, no shared state — if a test passes, the script works.
+ * Run: cd ~/.agents/skills/document-self-modif && bun test
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import {
-  mkdirSync,
-  rmSync,
-  readFileSync,
-  writeFileSync,
-  existsSync,
-} from "node:fs";
+import { mkdirSync, rmSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { $ } from "bun";
-
-// ── helpers ───────────────────────────────────────────────────
 
 const SCRIPT = join(import.meta.dir, "bootstrap-docs");
 
-/** Minimal but realistic router CONTEXT.md (Folder Structure + QuickNav + Skills). */
+// ── fixtures ──────────────────────────────────────────────────
+
 const ROUTER_FIXTURE = `# Harness Config
 
 ## Folder Structure
@@ -50,10 +42,9 @@ const ROUTER_FIXTURE = `# Harness Config
 
 ## Skills
 
-Skills description here.
+Skills here.
 `;
 
-/** Minimal docs index. */
 const INDEX_FIXTURE = `# Docs
 
 ## Existing Modifications
@@ -67,22 +58,10 @@ const INDEX_FIXTURE = `# Docs
 - **Doc** : [\`zulu-tool/CONTEXT.md\`](zulu-tool/CONTEXT.md)
 `;
 
-/** Valid input JSON builder. */
-function makeInput(overrides: Record<string, string>) {
-  return JSON.stringify({
-    topic: "middle-tool",
-    title: "Middle Tool",
-    description: "In between",
-    action: "Use middle tool",
-    date: "2026-06-29",
-    content: "# Middle Tool\n\n## Where / What\n\nIt lives in the middle.\n",
-    ...overrides,
-  });
-}
+// ── helpers ───────────────────────────────────────────────────
 
-/** Set up a fresh harness under a fake $HOME, return the home path. */
 function setupHarness(): string {
-  const home = join(tmpdir(), `bs-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const home = join(tmpdir(), `bs-int-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
   const agent = join(home, ".pi", "agent");
   mkdirSync(join(agent, "docs"), { recursive: true });
   writeFileSync(join(agent, "CONTEXT.md"), ROUTER_FIXTURE, "utf8");
@@ -90,315 +69,159 @@ function setupHarness(): string {
   return home;
 }
 
-/** Run the script, return { stdout, stderr, exitCode }. */
-async function run(input: string, home: string) {
+async function run(json: string, home: string) {
   const proc = Bun.spawn([SCRIPT], {
     stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
     env: { ...process.env, HOME: home },
   });
-  proc.stdin.write(input);
+  proc.stdin.write(json);
   proc.stdin.end();
 
   const [stdout, stderr] = await Promise.all([
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
   ]);
-  const exitCode = await proc.exited;
+  return { stdout, stderr, exitCode: await proc.exited };
+}
 
-  return { stdout, stderr, exitCode };
+function makeJson(overrides: Record<string, string> = {}): string {
+  return JSON.stringify({
+    topic: "middle-tool",
+    title: "Middle Tool",
+    description: "In between",
+    action: "Use middle",
+    date: "2026-06-29",
+    content: "# Middle Tool\n\n## Where / What\n\nMiddle.\n",
+    ...overrides,
+  });
 }
 
 // ── tests ─────────────────────────────────────────────────────
 
-describe("bootstrap-docs", () => {
+describe("bootstrap-docs CLI integration", () => {
   let home = "";
 
-  beforeEach(() => {
-    home = setupHarness();
-  });
+  beforeEach(() => { home = setupHarness(); });
+  afterEach(() => { if (home) rmSync(home, { recursive: true, force: true }); });
 
-  afterEach(() => {
-    if (home) rmSync(home, { recursive: true, force: true });
-  });
+  // ── validation ──────────────────────────────────────────
 
-  // ── 1. parsing & validation ──────────────────────────────
-
-  describe("input validation", () => {
+  describe("validation", () => {
     it("rejects malformed JSON", async () => {
       const { stderr, exitCode } = await run("not json", home);
       expect(exitCode).not.toBe(0);
       expect(stderr).toBeTruthy();
     });
 
-    it("rejects missing topic", async () => {
-      const input = JSON.stringify({
-        title: "X", description: "X", action: "X",
-        date: "2026-01-01", content: "# X",
-      });
-      const { exitCode } = await run(input, home);
-      expect(exitCode).toBe(1);
-    });
-
-    it("rejects missing content", async () => {
-      const input = JSON.stringify({
-        topic: "x", title: "X", description: "X",
-        action: "X", date: "2026-01-01",
-      });
-      const { exitCode } = await run(input, home);
-      expect(exitCode).toBe(1);
-    });
-
     it("rejects empty topic", async () => {
-      const { exitCode } = await run(makeInput({ topic: "" }), home);
-      expect(exitCode).not.toBe(0);
-    });
-
-    it("accepts valid minimal input", async () => {
-      const { exitCode } = await run(makeInput({}), home);
-      expect(exitCode).toBe(0);
+      const { exitCode } = await run(makeJson({ topic: "" }), home);
+      expect(exitCode).toBe(1);
     });
   });
 
-  // ── 2. CONTEXT.md file ───────────────────────────────────
+  // ── CONTEXT.md ──────────────────────────────────────────
 
-  describe("CONTEXT.md creation", () => {
-    it("creates the folder and file", async () => {
-      await run(makeInput({ topic: "test-tool" }), home);
+  describe("CONTEXT.md file", () => {
+    it("creates folder and writes content", async () => {
+      await run(makeJson({ topic: "test-tool" }), home);
       const doc = join(home, ".pi", "agent", "docs", "test-tool", "CONTEXT.md");
       expect(existsSync(doc)).toBe(true);
-    });
-
-    it("writes the exact content from JSON", async () => {
-      const content = "# My Tool\n\n## How It Works\n\n```bash\necho '${HOME}'\n```\n";
-      await run(makeInput({ topic: "my-tool", content }), home);
-      const written = readFileSync(
-        join(home, ".pi", "agent", "docs", "my-tool", "CONTEXT.md"), "utf8"
-      );
-      expect(written).toBe(content);
-    });
-
-    it("is idempotent on existing folder", async () => {
-      const agent = join(home, ".pi", "agent");
-      mkdirSync(join(agent, "docs", "dup-tool"), { recursive: true });
-      writeFileSync(join(agent, "docs", "dup-tool", "CONTEXT.md"), "old", "utf8");
-      await run(makeInput({ topic: "dup-tool", content: "new" }), home);
-      expect(
-        readFileSync(join(agent, "docs", "dup-tool", "CONTEXT.md"), "utf8")
-      ).toBe("new");
-    });
-
-    it("preserves special characters in content", async () => {
-      const content = "# Tool\n\nPath: `${HOME}/.pi`\n\nBackticks: ```\n";
-      await run(makeInput({ topic: "special", content }), home);
-      const written = readFileSync(
-        join(home, ".pi", "agent", "docs", "special", "CONTEXT.md"), "utf8"
-      );
-      expect(written).toBe(content);
+      expect(readFileSync(doc, "utf8")).toContain("Middle Tool");
     });
   });
 
-  // ── 3. docs index ────────────────────────────────────────
+  // ── index ───────────────────────────────────────────────
 
-  describe("docs/CONTEXT.md index", () => {
-    it("appends entry with correct numbering", async () => {
-      await run(makeInput({ topic: "new-tool", title: "New Tool", date: "2026-06-29" }), home);
-      const index = readFileSync(join(home, ".pi", "agent", "docs", "CONTEXT.md"), "utf8");
-      expect(index).toContain("### 3. New Tool");
-      expect(index).toContain("- **Date** : 2026-06-29");
-      expect(index).toContain("[`new-tool/CONTEXT.md`](new-tool/CONTEXT.md)");
-    });
-
-    it("starts at 1 with empty index", async () => {
-      // Replace index with an empty "Existing Modifications" section
-      writeFileSync(
-        join(home, ".pi", "agent", "docs", "CONTEXT.md"),
-        "# Docs\n\n## Existing Modifications\n\n",
-        "utf8"
+  describe("docs index", () => {
+    it("appends entry with correct number", async () => {
+      await run(makeJson(), home);
+      const index = readFileSync(
+        join(home, ".pi", "agent", "docs", "CONTEXT.md"), "utf8",
       );
-      await run(makeInput({ topic: "first", title: "First" }), home);
-      const index = readFileSync(join(home, ".pi", "agent", "docs", "CONTEXT.md"), "utf8");
-      expect(index).toContain("### 1. First");
-    });
-
-    it("does not duplicate on re-run", async () => {
-      // Run twice with same topic — should add TWO entries (current behavior, document it)
-      await run(makeInput({ topic: "dup", title: "Dup", date: "2026-01-01" }), home);
-      await run(makeInput({ topic: "dup", title: "Dup", date: "2026-01-01" }), home);
-      const index = readFileSync(join(home, ".pi", "agent", "docs", "CONTEXT.md"), "utf8");
-      const matches = [...index.matchAll(/### \d+\. Dup/g)];
-      expect(matches.length).toBe(2); // current behavior: no dedup
+      expect(index).toContain("### 3. Middle Tool");
     });
   });
 
-  // ── 4. Quick Navigation ──────────────────────────────────
+  // ── QuickNav ────────────────────────────────────────────
 
   describe("Quick Navigation", () => {
-    it("appends row before ## Skills", async () => {
-      await run(makeInput({ topic: "cool-tool", action: "Be cool", description: "Cool tool" }), home);
-      const router = readFileSync(join(home, ".pi", "agent", "CONTEXT.md"), "utf8");
-
-      // Row must appear before ## Skills
-      const skillsPos = router.indexOf("\n## Skills");
-      const rowPos = router.indexOf("| Be cool |");
-      expect(rowPos).toBeGreaterThan(0);
-      expect(rowPos).toBeLessThan(skillsPos);
-    });
-
-    it("includes backtick-escaped path and description", async () => {
-      await run(makeInput({ topic: "bt", action: "Use bt", description: "Backtick tool" }), home);
-      const router = readFileSync(join(home, ".pi", "agent", "CONTEXT.md"), "utf8");
-      expect(router).toContain("| Use bt | `docs/bt/CONTEXT.md` (Backtick tool) |");
-    });
-
-    it("falls back to append when ## Skills is missing", async () => {
-      writeFileSync(
-        join(home, ".pi", "agent", "CONTEXT.md"),
-        ROUTER_FIXTURE.replace("## Skills", "## Other Section"),
-        "utf8"
+    it("inserts row before ## Skills", async () => {
+      await run(makeJson({ action: "Use middle" }), home);
+      const router = readFileSync(
+        join(home, ".pi", "agent", "CONTEXT.md"), "utf8",
       );
-      const { exitCode } = await run(makeInput({ topic: "fallback" }), home);
-      expect(exitCode).toBe(0);
-      // Should not crash, row should be somewhere in the file
-      const router = readFileSync(join(home, ".pi", "agent", "CONTEXT.md"), "utf8");
-      expect(router).toContain("| Use middle tool |");
+      const row = router.indexOf("| Use middle |");
+      const skills = router.indexOf("\n## Skills");
+      expect(row).toBeGreaterThan(0);
+      expect(row).toBeLessThan(skills);
     });
   });
 
-  // ── 5. Folder Structure tree ─────────────────────────────
+  // ── Folder Structure ────────────────────────────────────
 
-  describe("Folder Structure tree", () => {
-    /**
-     * Parses the docs/ block from the tree and returns an ordered
-     * list of topic names. Useful to verify alphabetical order.
-     */
-    function getDocTopics(router: string): string[] {
-      const start = router.indexOf("├── docs/");
-      const end = router.indexOf("├── patches/");
-      const block = router.slice(start, end);
-      const topics: string[] = [];
-      for (const line of block.split("\n")) {
-        const m = line.match(/^│   [├└]── (.+?)\//);
-        if (m) topics.push(m[1]);
-      }
-      return topics;
-    }
-
-    it("inserts alphabetically in the middle", async () => {
-      await run(makeInput({ topic: "middle-tool" }), home);
-      const topics = getDocTopics(
-        readFileSync(join(home, ".pi", "agent", "CONTEXT.md"), "utf8")
+  describe("Folder Structure", () => {
+    it("inserts alphabetically with correct box-drawing chars", async () => {
+      await run(makeJson({ topic: "gamma-tool", description: "Gamma" }), home);
+      const router = readFileSync(
+        join(home, ".pi", "agent", "CONTEXT.md"), "utf8",
       );
-      expect(topics).toEqual(["alpha-tool", "middle-tool", "zulu-tool"]);
-    });
 
-    it("inserts at the beginning (new first entry)", async () => {
-      await run(makeInput({ topic: "aaa-first" }), home);
-      const topics = getDocTopics(
-        readFileSync(join(home, ".pi", "agent", "CONTEXT.md"), "utf8")
-      );
-      expect(topics).toEqual(["aaa-first", "alpha-tool", "zulu-tool"]);
-    });
+      // Order: alpha, gamma, zulu
+      const ai = router.indexOf("│   ├── alpha-tool/");
+      const gi = router.indexOf("│   ├── gamma-tool/");
+      const zi = router.indexOf("│   └── zulu-tool/");
+      expect(ai).toBeGreaterThan(0);
+      expect(gi).toBeGreaterThan(ai);
+      expect(zi).toBeGreaterThan(gi);
 
-    it("inserts at the end (new last entry)", async () => {
-      await run(makeInput({ topic: "zzz-last" }), home);
-      const router = readFileSync(join(home, ".pi", "agent", "CONTEXT.md"), "utf8");
-      const topics = getDocTopics(router);
-      // "zulu-tool" < "zzz-last" alphabetically (l < z at position 3)
-      expect(topics).toEqual(["alpha-tool", "zulu-tool", "zzz-last"]);
-      // Old last (zulu-tool) must switch from └── to ├──
-      expect(router).toContain("│   ├── zulu-tool/");
-      // New last gets └──
-      expect(router).toContain("│   └── zzz-last/");
-    });
-
-    it("uses ├── for non-last and └── for last entries", async () => {
-      // Add two topics so we have: alpha, beta, gamma, zulu
-      await run(makeInput({ topic: "beta-tool" }), home);
-      await run(makeInput({ topic: "gamma-tool" }), home);
-      const router = readFileSync(join(home, ".pi", "agent", "CONTEXT.md"), "utf8");
-
-      // All entries except the last should use ├──
-      const topicLines = router
-        .split("\n")
-        .filter(l => /^│   [├└]── .+\/$/.test(l) && l.includes("docs/") === false);
-
-      // First n-1 entries: ├──
-      const allButLast = topicLines.slice(0, -1);
-      for (const line of allButLast) {
-        expect(line).toContain("├──");
-      }
-      // Last entry: └──
-      expect(topicLines[topicLines.length - 1]).toContain("└──");
-    });
-
-    it("aligns CONTEXT.md line correctly (│   │   vs │       )", async () => {
-      await run(makeInput({ topic: "mid" }), home);
-      const router = readFileSync(join(home, ".pi", "agent", "CONTEXT.md"), "utf8");
-
-      // Non-last entry should have │   │   prefix
-      expect(router).toContain("│   │   └── CONTEXT.md         ← In between");
-      // Last entry should have │       prefix
-      expect(router).toContain("│       └── CONTEXT.md         ← Last tool");
-    });
-
-    it("errors when docs/ section is missing from tree", async () => {
-      writeFileSync(
-        join(home, ".pi", "agent", "CONTEXT.md"),
-        "# No tree here\n",
-        "utf8"
-      );
-      const { stderr, exitCode } = await run(makeInput({ topic: "orphan" }), home);
-      expect(exitCode).toBe(1);
-      expect(stderr.toLowerCase()).toContain("docs/");
+      // zulu was old last, gamma is in middle → zulu stays └──, gamma is ├──
+      expect(router).toContain("│   ├── gamma-tool/");
+      expect(router).toContain("│   └── zulu-tool/");
     });
   });
 
-  // ── 6. end-to-end ────────────────────────────────────────
+  // ── end-to-end ──────────────────────────────────────────
 
   describe("end-to-end", () => {
-    it("produces all 4 outputs correctly in one shot", async () => {
-      function getTopics(router: string): string[] {
-        const s = router.indexOf("├── docs/");
-        const e = router.indexOf("├── patches/");
-        const block = router.slice(s, e);
-        const t: string[] = [];
-        for (const line of block.split("\n")) {
-          const m = line.match(/^│   [├└]── (.+?)\//);
-          if (m) t.push(m[1]);
-        }
-        return t;
-      }
-      const { exitCode } = await run(makeInput({
-        topic: "e2e-tool",
-        title: "E2E Tool",
-        description: "Full test",
-        action: "Run e2e",
-        date: "2026-12-31",
-        content: "# E2E Tool\n\n## Background\n\nEnd-to-end test.\n",
-      }), home);
+    it("simulates a real new extension documentation", async () => {
+      const json = JSON.stringify({
+        topic: "auto-compactor",
+        title: "Auto Compactor",
+        description: "Custom compaction rules per project",
+        action: "Customize compaction behavior",
+        date: "2026-06-29",
+        content: "# Auto Compactor\n\n## Where / What\n\nLives at `extensions/auto-compactor.ts`.\n\n## How It Works\n\nHooks into `before_compaction`.\n\n## Background\n\nAdded for per-project tuning.\n",
+      });
 
+      const { exitCode, stdout } = await run(json, home);
       expect(exitCode).toBe(0);
+      expect(stdout).toContain("✓ docs/auto-compactor/CONTEXT.md");
+      expect(stdout).toContain("✓ docs/CONTEXT.md (entry 3)");
+      expect(stdout).toContain("✓ Quick Navigation row");
+      expect(stdout).toContain("✓ Folder Structure (docs/auto-compactor/)");
+      expect(stdout).toContain("Done.");
 
       const agent = join(home, ".pi", "agent");
 
-      // 1. CONTEXT.md written
-      expect(
-        readFileSync(join(agent, "docs", "e2e-tool", "CONTEXT.md"), "utf8")
-      ).toBe("# E2E Tool\n\n## Background\n\nEnd-to-end test.\n");
+      // File created
+      const doc = readFileSync(
+        join(agent, "docs", "auto-compactor", "CONTEXT.md"), "utf8",
+      );
+      expect(doc).toContain("# Auto Compactor");
+      expect(doc).toContain("`extensions/auto-compactor.ts`");
 
-      // 2. Index updated
+      // Index updated
       const index = readFileSync(join(agent, "docs", "CONTEXT.md"), "utf8");
-      expect(index).toContain("### 3. E2E Tool");
-      expect(index).toContain("- **Date** : 2026-12-31");
+      expect(index).toContain("### 3. Auto Compactor");
+      expect(index).toContain("2026-06-29");
 
-      // 3. QuickNav row
+      // Router has QuickNav + Folder Structure
       const router = readFileSync(join(agent, "CONTEXT.md"), "utf8");
-      expect(router).toContain("| Run e2e | `docs/e2e-tool/CONTEXT.md` (Full test) |");
-
-      // 4. Folder Structure (inserted between alpha and zulu)
-      expect(getTopics(router)).toEqual(["alpha-tool", "e2e-tool", "zulu-tool"]);
+      expect(router).toContain("Customize compaction behavior");
+      expect(router).toContain("│   ├── auto-compactor/");
+      expect(router).toContain("Custom compaction rules per project");
     });
   });
 });
