@@ -2,7 +2,7 @@
 
 This file is your map to `~/.agents/` — your core brain and governance center. You are bound by these absolute conventions.
 
-## How to Edit and Commit These 3 Configuration Folders (Symlinks) — CRITICAL
+## Your 3 Symlink Folders — CRITICAL
 
 You must know that **these 3 specific folders are symlinks** pointing to git-tracked repositories (`dot*` repos).
 
