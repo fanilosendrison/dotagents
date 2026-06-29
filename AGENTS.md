@@ -4,13 +4,13 @@ This file is your map to `~/.agents/` — your core brain and governance center.
 
 ## The 3 Ecosystem Folders (Symlinks) — CRITICAL
 
-You will frequently modify files in your configuration folders. You must know that **these 3 specific folders are symlinks** pointing to git-tracked repositories (`dot*` repos).
+You must know that **these 3 specific folders are symlinks** pointing to git-tracked repositories (`dot*` repos).
 
-| Ecosystem | Your Working Path (Symlink) | Underlying Git Repo |
-|-----------|-----------------------------|---------------------|
-| **Pi** | `~/.pi/agent/` | `dotpi` |
-| **Agents Core** | `~/.agents/` | `dotagents` |
-| **Claude** | `~/.claude/skills/` | `dotclaude` |
+| Your Working Path (Symlink) | Underlying Git Repo |
+|-----------------------------|---------------------|
+| `~/.pi/agent/` | `dotpi` |
+| `~/.agents/` | `dotagents` |
+| `~/.claude/skills/` | `dotclaude` |
 
 **Your Edit Rule:**
 - **Always** write directly to the `~/.` path (e.g., `~/.agents/skills/my-skill/`). 
