@@ -55,7 +55,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 
 ## Quick Navigation
 
-| Want to... | Go here |
+| Want to...                                          | Go here first                                |
 |-----------------------------------------------------|----------------------------------------------|
 | Implement a feature?                                | `operational-implementation-rules.md`        |
 | Know how to number versions                         | `conventions/semver.md`                      |
