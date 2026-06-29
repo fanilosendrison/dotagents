@@ -40,6 +40,14 @@ for await (const chunk of Bun.stdin.stream()) {
 const inp: Input = JSON.parse(raw);
 const { topic, title, description, action, date, content } = inp;
 
+// Validate required fields
+for (const [key, val] of Object.entries(inp)) {
+  if (!val || (typeof val === "string" && !val.trim())) {
+    console.error(`ERROR: field "${key}" is required and must not be empty`);
+    process.exit(1);
+  }
+}
+
 // ── 1. Create folder + write CONTEXT.md ──────────────────────
 const docDir = join(HARNESS, "docs", topic);
 mkdirSync(docDir, { recursive: true });
@@ -81,6 +89,10 @@ for (let i = 0; i < lines.length; i++) {
   }
 }
 if (docEnd === -1) docEnd = lines.length;
+if (docStart === -1) {
+  console.error("ERROR: docs/ section not found in Folder Structure tree");
+  process.exit(1);
+}
 
 const section = lines.slice(docStart + 1, docEnd);
 const header: string[] = [];
