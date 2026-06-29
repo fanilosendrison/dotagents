@@ -1,6 +1,6 @@
-# Your Conventions
+# Your Directives
 
-This file is your map to `~/.agents/` — your core brain and governance center. You are bound by these absolute conventions.
+This file is your map to `~/.agents/` — your core brain and governance center. You are bound by these absolute directives.
 
 ## Your 3 Symlink Folders — CRITICAL
 
