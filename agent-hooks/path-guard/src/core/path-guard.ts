@@ -151,25 +151,25 @@ export function extractBashPaths(command: string): string[] {
   const redirectRe = /(?:[12&]?>>?)\s*(\S+)/g;
   let m: RegExpExecArray | null;
   while ((m = redirectRe.exec(stripped)) !== null) {
-    const target = m[1].replace(/["']/g, "");
-    if (target.startsWith("/") || target.startsWith("~/")) {
-      paths.add(target);
-    }
+    paths.add(m[1].replace(/["']/g, ""));
   }
 
   // Match tee targets
   const teeRe = /tee\s+(?:-a\s+)?(\S+)/g;
   while ((m = teeRe.exec(stripped)) !== null) {
-    const target = m[1].replace(/["']/g, "");
-    if (target.startsWith("/") || target.startsWith("~/")) {
-      paths.add(target);
-    }
+    paths.add(m[1].replace(/["']/g, ""));
   }
 
-  // Extract all space-separated tokens that look like absolute paths
+  // Extract all space-separated tokens that look like file paths.
+  // Includes absolute (/...), tilde (~/...), and relative paths
+  // (contain / and not a flag like --verbose).
   for (const token of stripped.split(/\s+/)) {
     const clean = token.replace(/^["']|["']$/g, "");
-    if (clean.startsWith("/") || clean.startsWith("~/")) {
+    if (
+      clean.startsWith("/") ||
+      clean.startsWith("~/") ||
+      (clean.includes("/") && !clean.startsWith("-"))
+    ) {
       paths.add(clean);
     }
   }
