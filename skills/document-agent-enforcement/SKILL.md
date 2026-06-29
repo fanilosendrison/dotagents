@@ -63,3 +63,12 @@ When an action is blocked by this enforcer, you will receive an error message. *
   "content": "# Enforcer Name\n\n**Core Rule:** ...\n\n## Execution Context\n\n..."
 }
 ```
+
+| Field | Source |
+|-------|--------|
+| `topic` | Enforcer name in kebab-case (e.g. `command-validator`) |
+| `title` | The title, without `# ` |
+| `description` | Short summary — 6 words max |
+| `action` | Short imperative action (e.g. "Validate bash commands") |
+| `date` | Today's date in `YYYY-MM-DD` |
+| `content` | The full CONTEXT.md text drafted above |
