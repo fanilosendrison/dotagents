@@ -256,7 +256,7 @@ export function checkPath(givenPath: string): PathGuardResult {
 
   const gatewayDisplay = name === "pi" ? "~/.pi/agent/" : `~/.${name}/`;
 
-  if (!givenPath.startsWith(gateway)) {
+  if (!expanded.startsWith(gateway)) {
     return {
       allowed: false,
       gateway: gatewayDisplay,
