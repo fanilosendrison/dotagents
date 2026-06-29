@@ -82,5 +82,5 @@ tree — all in one shot. **Zero LLM calls after STEP 1.**
 
 - **[bootstrap-docs](scripts/bootstrap-docs)** — main script, does everything
 - **[lib.ts](scripts/lib.ts)** — pure functions for index, QuickNav, tree ops
-- **[bootstrap-docs.test.ts](scripts/bootstrap-docs.test.ts)** — integration tests (38 total)
-- **[lib.test.ts](scripts/lib.test.ts)** — unit tests (30 total)
+- **[bootstrap-docs.test.ts](scripts/__tests__/bootstrap-docs.test.ts)** — integration tests (8)
+- **[lib.test.ts](scripts/__tests__/lib.test.ts)** — unit tests (30)

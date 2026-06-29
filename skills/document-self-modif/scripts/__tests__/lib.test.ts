@@ -15,7 +15,7 @@ import {
   parseDocEntries,
   buildDocTree,
   insertFolderEntry,
-} from "./lib";
+} from "../lib";
 
 // ── validateInput ────────────────────────────────────────────
 

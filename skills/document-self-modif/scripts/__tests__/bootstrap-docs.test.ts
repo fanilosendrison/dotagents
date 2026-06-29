@@ -12,7 +12,7 @@ import { mkdirSync, rmSync, readFileSync, writeFileSync, existsSync } from "node
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-const SCRIPT = join(import.meta.dir, "bootstrap-docs");
+const SCRIPT = join(import.meta.dir, "..", "bootstrap-docs");
 
 // ── fixtures ──────────────────────────────────────────────────
 
