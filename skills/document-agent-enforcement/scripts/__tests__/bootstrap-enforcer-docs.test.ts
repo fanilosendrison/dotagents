@@ -13,8 +13,10 @@ const ROUTER_FIXTURE = `
 ├── AGENTS.md
 ├── docs/
 │   ├── CONTEXT.md
-│   └── alpha-tool/
-│       └── CONTEXT.md        ← First
+│   ├── alpha-tool/
+│   │   └── CONTEXT.md        ← First
+│   └── zulu-tool/
+│       └── CONTEXT.md        ← Last
 ├── agent-enforcers/
 \`\`\`
 `;
@@ -112,9 +114,18 @@ describe("bootstrap-enforcer-docs CLI integration", () => {
     it("inserts alphabetically with correct box-drawing chars", async () => {
       await run(makeJson({ topic: "gamma-tool", action: "Gamma" }), home);
       const router = readFileSync(join(home, ".agents", "AGENTS.md"), "utf8");
-      expect(router).toContain("│   ├── alpha-tool/");
-      expect(router).toContain("│   └── gamma-tool/");
-      expect(router).toContain("│       └── CONTEXT.md        ← Gamma");
+      
+      const ai = router.indexOf("│   ├── alpha-tool/");
+      const gi = router.indexOf("│   ├── gamma-tool/");
+      const zi = router.indexOf("│   └── zulu-tool/");
+      
+      expect(ai).toBeGreaterThan(0);
+      expect(gi).toBeGreaterThan(ai);
+      expect(zi).toBeGreaterThan(gi);
+      
+      expect(router).toContain("│   ├── gamma-tool/");
+      expect(router).toContain("│   │   └── CONTEXT.md        ← Gamma");
+      expect(router).toContain("│   └── zulu-tool/");
     });
   });
 
@@ -145,8 +156,9 @@ describe("bootstrap-enforcer-docs CLI integration", () => {
 
       const router = readFileSync(join(agent, "AGENTS.md"), "utf8");
       expect(router).toContain("│   ├── alpha-tool/");
-      expect(router).toContain("│   └── path-guard/");
-      expect(router).toContain("│       └── CONTEXT.md        ← Enforce paths");
+      expect(router).toContain("│   ├── path-guard/");
+      expect(router).toContain("│   │   └── CONTEXT.md        ← Enforce paths");
+      expect(router).toContain("│   └── zulu-tool/");
     });
   });
 });
