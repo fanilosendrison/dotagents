@@ -63,8 +63,8 @@ Sections, in this order:
 
 ---
 
-The steps below are **purely mechanical** for steps 2–5. **Step 6 needs the
-LLM** (alphabetical tree insertion with box-drawing chars).
+The steps below are **purely mechanical** for steps 2–6. **Zero LLM calls**
+after step 1 — every step is a file operation or a script invocation.
 
 ---
 
@@ -116,24 +116,13 @@ Replace `{{...}}` with JSON values. Pure append — no decision required.
 
 ---
 
-## STEP 6. Update the Folder Structure (requires LLM)
+## STEP 6. Update the Folder Structure (mechanical)
 
-This step reads the tree and inserts alphabetically — it needs the LLM because
-of box-drawing character management (`├──` / `└──`). It's the only non-mechanical
-step besides STEP 1.
+Run the insertion script:
 
-In `~/.pi/agent/CONTEXT.md`, insert a new entry under `docs/`, alphabetically sorted.
-
-1. Read the `docs/` block in the Folder Structure. Find where `<topic>` belongs
-   alphabetically among the existing entries.
-2. If inserting **before** the current last entry:
-   - Insert `│   ├── {{topic}}/` at the found position, keep the last's `└──` unchanged.
-3. If inserting **as the new last** entry:
-   - Change the old last entry's `└──` to `├──`.
-   - Insert the new entry with `└──`:
-```
-│   └── {{topic}}/
-│       └── CONTEXT.md         ← {{description}}
+```bash
+~/.pi/agent/bin/insert-docs-entry "{{topic}}" "{{description}}"
 ```
 
-Replace `{{...}}` with JSON values from STEP 1.
+Replace `{{...}}` with JSON values from STEP 1. The script handles
+alphabetical ordering and box-drawing characters automatically.
