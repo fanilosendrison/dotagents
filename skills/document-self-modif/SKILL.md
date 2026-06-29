@@ -9,14 +9,12 @@ Read `~/.pi/agent/CONTEXT.md`.
 It contains the Quick Navigation table, Writing Rules, and Folder Structure —
 match these exactly.
 
-Follow these steps to document a harness modification.
+## STEP 1. Draft the CONTEXT.md text and fill the JSON
 
-## STEP 1. Write CONTEXT.md and output metadata
+Draft the full `CONTEXT.md` content for the new topic. Do NOT write it to disk yet.
 
-Write `docs/<topic>/CONTEXT.md` — the file with the full documentation.
-Derive `<topic>` from the title: `# Managing API Keys` → `managing-api-keys`.
-
-Start with a good title: `# <Action or Domain>`. Keep it short and `kebab-case` ready.
+Start with a good title: `# <Action or Domain>`. Keep it short and `kebab-case` ready
+(e.g. `Managing API Keys` → `managing-api-keys`).
 
 You are writing for your future self — when you read this again, you need to
 understand what was done and how to act on it immediately. Reference
@@ -43,8 +41,7 @@ Sections, in this order:
 
 ---
 
-**Then, output this JSON block** — it feeds the mechanical steps below.
-Do NOT include it in the CONTEXT.md file, output it after writing.
+**Then, output this JSON block.** It feeds every mechanical step below.
 
 ```json
 {
@@ -66,12 +63,34 @@ Do NOT include it in the CONTEXT.md file, output it after writing.
 
 ---
 
-The steps below are mechanical — execute them exactly, using the JSON above.
-**No LLM call needed for steps 2 and 3.**
+The steps below are **purely mechanical** — execute them exactly, using the
+JSON above. **No LLM call needed for steps 2–5.**
 
 ---
 
-## STEP 2. Update the index (mechanical)
+## STEP 2. Create the folder (mechanical)
+
+```bash
+mkdir -p docs/{{topic}}
+```
+
+Replace `{{topic}}` with the JSON value.
+
+---
+
+## STEP 3. Write the CONTEXT.md (mechanical)
+
+Write the text drafted in STEP 1 to:
+
+```
+docs/{{topic}}/CONTEXT.md
+```
+
+Replace `{{topic}}` with the JSON value.
+
+---
+
+## STEP 4. Update the index (mechanical)
 
 Add an entry in `docs/CONTEXT.md` under "Existing Modifications":
 
@@ -85,7 +104,7 @@ Add an entry in `docs/CONTEXT.md` under "Existing Modifications":
 
 ---
 
-## STEP 3. Update the router (mechanical)
+## STEP 5. Update the router (mechanical)
 
 In `~/.pi/agent/CONTEXT.md`, do both:
 
@@ -100,4 +119,4 @@ In `~/.pi/agent/CONTEXT.md`, do both:
 │   │   └── CONTEXT.md         ← {{description}}
 ```
 
-Replace `{{...}}` with JSON values. No thinking required — copy from the JSON.
+Replace `{{...}}` with JSON values. No thinking — copy from the JSON.
