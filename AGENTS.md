@@ -32,12 +32,12 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 │   └── secret-scanner/
 │       └── CONTEXT.md        ← Scan for secrets
 ├── agent-enforcers/          ← Your core logic for security and validation rules
-│   ├── command-validator/    ← Bash commands you are forbidden from running
-│   ├── commit-msg-validator/ ← Rules for your git commits
+│   ├── command-validator/
+│   ├── commit-msg-validator/
 │   ├── git-commits-push-enforcer/
-│   ├── path-guard/           ← Paths you are blocked from writing to
-│   ├── post-write-linter/    ← Auto-formatting applied to your edits
-│   ├── secret-scanner/       ← Blocks you from leaking keys/tokens
-│   └── shared/               ← Your cross-enforcer runtime utilities
+│   ├── path-guard/
+│   ├── post-write-linter/
+│   ├── secret-scanner/
+│   └── shared/
 └── skills/                   ← Your auto-discovered capabilities (listed in your system prompt)
 ```
