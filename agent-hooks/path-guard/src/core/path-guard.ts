@@ -178,10 +178,41 @@ export function extractBashPaths(command: string): string[] {
 }
 
 /**
+ * Return true when every &&/;-separated segment is cd or git,
+ * and at least one segment is a git command.
+ *
+ * Purely-git command chains are safe to run inside dot* repos because
+ * git manages its own writes through .git/ — this is the whole reason
+ * dot* repos exist.
+ */
+function isGitOnlyCommand(cmd: string): boolean {
+  const segments = cmd.split(/&&|;/);
+  let hasGit = false;
+  for (let seg of segments) {
+    seg = seg.trim().replace(/^\(|\)$/g, "").trim();
+    if (!seg) continue;
+    if (seg.startsWith("git ")) {
+      hasGit = true;
+    } else if (!seg.startsWith("cd ")) {
+      return false;
+    }
+  }
+  return hasGit;
+}
+
+/**
  * Check whether a bash command writes to any blocked dot* path.
  * Returns the first blocked result, or { allowed: true }.
+ *
+ * Git commands (commit, push, status, etc.) are whitelisted so they
+ * can run inside dot* repos — the only reason these repos exist.
  */
 export function checkBashCommand(command: string): PathGuardResult {
+  // Whitelist pure git operations — they run inside dot* repos legitimately
+  if (isGitOnlyCommand(unwrapCommand(command))) {
+    return { allowed: true };
+  }
+
   const paths = extractBashPaths(command);
   for (const p of paths) {
     const result = checkPath(p);
