@@ -25,7 +25,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ├── AGENTS.md                 ← You are here.
 ├── operational-implementation-rules.md ← How you must implement code
 ├── conventions/              ← Passive rules and conventions
-│   └── semver.md             ← SemVer 2.0.0 guidelines
+│   └── semver.md             ← Shows you how to number versions
 ├── docs/                     ← Documentation for agent enforcers
 │   ├── CONTEXT.md            ← Index of all enforcers
 │   ├── command-validator/
