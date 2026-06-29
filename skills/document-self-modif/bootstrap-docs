@@ -1,0 +1,122 @@
+#!/usr/bin/env bun
+/**
+ * Bootstrap a new harness docs/<topic>/ from a single JSON blob.
+ * Reads JSON from stdin. Creates the folder, writes CONTEXT.md,
+ * and updates both the docs index and the harness router.
+ *
+ * stdin JSON:
+ * {
+ *   "topic":       "my-extension",        // kebab-case folder name
+ *   "title":       "My Extension",         // human-readable title
+ *   "description": "What it does",         // 6 words max, for router
+ *   "action":      "Add / modify X",       // Quick Navigation "Want to..." text
+ *   "date":        "2026-06-29",           // YYYY-MM-DD
+ *   "content":     "# My Extension\n\n..." // full CONTEXT.md body
+ * }
+ */
+
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+const HARNESS = join(homedir(), ".pi", "agent");
+const DOCS_INDEX = join(HARNESS, "docs", "CONTEXT.md");
+const ROUTER = join(HARNESS, "CONTEXT.md");
+
+interface Input {
+  topic: string;
+  title: string;
+  description: string;
+  action: string;
+  date: string;
+  content: string;
+}
+
+// ── read stdin ────────────────────────────────────────────────
+let raw = "";
+for await (const chunk of Bun.stdin.stream()) {
+  raw += Buffer.from(chunk).toString();
+}
+const inp: Input = JSON.parse(raw);
+const { topic, title, description, action, date, content } = inp;
+
+// ── 1. Create folder + write CONTEXT.md ──────────────────────
+const docDir = join(HARNESS, "docs", topic);
+mkdirSync(docDir, { recursive: true });
+writeFileSync(join(docDir, "CONTEXT.md"), content, "utf8");
+console.log(`✓ docs/${topic}/CONTEXT.md`);
+
+// ── 2. Append to docs/CONTEXT.md index ───────────────────────
+let index = readFileSync(DOCS_INDEX, "utf8");
+const nums = [...index.matchAll(/### (\d+)\./g)].map(m => parseInt(m[1]));
+const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+const entry = `\n### ${next}. ${title}\n- **Date** : ${date}\n- **Doc** : [\`${topic}/CONTEXT.md\`](${topic}/CONTEXT.md)\n`;
+index += entry;
+writeFileSync(DOCS_INDEX, index, "utf8");
+console.log(`✓ docs/CONTEXT.md (entry ${next})`);
+
+// ── 3. Append Quick Navigation row to router ─────────────────
+let router = readFileSync(ROUTER, "utf8");
+const qnRow = `| ${action} | \`docs/${topic}/CONTEXT.md\` (${description}) |`;
+// Insert before the closing of the Quick Navigation table
+// The table ends right before the "## Skills" heading
+const skillsIdx = router.indexOf("\n## Skills");
+if (skillsIdx !== -1) {
+  router = router.slice(0, skillsIdx) + "\n" + qnRow + router.slice(skillsIdx);
+} else {
+  // fallback: append at end
+  router += "\n" + qnRow + "\n";
+}
+console.log("✓ Quick Navigation row");
+
+// ── 4. Insert into Folder Structure tree ─────────────────────
+const lines = router.split("\n");
+
+let docStart = -1, docEnd = -1;
+for (let i = 0; i < lines.length; i++) {
+  if (docStart === -1) {
+    if (/^[├└]── docs\//.test(lines[i])) docStart = i;
+  } else {
+    if (/^[├└]── /.test(lines[i]) && i > docStart) { docEnd = i; break; }
+  }
+}
+if (docEnd === -1) docEnd = lines.length;
+
+const section = lines.slice(docStart + 1, docEnd);
+const header: string[] = [];
+const entries: { name: string; desc: string }[] = [];
+let i = 0;
+while (i < section.length) {
+  if (/^│   [├└]── .+\/$/.test(section[i])) break;
+  header.push(section[i]); i++;
+}
+while (i < section.length) {
+  const m = section[i].match(/^│   [├└]── (.+?)\/\s*(← .*)?$/);
+  if (!m) { i++; continue; }
+  const name = m[1].trim();
+  let d = "";
+  if (i + 1 < section.length) {
+    const dm = section[i + 1].match(/← (.+)$/);
+    if (dm) d = dm[1].trim();
+  }
+  entries.push({ name, desc: d });
+  i += 2;
+}
+
+entries.push({ name: topic, desc: description });
+entries.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+
+const rebuilt: string[] = [];
+entries.forEach(({ name, desc }, idx) => {
+  const last = idx === entries.length - 1;
+  const branch = last ? "└──" : "├──";
+  const indent = last ? "    " : "│   ";
+  rebuilt.push(`│   ${branch} ${name}/`);
+  rebuilt.push(`│   ${indent}└── CONTEXT.md         ← ${desc}`);
+});
+
+const newSection = [lines[docStart], ...header, ...rebuilt];
+const newLines = [...lines.slice(0, docStart), ...newSection, ...lines.slice(docEnd)];
+writeFileSync(ROUTER, newLines.join("\n"), "utf8");
+console.log(`✓ Folder Structure (docs/${topic}/)`);
+console.log("Done.");

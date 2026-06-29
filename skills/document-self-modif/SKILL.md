@@ -9,12 +9,12 @@ Read `~/.pi/agent/CONTEXT.md`.
 It contains the Quick Navigation table, Writing Rules, and Folder Structure —
 match these exactly.
 
-## STEP 1. Draft the CONTEXT.md text and fill the JSON
+## STEP 1. Draft the text and fill the JSON
 
-Draft the full `CONTEXT.md` content for the new topic. Do NOT write it to disk yet.
+Draft the full `CONTEXT.md` content for the new topic.
 
-Start with a good title: `# <Action or Domain>`. Keep it short and `kebab-case` ready
-(e.g. `Managing API Keys` → `managing-api-keys`).
+Start with a good title: `# <Action or Domain>`. Keep it short and `kebab-case`
+ready (e.g. `Managing API Keys` → `managing-api-keys`).
 
 You are writing for your future self — when you read this again, you need to
 understand what was done and how to act on it immediately. Reference
@@ -41,7 +41,8 @@ Sections, in this order:
 
 ---
 
-**Then, output this JSON block.** It feeds every mechanical step below.
+**Then, output this JSON block.** Put the full drafted text in the `content`
+field. Everything below feeds the mechanical step.
 
 ```json
 {
@@ -49,7 +50,8 @@ Sections, in this order:
   "title": "Managing API Keys",
   "description": "Doppler-based auth",
   "action": "Add / modify an API key",
-  "date": "2026-06-29"
+  "date": "2026-06-29",
+  "content": "# Managing API Keys\n\n## Where / What\n\n..."
 }
 ```
 
@@ -57,72 +59,21 @@ Sections, in this order:
 |-------|--------|
 | `topic` | Title in kebab-case |
 | `title` | The title, without `# ` |
-| `description` | Short summary from the first sentence or frontmatter — 6 words max |
-| `action` | "Want to..." completion for Quick Navigation (imperative, starts with a verb) |
+| `description` | Short summary — 6 words max |
+| `action` | "Want to..." for Quick Navigation (imperative, starts with a verb) |
 | `date` | Today's date in `YYYY-MM-DD` |
+| `content` | The full CONTEXT.md text drafted above |
 
 ---
 
-The steps below are **purely mechanical** for steps 2–6. **Zero LLM calls**
-after step 1 — every step is a file operation or a script invocation.
+## STEP 2. Run the bootstrap script (mechanical)
 
----
-
-## STEP 2. Create the folder (mechanical)
+Pipe the JSON from STEP 1 into the script bundled with this skill:
 
 ```bash
-mkdir -p docs/{{topic}}
+echo '<json>' | ./bootstrap-docs
 ```
 
-Replace `{{topic}}` with the JSON value.
-
----
-
-## STEP 3. Write the CONTEXT.md (mechanical)
-
-Write the text drafted in STEP 1 to:
-
-```
-docs/{{topic}}/CONTEXT.md
-```
-
-Replace `{{topic}}` with the JSON value.
-
----
-
-## STEP 4. Update the index (mechanical)
-
-Add an entry in `docs/CONTEXT.md` under "Existing Modifications":
-
-```
-### N. {{title}}
-- **Date** : {{date}}
-- **Doc** : [`{{topic}}/CONTEXT.md`]({{topic}}/CONTEXT.md)
-```
-
-`N` is the next sequential number. Replace `{{...}}` with JSON values.
-
----
-
-## STEP 5. Update the Quick Navigation (mechanical)
-
-In `~/.pi/agent/CONTEXT.md`, add a row at the end of the table:
-
-```
-| {{action}} | `docs/{{topic}}/CONTEXT.md` ({{description}}) |
-```
-
-Replace `{{...}}` with JSON values. Pure append — no decision required.
-
----
-
-## STEP 6. Update the Folder Structure (mechanical)
-
-Run the insertion script bundled with this skill:
-
-```bash
-./insert-docs-entry "{{topic}}" "{{description}}"
-```
-
-Replace `{{...}}` with JSON values from STEP 1. The script handles
-alphabetical ordering and box-drawing characters automatically.
+It creates the folder, writes `CONTEXT.md`, updates the docs index,
+appends the Quick Navigation row, and inserts into the Folder Structure
+tree — all in one shot. **Zero LLM calls after STEP 1.**
