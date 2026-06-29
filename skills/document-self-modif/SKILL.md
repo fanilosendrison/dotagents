@@ -65,3 +65,14 @@ Add an entry in `docs/CONTEXT.md` under "Existing Modifications":
 
 Add a row in the `CONTEXT.md` Quick Navigation table **and** add the
 new `docs/<topic>/` folder in the Folder Structure tree.
+
+**Quick Navigation** row format:
+```
+| <action> | `docs/<topic>/CONTEXT.md` (<description>) |
+```
+
+**Folder Structure** entry format (under `docs/`):
+```
+│   ├── <topic>/
+│   │   └── CONTEXT.md         ← <description>
+```
