@@ -71,9 +71,16 @@ field. Everything below feeds the mechanical step.
 Pipe the JSON from STEP 1 into the script bundled with this skill:
 
 ```bash
-echo '<json>' | ./bootstrap-docs
+echo '<json>' | ./scripts/bootstrap-docs
 ```
 
 It creates the folder, writes `CONTEXT.md`, updates the docs index,
 appends the Quick Navigation row, and inserts into the Folder Structure
 tree — all in one shot. **Zero LLM calls after STEP 1.**
+
+## Bundled Resources
+
+- **[bootstrap-docs](scripts/bootstrap-docs)** — main script, does everything
+- **[lib.ts](scripts/lib.ts)** — pure functions for index, QuickNav, tree ops
+- **[bootstrap-docs.test.ts](scripts/bootstrap-docs.test.ts)** — integration tests (38 total)
+- **[lib.test.ts](scripts/lib.test.ts)** — unit tests (30 total)
