@@ -14,3 +14,7 @@ When you need to document a new enforcer, look here first to understand what's a
 ## Existing Enforcers
 
 *(No enforcers documented here yet. Run `document-agent-enforcement` to start!)*
+
+### 1. Command Validator
+- **Date** : 2026-06-29
+- **Doc** : [`command-validator/CONTEXT.md`](command-validator/CONTEXT.md)
