@@ -2,7 +2,7 @@
 
 This file is your map to `~/.agents/` — your core brain and governance center. You are bound by these absolute conventions.
 
-## The 3 Ecosystem Folders (Symlinks) — CRITICAL
+## How to Edit and Commit (Symlink Rules) — CRITICAL
 
 You must know that **these 3 specific folders are symlinks** pointing to git-tracked repositories (`dot*` repos).
 
