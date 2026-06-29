@@ -65,6 +65,15 @@ function unwrapCommand(command: string): string {
   for (let depth = 0; depth < maxDepth; depth++) {
     let changed = false;
 
+    // exec command [args...]
+    const execRe = /^exec\s+(\S(?:.|\n)*)$/;
+    const execMatch = cmd.match(execRe);
+    if (execMatch) {
+      cmd = execMatch[1];
+      changed = true;
+      continue;
+    }
+
     // env [-i] [--ignore-environment] [-S arg] [VAR=value ...] command [args...]
     // Also matches /usr/bin/env, /bin/env, etc.
     const envRe = /^(?:\S*\/)?env\s+(?:-i\s+|--ignore-environment\s+)?(?:-[A-Za-z]+\s+)?(?:[A-Za-z_]\w*=\S+\s+)*(\S(?:.|\n)*)$/;
@@ -94,15 +103,16 @@ function unwrapCommand(command: string): string {
     }
 
     // bash -c '...' / sh -c '...' / zsh -c '...' / dash -c '...'
+    // Also matches /bin/bash, /usr/bin/sh, etc. (any path prefix)
     // Extract the command string from inside the -c argument
-    const cShellRe = /^(?:bash|sh|zsh|dash|ksh)\s+-c\s+'([^']*)'\s*(.*)$/;
+    const cShellRe = /^(?:\S*\/)?(?:bash|sh|zsh|dash|ksh|\$SHELL)\s+-c\s+'([^']*)'\s*(.*)$/;
     const cMatchSingle = cmd.match(cShellRe);
     if (cMatchSingle) {
       cmd = (cMatchSingle[1] + " " + cMatchSingle[2]).trim();
       changed = true;
       continue;
     }
-    const cShellReDbl = /^(?:bash|sh|zsh|dash|ksh)\s+-c\s+"([^"]*)"\s*(.*)$/;
+    const cShellReDbl = /^(?:\S*\/)?(?:bash|sh|zsh|dash|ksh|\$SHELL)\s+-c\s+"([^"]*)"\s*(.*)$/;
     const cMatchDouble = cmd.match(cShellReDbl);
     if (cMatchDouble) {
       cmd = (cMatchDouble[1] + " " + cMatchDouble[2]).trim();
