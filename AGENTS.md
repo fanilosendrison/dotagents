@@ -1,4 +1,4 @@
-# Shared Agent Conventions
+# Your Conventions
 
 This file is your map to `~/.agents/` — your core brain and governance center. You are bound by these absolute conventions.
 
