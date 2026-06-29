@@ -1,0 +1,16 @@
+# Docs — Agent Enforcers & Shared Logic
+
+This folder documents all agnostic agent-enforcer rules (security, validators, linters).
+These rules intercept agent tools across Pi, Claude, and Codex.
+
+When you need to document a new enforcer, look here first to understand what's already been done, then document any new changes using the `document-agent-enforcement` skill.
+
+## How to Add a New Enforcer Doc
+
+1. Create a folder with the enforcer name: `docs/<enforcer-name>/`
+2. Add a `CONTEXT.md` inside using the template from `document-agent-enforcement`.
+3. Add an entry below with date and link.
+
+## Existing Enforcers
+
+*(No enforcers documented here yet. Run `document-agent-enforcement` to start!)*

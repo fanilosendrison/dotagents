@@ -6,7 +6,6 @@ description: Document an agent-enforcer script (security rule, validator, linter
 # Document an Agent Enforcer
 
 You are documenting a strict security rule or guardrail from the `~/.agents/agent-enforcers/` directory.
-The documentation must be written directly as `README.md` inside the enforcer's root directory (e.g., `~/.agents/agent-enforcers/command-validator/README.md`).
 
 ## STEP 1. Read the Source Code
 
@@ -15,9 +14,10 @@ First, read the target enforcer's source code. You must understand:
 - Its interception phase (preventive vs reactive).
 - What exact patterns or heuristics cause it to block or allow an action.
 
-## STEP 2. Write the README.md
+## STEP 2. Draft the Documentation and fill the JSON
 
-Create or overwrite the `README.md` file in the enforcer's directory using the exact template below. Do not use client-specific terms like `PreToolUse` or `PostToolUse` — keep it entirely agnostic.
+Draft the full `CONTEXT.md` content for this enforcer. It will eventually live in `~/.agents/docs/<enforcer-name>/CONTEXT.md`.
+Do not use client-specific terms like `PreToolUse` or `PostToolUse` — keep it entirely agnostic.
 
 ### Template
 
@@ -47,3 +47,18 @@ When an action is blocked by this enforcer, you will receive an error message. *
 2. **Understand the rule**: Read the error message to identify which rule you broke.
 3. **Change approach**: [Specific mitigation strategy, e.g., "Use `git clean` instead of `rm -rf`"].
 ~~~
+
+---
+
+**Then, output this JSON block.** Put the full drafted text in the `content` field. Everything below feeds the mechanical step.
+
+```json
+{
+  "topic": "enforcer-name",
+  "title": "Enforcer Name",
+  "description": "Short description of the enforcer rule",
+  "action": "Document agent enforcer",
+  "date": "YYYY-MM-DD",
+  "content": "# Enforcer Name\n\n**Core Rule:** ...\n\n## Execution Context\n\n..."
+}
+```

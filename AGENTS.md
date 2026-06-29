@@ -19,6 +19,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ```
 ~/.agents/
 ├── AGENTS.md                 ← You are here.
+├── docs/                     ← Documentation for agent enforcers and shared logic
 ├── agent-enforcers/          ← Your core logic for security and validation rules
 │   ├── command-validator/    ← Bash commands you are forbidden from running
 │   ├── commit-msg-validator/ ← Rules for your git commits
