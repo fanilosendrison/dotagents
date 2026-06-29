@@ -6,8 +6,7 @@ description: Document a modification to the Pi harness (new extension, patch, or
 # Document a Harness Modification
 
 Read `~/.pi/agent/CONTEXT.md`.
-It contains the Quick Navigation table, Writing Rules, and Folder Structure —
-match these exactly.
+It contains the Quick Navigation table, Writing Rules, and Folder Structure — match these exactly.
 
 ## STEP 1. Draft the text and fill the JSON
 
