@@ -45,10 +45,10 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ## Quick Navigation
 
 | Want to... | Go here |
-|---------------------------------------------|-------------------------------------------------------------------------------------------|
-| Forces you to verify bash commands          | `docs/command-validator/CONTEXT.md` (Forces you to verify bash commands)                  |
-| Forces you to validate commit messages      | `docs/commit-msg-validator/CONTEXT.md` (Forces you to validate commit messages)           |
-| Forces you to push after you commit         | `docs/git-commits-push-enforcer/CONTEXT.md` (Forces you to push after you commit)         |
-| Shows you how to operate in symlink folders | `docs/path-guard/CONTEXT.md` (Shows you how to operate in symlink folders)                |
-| Prevents you to leak secrets                | `docs/secret-scanner/CONTEXT.md` (Prevents you to leak secrets)                           |
-| See all agent enforcers                     | `docs/CONTEXT.md`                                                                         |
+|-----------------------------|-----------------------------------------------------------------------------|
+| Validate bash commands      | `docs/command-validator/CONTEXT.md` (Validate bash commands)                |
+| Validate commit messages    | `docs/commit-msg-validator/CONTEXT.md` (Validate commit messages)           |
+| Enforce git commit and push | `docs/git-commits-push-enforcer/CONTEXT.md` (Enforce git commit and push)   |
+| Enforce symlink paths       | `docs/path-guard/CONTEXT.md` (Enforce symlink paths)                        |
+| Scan for secrets            | `docs/secret-scanner/CONTEXT.md` (Scan for secrets)                         |
+| See all agent enforcers     | `docs/CONTEXT.md`                                                           |
