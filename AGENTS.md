@@ -85,7 +85,6 @@ you must invoke your `/document-agent-enforcement` skill. It will walk you throu
 - You must write all output in English.
 - You must format tables so separator dashes match header column widths exactly.
 - You must produce no markdown lint violations.
-- **Prevent Data Leaks:** You must always use generic placeholders (e.g., `<project>`, `<api_key>`) in documentation and tracked files. You must keep real project names, configurations, and secrets strictly in `.gitignored` files.
 
 
 ---

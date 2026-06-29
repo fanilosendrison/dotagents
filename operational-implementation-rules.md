@@ -37,6 +37,7 @@ Before ANY implementation task:
 - Never make things configurable if they come from the specs — hardcoded values are intentional.
 - Never hardcode environment-dependent things — addresses, ports, keys, paths → use env vars or config.
 - Never put a secret in the code or in a versioned file.
+- **Never leak data**: You must always use generic placeholders (e.g., `<project>`, `<api_key>`) in documentation and tracked files. You must keep real project names, configurations, and secrets strictly in `.gitignored` files.
 
 
 ---
