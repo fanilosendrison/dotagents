@@ -14,6 +14,8 @@ export interface PathGuardResult {
   allowed: boolean;
   /** The ~/.<name>/ gateway to use instead (only set when blocked). */
   gateway?: string;
+  /** The fully resolved rewritten path to use instead of the givenPath. */
+  rewrittenPath?: string;
   /** Human-readable reason for the block. */
   reason?: string;
 }
@@ -221,6 +223,33 @@ export function checkBashCommand(command: string): PathGuardResult {
   return { allowed: true };
 }
 
+export function rewriteBashCommand(command: string): { rewritten: boolean; newCommand: string; logMessage?: string } {
+  if (isGitOnlyCommand(unwrapCommand(command))) {
+    return { rewritten: false, newCommand: command };
+  }
+
+  const paths = extractBashPaths(command).sort((a, b) => b.length - a.length);
+  let newCommand = command;
+  let rewritten = false;
+  const logs: string[] = [];
+
+  for (const p of paths) {
+    const result = checkPath(p);
+    if (!result.allowed && result.rewrittenPath) {
+      newCommand = newCommand.split(p).join(result.rewrittenPath);
+      logs.push(`[Path-Guard] 🔄 Redirection silencieuse vers ${result.gateway}`);
+      rewritten = true;
+    }
+  }
+
+  if (rewritten) {
+    const logStr = logs.join("\\n");
+    newCommand = `echo -e "\\033[33m${logStr}\\033[0m" >&2 && ${newCommand}`;
+  }
+
+  return { rewritten, newCommand, logMessage: logs.join("\n") };
+}
+
 /**
  * Check whether a write to `givenPath` is allowed.
  *
@@ -257,9 +286,13 @@ export function checkPath(givenPath: string): PathGuardResult {
   const gatewayDisplay = name === "pi" ? "~/.pi/agent/" : `~/.${name}/`;
 
   if (!expanded.startsWith(gateway)) {
+    const remainder = relative.slice(repoDir.length + 1);
+    const rewrittenPath = remainder ? gateway + "/" + remainder : gateway;
+
     return {
       allowed: false,
       gateway: gatewayDisplay,
+      rewrittenPath,
       reason:
         `Write through ${gatewayDisplay}, not directly to ${repoDir}/.\n` +
         `  Given:  ${givenPath}\n` +
