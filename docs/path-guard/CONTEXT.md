@@ -6,21 +6,20 @@
 
 | Target Data | Interception Phase |
 |-------------|--------------------|
-| Target Path (`Write`, `Edit`) | Preventive (Before Action) |
-| Bash Command String (`Bash`) | Preventive (Before Action) |
+| Target Path (`Write`, `Edit`) | Transparent Rewrite (Mutates Input) |
+| Bash Command String (`Bash`) | Verbose Rewrite (Mutates Command) |
 
-## Enforcement Behavior (Blocked vs Allowed)
+## Enforcement Behavior (Rewritten vs Allowed)
 
 | Status | Example Input | Reason / Logic |
 |--------|---------------|----------------|
-| ❌ **Blocked** | `Write` to `~/Developper/Projects/dotpi/agent/foo.ts` | Direct physical path is strictly forbidden. |
-| ❌ **Blocked** | `Bash` `echo "test" > ~/Developper/Projects/dotagents/README.md` | Redirection to direct physical path is forbidden. |
-| ✅ **Allowed** | `Write` to `~/.pi/agent/foo.ts` | Safely uses the symlink gateway. |
+| 🔄 **Rewritten** | `Write` to `~/Developper/Projects/dotpi/agent/foo.ts` | Path is silently mutated to `~/.pi/agent/foo.ts` before execution. |
+| 🔄 **Rewritten** | `Bash` `echo "test" > ~/Developper/Projects/dotagents/README.md` | Command is mutated to use `~/.agents/` and a `[Path-Guard]` warning is prepended to `stderr`. |
+| ✅ **Allowed** | `Write` to `~/.pi/agent/foo.ts` | Safely uses the symlink gateway, left untouched. |
 | ✅ **Allowed** | `Bash` `cd ~/Developper/Projects/dotpi/ && git commit` | Pure `git` (and `cd`) commands are whitelisted to run physically. |
 
-## Agent Mitigation (If you are blocked)
+## Agent Experience
 
-When an action is blocked by this enforcer, you will receive an error message containing the correct gateway. **You must immediately:**
-1. **Acknowledge the block**: Do not attempt to bypass the enforcer using obfuscation or retries.
-2. **Understand the rule**: Read the error message to identify which rule you broke.
-3. **Change approach**: Replace the physical path with the symlink gateway suggested in the error (e.g., replace `~/Developper/Projects/dotagents/` with `~/.agents/`). Use physical paths ONLY for git commands.
+Since the enforcer has been upgraded to a "verbose wrapper", it no longer blocks your actions. If you accidentally target a physical repository path instead of the symlink gateway:
+- For `Write`/`Edit`: The path is fixed silently and the file is created at the correct location.
+- For `Bash`: The command is rewritten on-the-fly and a yellow `[Path-Guard] 🔄 Redirection silencieuse...` warning will appear in the execution output, but the command will succeed.
