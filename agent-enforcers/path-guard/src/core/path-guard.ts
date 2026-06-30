@@ -193,9 +193,21 @@ function isGitOnlyCommand(cmd: string): boolean {
   for (let seg of segments) {
     seg = seg.trim().replace(/^\(|\)$/g, "").trim();
     if (!seg) continue;
-    if (seg.startsWith("git ")) {
+    const unwrapped = unwrapCommand(seg);
+    if (unwrapped.startsWith("git ")) {
       hasGit = true;
-    } else if (!seg.startsWith("cd ")) {
+    } else if (unwrapped.startsWith("cd ")) {
+      // Allowed
+    } else if (
+      unwrapped.startsWith("echo ") &&
+      !unwrapped.includes(">") &&
+      !unwrapped.includes("<") &&
+      !unwrapped.includes("|")
+    ) {
+      // Allowed: printing without redirects or piping is safe
+    } else if (unwrapped === "true" || unwrapped === "false" || unwrapped.startsWith("exit ")) {
+      // Allowed
+    } else {
       return false;
     }
   }
