@@ -8,18 +8,44 @@ import * as path from "node:path";
 let lastExecCmd: string | null = null;
 
 mock.module("@fanilosendrison/llm-runtime", () => ({
-	createOpenAIAdapter: () => ({
-		call: async () => ({ content: JSON.stringify({ type: "feat", description: "mock openai commit" }) }),
-	}),
-	createAnthropicAdapter: () => ({
-		call: async () => ({ content: JSON.stringify({ type: "fix", description: "mock anthropic commit" }) }),
-	}),
-	createGoogleAdapter: () => ({
-		call: async () => ({ content: JSON.stringify({ type: "docs", description: "mock google commit" }) }),
-	}),
-	createOpenAICompatibleAdapter: () => ({
-		call: async () => ({ content: JSON.stringify({ type: "chore", description: "mock custom commit" }) }),
-	}),
+	createOpenAIAdapter: (config: any) => {
+		if (config.apiKey !== "key" && config.apiKey !== "mock-token") {
+			throw new Error(`Unexpected OpenAI apiKey: ${config.apiKey}`);
+		}
+		return {
+			call: async (args: any) => {
+				if (args.temperature !== 0) throw new Error("Unexpected temperature");
+				return { content: JSON.stringify({ type: "feat", description: "mock openai commit" }) };
+			},
+		};
+	},
+	createAnthropicAdapter: (config: any) => {
+		if (config.apiKey !== "key") throw new Error("Unexpected Anthropic apiKey");
+		return {
+			call: async (args: any) => {
+				if (args.temperature !== 0) throw new Error("Unexpected temperature");
+				return { content: JSON.stringify({ type: "fix", description: "mock anthropic commit" }) };
+			},
+		};
+	},
+	createGoogleAdapter: (config: any) => {
+		if (config.apiKey !== "key") throw new Error("Unexpected Google apiKey");
+		return {
+			call: async (args: any) => {
+				if (args.temperature !== 0) throw new Error("Unexpected temperature");
+				return { content: JSON.stringify({ type: "docs", description: "mock google commit" }) };
+			},
+		};
+	},
+	createOpenAICompatibleAdapter: (config: any) => {
+		if (config.apiKey !== "key") throw new Error("Unexpected Custom apiKey");
+		return {
+			call: async (args: any) => {
+				if (args.temperature !== 0) throw new Error("Unexpected temperature");
+				return { content: JSON.stringify({ type: "chore", description: "mock custom commit" }) };
+			},
+		};
+	},
 	buildSimplePrompt: (p: any) => p,
 }));
 
