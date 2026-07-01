@@ -1,56 +1,89 @@
-// tests/unit/git-execution.test.ts — Unit tests for src/modules/git-execution.ts
+// tests/unit/git-publisher.test.ts — Unit tests for src/modules/git-publisher.ts
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { spawnSync } from "node:child_process";
-import { formatConventionalCommit, executeCommitAndPush } from "../../src/modules/git-execution.ts";
-import { GitRepoFixture } from "../fixtures/git-repo.ts";
 import { extractDiff } from "../../src/git-utils.ts";
+import {
+	executeCommitAndPush,
+	formatConventionalCommit,
+} from "../../src/modules/git-publisher.ts";
 import type { CommitMessage, Settings } from "../../src/types.ts";
+import { GitRepoFixture } from "../fixtures/git-repo.ts";
 
 // ─── Pure function tests (no git I/O) ────────────────────────────────────────
 
 describe("U-GE-01 | formatConventionalCommit — no scope, no breaking", () => {
 	test("produces 'feat: description'", () => {
-		const commit: CommitMessage = { type: "feat", description: "add feature", isBreaking: false };
+		const commit: CommitMessage = {
+			type: "feat",
+			description: "add feature",
+			isBreaking: false,
+		};
 		expect(formatConventionalCommit(commit)).toBe("feat: add feature");
 	});
 });
 
 describe("U-GE-02 | formatConventionalCommit — with scope", () => {
 	test("produces 'feat(scope): description'", () => {
-		const commit: CommitMessage = { type: "feat", scope: "auth", description: "add JWT", isBreaking: false };
+		const commit: CommitMessage = {
+			type: "feat",
+			scope: "auth",
+			description: "add JWT",
+			isBreaking: false,
+		};
 		expect(formatConventionalCommit(commit)).toBe("feat(auth): add JWT");
 	});
 });
 
 describe("U-GE-03 | formatConventionalCommit — breaking without scope", () => {
 	test("produces 'feat!: description'", () => {
-		const commit: CommitMessage = { type: "feat", description: "remove API", isBreaking: true };
+		const commit: CommitMessage = {
+			type: "feat",
+			description: "remove API",
+			isBreaking: true,
+		};
 		expect(formatConventionalCommit(commit)).toBe("feat!: remove API");
 	});
 });
 
 describe("U-GE-04 | formatConventionalCommit — breaking with scope", () => {
 	test("produces 'feat(scope)!: description'", () => {
-		const commit: CommitMessage = { type: "feat", scope: "api", description: "remove v1", isBreaking: true };
+		const commit: CommitMessage = {
+			type: "feat",
+			scope: "api",
+			description: "remove v1",
+			isBreaking: true,
+		};
 		expect(formatConventionalCommit(commit)).toBe("feat(api)!: remove v1");
 	});
 });
 
 describe("U-GE-05 | formatConventionalCommit — with body", () => {
 	test("body is separated by double newline", () => {
-		const commit: CommitMessage = { type: "fix", description: "crash on null", isBreaking: false, body: "Fixes #42" };
-		expect(formatConventionalCommit(commit)).toBe("fix: crash on null\n\nFixes #42");
+		const commit: CommitMessage = {
+			type: "fix",
+			description: "crash on null",
+			isBreaking: false,
+			body: "Fixes #42",
+		};
+		expect(formatConventionalCommit(commit)).toBe(
+			"fix: crash on null\n\nFixes #42",
+		);
 	});
 });
 
 // ─── Real git I/O tests ───────────────────────────────────────────────────────
 
 const NO_PUSH_SETTINGS: Settings = {
-	searchPaths: [], provider: "anthropic", model: "claude-test",
-	temperature: 0, systemPromptPath: "/dev/null", autoPush: false, skipTests: true,
+	searchPaths: [],
+	provider: "anthropic",
+	model: "claude-test",
+	temperature: 0,
+	systemPromptPath: "/dev/null",
+	autoPush: false,
+	skipTests: true,
 };
 
 const AUTO_PUSH_SETTINGS: Settings = { ...NO_PUSH_SETTINGS, autoPush: true };
@@ -65,9 +98,18 @@ describe("U-GE-06 | executeCommitAndPush — hash mismatch → throws", () => {
 	afterAll(() => repo.dispose());
 
 	test("throws when expectedDiffHash does not match current staged diff", async () => {
-		const commit: CommitMessage = { type: "feat", description: "test", isBreaking: false };
+		const commit: CommitMessage = {
+			type: "feat",
+			description: "test",
+			isBreaking: false,
+		};
 		await expect(
-			executeCommitAndPush(repo.dir, commit, "wrong-hash-00000000", NO_PUSH_SETTINGS),
+			executeCommitAndPush(
+				repo.dir,
+				commit,
+				"wrong-hash-00000000",
+				NO_PUSH_SETTINGS,
+			),
 		).rejects.toThrow("DiffHash mismatch");
 	});
 });
@@ -83,10 +125,18 @@ describe("U-GE-07 | executeCommitAndPush — correct commit created", () => {
 
 	test("git log shows the conventionally formatted commit", async () => {
 		const { diffHash } = await extractDiff(repo.dir);
-		const commit: CommitMessage = { type: "chore", scope: "deps", description: "update packages", isBreaking: false };
+		const commit: CommitMessage = {
+			type: "chore",
+			scope: "deps",
+			description: "update packages",
+			isBreaking: false,
+		};
 		await executeCommitAndPush(repo.dir, commit, diffHash, NO_PUSH_SETTINGS);
 
-		const log = spawnSync("git", ["log", "--oneline", "-1"], { cwd: repo.dir, encoding: "utf-8" });
+		const log = spawnSync("git", ["log", "--oneline", "-1"], {
+			cwd: repo.dir,
+			encoding: "utf-8",
+		});
 		expect(log.stdout).toContain("chore(deps): update packages");
 	});
 });
@@ -103,7 +153,11 @@ describe("U-GE-08 | executeCommitAndPush — autoPush false → no push attempt"
 
 	test("succeeds without network call when autoPush is false", async () => {
 		const { diffHash } = await extractDiff(repo.dir);
-		const commit: CommitMessage = { type: "fix", description: "silent fix", isBreaking: false };
+		const commit: CommitMessage = {
+			type: "fix",
+			description: "silent fix",
+			isBreaking: false,
+		};
 		// No network call expected — would fail immediately if push attempted
 		await expect(
 			executeCommitAndPush(repo.dir, commit, diffHash, NO_PUSH_SETTINGS),
@@ -122,7 +176,11 @@ describe("U-GE-09 | executeCommitAndPush — no remote → push skipped silently
 
 	test("resolves without error even when autoPush is true and no remote exists", async () => {
 		const { diffHash } = await extractDiff(repo.dir);
-		const commit: CommitMessage = { type: "docs", description: "update readme", isBreaking: false };
+		const commit: CommitMessage = {
+			type: "docs",
+			description: "update readme",
+			isBreaking: false,
+		};
 		await expect(
 			executeCommitAndPush(repo.dir, commit, diffHash, AUTO_PUSH_SETTINGS),
 		).resolves.toBeUndefined();
@@ -142,17 +200,31 @@ describe("U-GE-10 | executeCommitAndPush — no upstream → push -u fallback", 
 		repoSource.setRemote("custom-remote", bareRepoPath);
 		repoSource.writeAndStage("j.ts", "export const e = 5;\n");
 	});
-	afterAll(() => { 
-		repoSource.dispose(); 
-		try { fs.rmSync(bareRepoPath, { recursive: true, force: true }); } catch {}
+	afterAll(() => {
+		repoSource.dispose();
+		try {
+			fs.rmSync(bareRepoPath, { recursive: true, force: true });
+		} catch {}
 	});
 
 	test("push -u custom-remote succeeds and commit appears in bare repo", async () => {
 		const { diffHash } = await extractDiff(repoSource.dir);
-		const commit: CommitMessage = { type: "feat", description: "push via fallback", isBreaking: false };
-		await executeCommitAndPush(repoSource.dir, commit, diffHash, AUTO_PUSH_SETTINGS);
+		const commit: CommitMessage = {
+			type: "feat",
+			description: "push via fallback",
+			isBreaking: false,
+		};
+		await executeCommitAndPush(
+			repoSource.dir,
+			commit,
+			diffHash,
+			AUTO_PUSH_SETTINGS,
+		);
 
-		const log = spawnSync("git", ["log", "--oneline", "-1"], { cwd: bareRepoPath, encoding: "utf-8" });
+		const log = spawnSync("git", ["log", "--oneline", "-1"], {
+			cwd: bareRepoPath,
+			encoding: "utf-8",
+		});
 		expect(log.stdout).toContain("feat: push via fallback");
 	});
 });
@@ -164,7 +236,10 @@ describe("U-GE-11 | GIT_TERMINAL_PROMPT=0 is set on all git invocations", () => 
 		const start = Date.now();
 		const result = spawnSync(
 			"git",
-			["ls-remote", "https://github.com/nonexistent-org-xyz/nonexistent-repo-xyz.git"],
+			[
+				"ls-remote",
+				"https://github.com/nonexistent-org-xyz/nonexistent-repo-xyz.git",
+			],
 			{
 				env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
 				encoding: "utf-8",
