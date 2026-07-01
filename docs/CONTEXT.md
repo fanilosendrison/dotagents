@@ -38,3 +38,8 @@ When you need to document a new enforcer, look here first to understand what's a
 ### 6. Post-Write Linter
 - **Date** : 2026-07-01
 - **Doc** : [`post-write-linter/CONTEXT.md`](post-write-linter/CONTEXT.md)
+
+### 7. Logrotate (security.log)
+- **Date** : 2026-07-02
+- **Doc** : [`logrotate/CONTEXT.md`](logrotate/CONTEXT.md)
+- **Note** : Not an enforcer, but a maintenance utility. Documents the rotation script and launchd job for `agent-enforcers/command-validator/data/security.log`.
