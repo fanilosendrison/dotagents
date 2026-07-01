@@ -51,6 +51,7 @@ async function main() {
 
 function formatInvalidCommitMessage(message: string, errors: string[]): string {
 	return [
+		"❌ COMMAND BLOCKED BY ENFORCER:",
 		"Commit message invalide :",
 		"",
 		`  "${message}"`,
