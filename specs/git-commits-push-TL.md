@@ -1,6 +1,6 @@
 # Spécification : git-commits-push-TL
 
-Ce document décrit le workflow de la version robuste et mécanisée du processus d'analyse, de commit et de push de modifications sur plusieurs dépôts. Il utilise l'orchestrateur Turnlock pour diviser le travail en phases claires. L'objectif est de réduire au maximum la charge cognitive et le temps d'exécution de l'agent IA, en mécanisant le workflow étape par étape.
+Ce document décrit le workflow de la version robuste et mécanisée du processus d'analyse, de commit et de push de modifications sur plusieurs dépôts (/Users/famillesendrison/.agents/skills/git-commits-push/SKILL.md). Il utilise l'orchestrateur Turnlock (/Users/famillesendrison/Developper/Projects/VegaCorp/turnlock) pour diviser le travail en phases claires. L'objectif est de réduire au maximum la charge cognitive et le temps d'exécution de l'agent IA, en mécanisant le workflow étape par étape.
 
 ## Architecture Globale (Boucle Turnlock)
 Le processus est conçu autour d'une exécution hautement parallélisée : une phase de découverte initiale (Phase 1) retourne la liste globale des dépôts modifiés. Ensuite, les **Phases 2 à 4 s'exécutent de manière asynchrone et strictement en parallèle** (workers indépendants) pour tous les dépôts de la liste. 
