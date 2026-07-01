@@ -4765,3 +4765,6 @@
 {"timestamp":"2026-07-01T21:03:38.916Z","sessionId":"test-session","toolName":"Bash","command":"ls -la","blocked":false,"severity":"LOW","violations":[],"action":"allow","source":"codex-hook"}
 {"timestamp":"2026-07-01T21:03:38.989Z","sessionId":"test-session","toolName":"Bash","command":"rm -rf /tmp/test","blocked":true,"severity":"CRITICAL","violations":["rm -rf is forbidden - use trash instead"],"action":"deny","source":"codex-hook"}
 {"timestamp":"2026-07-01T21:03:39.054Z","sessionId":"test-session","toolName":"Bash","command":"sudo ls","blocked":true,"severity":"HIGH","violations":["Potentially dangerous command: sudo"],"action":"ask","source":"claude-hook"}
+{"timestamp":"2026-07-01T21:06:31.013Z","sessionId":"test-session","toolName":"Bash","command":"ls -la","blocked":false,"severity":"LOW","violations":[],"action":"allow","source":"codex-hook"}
+{"timestamp":"2026-07-01T21:06:31.068Z","sessionId":"test-session","toolName":"Bash","command":"rm -rf /tmp/test","blocked":true,"severity":"CRITICAL","violations":["rm -rf is forbidden - use trash instead"],"action":"deny","source":"codex-hook"}
+{"timestamp":"2026-07-01T21:06:31.156Z","sessionId":"test-session","toolName":"Bash","command":"sudo ls","blocked":true,"severity":"HIGH","violations":["Potentially dangerous command: sudo"],"action":"ask","source":"claude-hook"}

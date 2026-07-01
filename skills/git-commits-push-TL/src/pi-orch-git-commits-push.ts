@@ -19,7 +19,7 @@ import {
 } from "@fanilosendrison/llm-runtime";
 import { resolveAuthToken } from "./modules/auth-resolver";
 
-async function invokeLlm(payload: {
+export async function invokeLlm(payload: {
 	provider: string;
 	model: string;
 	token: string;
@@ -105,7 +105,7 @@ interface TurnlockBatchManifest {
 	jobs: { id: string; prompt: string; resultPath: string }[];
 }
 
-function parseSerializedValue(val: string): string {
+export function parseSerializedValue(val: string): string {
 	if (val.startsWith('"') && val.endsWith('"')) {
 		try {
 			return JSON.parse(val);
@@ -116,9 +116,10 @@ function parseSerializedValue(val: string): string {
 	return val;
 }
 
-async function handleTurnlockDelegation(
+export async function handleTurnlockDelegation(
 	manifestPath: string,
 	resumeCmd: string,
+	execFn: (cmd: string) => void = (cmd) => execSync(cmd, { stdio: "inherit" }),
 ): Promise<void> {
 	if (!fs.existsSync(manifestPath)) {
 		throw new Error(`Manifest file not found at ${manifestPath}`);
@@ -202,10 +203,10 @@ async function handleTurnlockDelegation(
 	console.log(
 		`\n[Pi Wrapper] All jobs processed. Resuming orchestrator with command: ${resumeCmd}\n`,
 	);
-	execSync(resumeCmd, { stdio: "inherit" });
+	execFn(resumeCmd);
 }
 
-async function main() {
+export async function main() {
 	const rl = readline.createInterface({
 		input: process.stdin,
 		output: process.stdout,
@@ -262,4 +263,6 @@ async function main() {
 	});
 }
 
-main();
+if (import.meta.main) {
+	main();
+}
