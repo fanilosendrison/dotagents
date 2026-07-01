@@ -1,7 +1,7 @@
 {
-	"searchPaths": [],
-	"provider": "together",
-	"model": "minimax/minimax-text-01",
+	"searchPaths": ["~/Developper/Projects/dotagents"],
+	"provider": "openai",
+	"model": "gpt-5.4-mini",
 	"temperature": 0,
 	"systemPromptPath": "../system-prompt.md",
 	"autoPush": false,

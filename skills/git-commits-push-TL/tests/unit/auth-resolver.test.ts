@@ -9,12 +9,22 @@ const MOCK_PI_DIR = path.join(os.homedir(), ".pi", "agent");
 const AUTH_JSON_PATH = path.join(MOCK_PI_DIR, "auth.json");
 
 describe("auth-resolver", () => {
+	let originalAuthContent: string | null = null;
+
 	beforeAll(() => {
 		fs.mkdirSync(MOCK_PI_DIR, { recursive: true });
+		if (fs.existsSync(AUTH_JSON_PATH)) {
+			originalAuthContent = fs.readFileSync(AUTH_JSON_PATH, "utf-8");
+		}
 	});
 	afterAll(() => {
-		// Clean up only the auth.json we created, keep the directory if it existed
-		try { fs.unlinkSync(AUTH_JSON_PATH); } catch {}
+		try {
+			if (originalAuthContent !== null) {
+				fs.writeFileSync(AUTH_JSON_PATH, originalAuthContent, "utf-8");
+			} else {
+				fs.unlinkSync(AUTH_JSON_PATH);
+			}
+		} catch {}
 	});
 
 	test("U-AR-01 | Returns token from ENV if defined", async () => {
