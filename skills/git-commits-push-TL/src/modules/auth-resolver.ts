@@ -19,7 +19,7 @@ export async function resolveAuthToken(provider: string): Promise<string> {
 
 	// 2. Read ~/.pi/agent/auth.json
 	const authFilePath = path.join(os.homedir(), ".pi", "agent", "auth.json");
-	let authData: Record<string, string>;
+	let authData: Record<string, any>;
 	try {
 		const raw = fs.readFileSync(authFilePath, "utf-8");
 		authData = JSON.parse(raw);
@@ -36,7 +36,18 @@ export async function resolveAuthToken(provider: string): Promise<string> {
 		);
 	}
 
-	const trimmedConfig = tokenConfig.trim();
+	let tokenConfigStr: string;
+	if (typeof tokenConfig === "string") {
+		tokenConfigStr = tokenConfig;
+	} else if (typeof tokenConfig === "object" && tokenConfig !== null && "key" in tokenConfig && typeof (tokenConfig as any).key === "string") {
+		tokenConfigStr = (tokenConfig as any).key;
+	} else {
+		throw new Error(
+			`Authentication token for provider ${provider} in auth.json is malformed`,
+		);
+	}
+
+	const trimmedConfig = tokenConfigStr.trim();
 
 	// 3. Dynamic Execution (Starts with !)
 	if (trimmedConfig.startsWith("!")) {
