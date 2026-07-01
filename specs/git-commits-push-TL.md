@@ -17,11 +17,13 @@ Le temps d'exécution total du workflow (même pour 10 dépôts) correspond donc
 - Le script parcourt ensuite dynamiquement les sous-dossiers des chemins configurés.
 
 ### Step 1.2 : Vérification de l'état Git
-- Pour chaque dépôt trouvé, exécuter mécaniquement `git status --porcelain`.
-- Conserver uniquement les dépôts ayant des changements (fichiers modifiés, ajoutés, non trackés ou supprimés).
+- Ignorer les dépôts qui se trouvent dans un état "Detached HEAD".
+- Pour chaque dépôt trouvé, exécuter mécaniquement `git status --porcelain` pour identifier les modifications locales.
+- Exécuter `git log @{u}..HEAD` (ou `git cherry -v`) pour détecter les commits locaux non poussés.
+- Conserver les dépôts ayant des changements locaux OU des commits non poussés.
 
 ### Step 1.3 : Génération de l'Output
-- Produire une liste structurée (JSON) en mémoire contenant les chemins absolus des dépôts "sales". Cette liste alimente les workers de l'orchestrateur pour la Phase 2.
+- Produire une liste structurée (JSON) en mémoire contenant les chemins absolus des dépôts "sales" (ou ayant des commits en attente de push). Cette liste alimente les workers de l'orchestrateur pour la Phase 2.
 
 ---
 
@@ -55,8 +57,12 @@ Le script identifie et exécute la suite de tests via une cascade de résolution
 
 *Action de blocage : Si la commande de test exécutée échoue, le processus Turnlock est immédiatement interrompu pour ce dépôt, et l'échec est tracé pour le rapport final de la Phase 5.*
 
+### Step 2.1a : Staging des fichiers (Git Add)
+- Avant l'extraction du diff, exécuter `git add -A` pour s'assurer que tous les fichiers modifiés et non trackés (hors `.gitignore`) sont indexés.
+
 ### Step 2.2 : Extraction du Diff
-- Capturer le diff complet des changements via Git (`git status` + `git diff` et/ou `git diff --cached`).
+- Capturer le diff complet des changements via Git (`git status` + `git diff --cached`).
+- Enregistrer un hash de ce diff (ou son contenu exact) pour prévenir les modifications concurrentes (Race Condition) lors de la Phase 4.
 
 ### Step 2.3 : Scan de Sécurité
 - Analyser le diff extrait au Step 2.2 en important le module central (ex: `scanDiff`) du projet `secret-scanner`.
@@ -96,10 +102,13 @@ Le script identifie et exécute la suite de tests via une cascade de résolution
 **Objectif :** Enregistrer les commits générés et les envoyer sur GitHub de manière mécanique.
 
 ### Step 4.1 : Exécution des Commits
-- Le script lit le JSON du Step 3.2 et exécute automatiquement les commandes `git commit` appropriées.
+- Vérifier que le hash du diff (capturé à l'étape 2.2) n'a pas changé. S'il a changé (modifications concurrentes pendant l'inférence du LLM), avorter pour ce dépôt et le marquer en échec.
+- Le script lit le JSON du Step 3.2 et exécute automatiquement `git commit --no-verify` (car la validation a déjà eu lieu en Phase 2).
+- Assurer que l'exécution se fait avec `GIT_TERMINAL_PROMPT=0` pour éviter les blocages sur des invites interactives (ex: GPG).
 
 ### Step 4.2 : Exécution du Push
 *(Si `autoPush: false` dans `settings.json`, cette étape est ignorée).*
+- Assurer que l'exécution se fait avec `GIT_TERMINAL_PROMPT=0` et avec un timeout strict.
 - Le script exécute `git push` (ou `git push -u origin <branch>` si pas d'upstream).
 - Capturer les éventuelles erreurs réseau (ex: timeout, rejet de branche) pour les intégrer au rapport final de la Phase 5 (destiné à l'agent).
 
@@ -179,20 +188,18 @@ Généré par Turnlock en Phase 3.1. Il s'agit d'un tableau contenant les requê
 *(Note : Turnlock indique généralement le `resultPath` global où le wrapper doit écrire la réponse sous forme d'argument ou dans un objet racine).*
 
 ### 4. Le `result.json` (Output de l'Inférence)
-Généré par le Wrapper en Phase 3.3 et lu par Turnlock en Phase 4. Il doit obligatoirement mapper les résultats aux `id` du manifest. En cas d'échec fatal du LLM, une clé `error` remplace `commits`.
+Généré par le Wrapper en Phase 3.3 et lu par Turnlock en Phase 4. Il doit obligatoirement mapper les résultats aux `id` du manifest. En cas d'échec fatal du LLM, une clé `error` remplace `commit`.
 ```json
 [
   {
     "id": "repo-dotagents",
-    "commits": [
-      {
-        "type": "feat",
-        "scope": "agent",
-        "description": "ajout de la feature X pour améliorer les performances",
-        "body": "Détails optionnels...",
-        "isBreaking": false
-      }
-    ]
+    "commit": {
+      "type": "feat",
+      "scope": "agent",
+      "description": "ajout de la feature X pour améliorer les performances",
+      "body": "Détails optionnels...",
+      "isBreaking": false
+    }
   },
   {
     "id": "repo-dotpi",
