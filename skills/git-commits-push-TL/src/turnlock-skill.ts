@@ -1,0 +1,181 @@
+/**
+ * src/turnlock-skill.ts — Main entrypoint for the git-commits-push-TL skill.
+ * Orchestrates Phase 1-5 via Turnlock state machine.
+ */
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { z } from "zod";
+import { runOrchestrator, definePhase } from "turnlock";
+import type { OrchestratorConfig } from "turnlock";
+
+import { readSettings } from "./settings.ts";
+import { runDiscovery } from "./modules/discovery.ts";
+import { processRepoValidationAndDiff } from "./modules/validation.ts";
+import { executeCommitAndPush } from "./modules/git-execution.ts";
+import { printReport } from "./modules/reporter.ts";
+import type { GlobalState, CommitJobPayload } from "./types.ts";
+
+const commitMessageSchema = z.object({
+	type: z.string(),
+	scope: z.string().optional(),
+	description: z.string(),
+	body: z.string().optional(),
+	isBreaking: z.boolean(),
+});
+
+const commitJobResultSchema = z.union([
+	z.object({
+		success: z.literal(true),
+		id: z.string(),
+		commit: commitMessageSchema,
+	}),
+	z.object({
+		success: z.literal(false),
+		id: z.string(),
+		error: z.string(),
+	}),
+]);
+
+const stateSchema = z.object({
+	repos: z.record(
+		z.string(),
+		z.object({
+			repository: z.string(),
+			status: z.enum(["PENDING", "RUNNING", "SUCCESS", "FAILED"]),
+			diffHash: z.string().optional(),
+			commit: commitMessageSchema.optional(),
+			error: z.string().optional(),
+		})
+	),
+});
+
+const config: OrchestratorConfig<GlobalState> = {
+	name: "git-commits-push-tl",
+	initial: "discovery-and-validation",
+	initialState: { repos: {} },
+	resumeCommand: (runId) => `bun run src/turnlock-skill.ts --run-id ${runId} --resume`,
+	stateSchema,
+	phases: {
+		"discovery-and-validation": definePhase(async (state, io) => {
+			const settings = readSettings(__dirname);
+			
+			// Try to read system prompt if present, else empty string
+			let systemPrompt = "";
+			try {
+				const promptPath = path.resolve(__dirname, settings.systemPromptPath || "../system-prompt.md");
+				if (fs.existsSync(promptPath)) {
+					systemPrompt = fs.readFileSync(promptPath, "utf-8");
+				}
+			} catch (err) {
+				io.logger.warn(`Could not read system prompt: ${err}`);
+			}
+
+			// Phase 1: Discovery
+			const repos = await runDiscovery(settings);
+			if (repos.length === 0) {
+				io.logger.info("No repositories with changes found. Exiting.");
+				printReport({});
+				return io.done({});
+			}
+
+			// Phase 2: Validation
+			const validRepos: Array<{ id: string; path: string; diff: string; diffHash: string }> = [];
+			const nextRepos = { ...state.repos };
+			
+			for (const repo of repos) {
+				try {
+					const { diff, diffHash } = await processRepoValidationAndDiff(repo, settings);
+					validRepos.push({ id: repo.id, path: repo.path, diff, diffHash });
+					nextRepos[repo.id] = { repository: repo.path, status: "PENDING", diffHash };
+				} catch (err) {
+					// Validation failed (tests, secret scan, etc). Mark as failed immediately.
+					const msg = err instanceof Error ? err.message : String(err);
+					nextRepos[repo.id] = { repository: repo.path, status: "FAILED", error: msg };
+				}
+			}
+
+			if (validRepos.length === 0) {
+				io.logger.info("No repositories passed validation. Exiting.");
+				printReport(nextRepos);
+				return io.done({});
+			}
+
+			// Phase 3: Delegate to LLM
+			const jobs = validRepos.map((r) => {
+				const payload: CommitJobPayload = {
+					repository: r.path,
+					diff: r.diff,
+					diffHash: r.diffHash,
+					provider: settings.provider,
+					model: settings.model,
+					temperature: settings.temperature,
+					systemPrompt,
+				};
+				return {
+					id: r.id,
+					prompt: JSON.stringify(payload),
+				};
+			});
+
+			for (const r of validRepos) {
+				nextRepos[r.id].status = "RUNNING";
+			}
+
+			return io.delegateAgentBatch(
+				{
+					kind: "agent-batch",
+					agentType: "git-commit-generator",
+					label: "commit-jobs",
+					jobs,
+					timeoutMs: 600_000,
+					retry: { maxAttempts: 1, backoffBaseMs: 1000, maxBackoffMs: 30000 }
+				},
+				"commit-and-push",
+				{ repos: nextRepos }
+			);
+		}),
+
+		"commit-and-push": definePhase(async (state, io) => {
+			const settings = readSettings(__dirname);
+			
+			// Phase 4: Retrieve results
+			const results = io.consumePendingBatchResults(commitJobResultSchema);
+			const nextRepos = { ...state.repos };
+			
+			for (const result of results) {
+				const repoState = nextRepos[result.id];
+				if (!repoState) continue; // Should never happen unless state was corrupted
+
+				if (!result.success) {
+					nextRepos[result.id] = { ...repoState, status: "FAILED", error: result.error };
+					continue;
+				}
+
+				try {
+					await executeCommitAndPush(
+						repoState.repository,
+						result.commit,
+						repoState.diffHash!,
+						settings
+					);
+					nextRepos[result.id] = { ...repoState, status: "SUCCESS", commit: result.commit };
+				} catch (err) {
+					nextRepos[result.id] = { ...repoState, status: "FAILED", error: err instanceof Error ? err.message : String(err) };
+				}
+			}
+
+			// Phase 5: Reporting
+			printReport(nextRepos);
+
+			return io.done({});
+		}),
+	},
+};
+
+// Start orchestrator only if called directly
+if (import.meta.main) {
+	runOrchestrator(config).catch((err) => {
+		process.stderr.write(`[Fatal Error] ${err instanceof Error ? err.message : String(err)}\n`);
+		process.exit(1);
+	});
+}

@@ -1,0 +1,25 @@
+{
+  "name": "git-commits-push-tl",
+  "version": "0.1.0",
+  "description": "Turnlock-orchestrated skill: discover dirty repos, LLM-generate commit messages, commit & push in parallel.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "bun test",
+    "test:run": "bun run src/turnlock-skill.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src/ tests/"
+  },
+  "dependencies": {
+    "zod": "^4.3.6",
+    "turnlock": "file:../../../VegaCorp/turnlock"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.11",
+    "@types/bun": "^1.1.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}
