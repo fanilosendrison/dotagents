@@ -46,6 +46,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 │   ├── post-write-linter/
 │   ├── secret-scanner/
 │   └── shared/
+├── specs/                    ← Future specs and workflow drafts
 └── skills/                   ← Your auto-discovered capabilities (listed in your system prompt)
 ```
 
