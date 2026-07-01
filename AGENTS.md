@@ -36,6 +36,8 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 │   │   └── CONTEXT.md        ← Forces you to push after you commit
 │   ├── path-guard/
 │   │   └── CONTEXT.md        ← Shows you how to operate in symlink folders
+│   ├── post-write-linter/
+│   │   └── CONTEXT.md        ← Forces you to lint the code you write
 │   └── secret-scanner/
 │       └── CONTEXT.md        ← Prevents you to leak secrets
 ├── agent-enforcers/          ← scripts for security and validation rules
@@ -64,6 +66,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 | Know about the way you validate commit messages     | `docs/commit-msg-validator/CONTEXT.md`       |
 | Know about how you enforce git commit and push      | `docs/git-commits-push-enforcer/CONTEXT.md`  |
 | Know how to operate in symlink folders              | `docs/path-guard/CONTEXT.md`                 |
+| Know about the way you lint the code you write      | `docs/post-write-linter/CONTEXT.md`          |
 | Know how you prevents yourself from leaking secrets | `docs/secret-scanner/CONTEXT.md`             |
 | See all agent enforcers                             | `docs/CONTEXT.md`                            |
 
