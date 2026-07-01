@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { existsSync } from "node:fs";
+import { checkFile } from "../core/linter";
 import {
 	readHookInput,
 } from "../../../shared/runtime/read-hook-input";
@@ -8,13 +8,6 @@ import {
 	exitAllow,
 	respondPostToolBlock,
 } from "../../../shared/runtime/respond";
-import {
-	findStackEval,
-	isCodeFile,
-	isLinterCompatible,
-	readStackConfig,
-	runLintPipeline,
-} from "../../../../../../..//.claude/scripts/lib/stack-tools/src/index.ts";
 import { extractTouchedFilesFromApplyPatch } from "../core/patch-files";
 
 function getTouchedFiles(input: Awaited<ReturnType<typeof readHookInput>>): string[] {
@@ -50,35 +43,10 @@ async function main(): Promise<void> {
 	const failures: string[] = [];
 
 	for (const file of files) {
-		if (!existsSync(file) || !isCodeFile(file)) {
-			continue;
+		const result = checkFile(file);
+		if (!result.success && result.output) {
+			failures.push(`Biome errors in ${file}:\n\n${result.output}`);
 		}
-
-		const stackEvalPath = findStackEval(file);
-		if (!stackEvalPath) {
-			continue;
-		}
-
-		const config = await readStackConfig(stackEvalPath);
-		if (!config.linter && !config.typeChecker) {
-			continue;
-		}
-
-		if (config.linter && !isLinterCompatible(config.linter, file)) {
-			continue;
-		}
-
-		const pipeline = await runLintPipeline(config, file);
-		if (!pipeline.hasErrors) {
-			continue;
-		}
-
-		const errorDetails = pipeline.results
-			.filter((result) => !result.success)
-			.map((result) => `[${result.phase}/${result.tool}] ${result.output}`)
-			.join("\n\n");
-
-		failures.push(`Lint/format errors in ${file}:\n\n${errorDetails}`);
 	}
 
 	if (failures.length > 0) {

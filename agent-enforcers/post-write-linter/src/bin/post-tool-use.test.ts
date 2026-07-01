@@ -5,15 +5,21 @@ import { spawnSync } from "node:child_process";
 import { describe, expect, test } from "bun:test";
 
 const hookPath = new URL("./post-tool-use.ts", import.meta.url).pathname;
+const bunBinary = process.argv[0] || "bun";
 
-describe("post-write-linter post-tool-use hook", () => {
-	test("skips non-apply_patch tool inputs", () => {
-		const result = spawnSync("bun", [hookPath], {
+describe("post-write-linter post-tool-use hook (Biome)", () => {
+	test("skips non-JS/TS/JSON file inputs (e.g. bash scripts)", async () => {
+		const root = await mkdtemp(join(tmpdir(), "post-write-linter-"));
+		const bashFile = join(root, "script.sh");
+		await writeFile(bashFile, "echo 'hello'\n");
+
+		const result = spawnSync(bunBinary, [hookPath], {
 			input: JSON.stringify({
 				hook_event_name: "PostToolUse",
 				turn_id: "t1",
-				tool_name: "Bash",
-				tool_input: { command: "echo ok" },
+				tool_name: "Write",
+				tool_input: { file_path: bashFile },
+				cwd: root,
 			}),
 			env: { ...process.env, AGENT_HOOK_RUNTIME: "codex" },
 			encoding: "utf8",
@@ -23,58 +29,48 @@ describe("post-write-linter post-tool-use hook", () => {
 		expect(result.stdout).toBe("");
 	});
 
-	test("blocks with linter output when an edited code file fails", async () => {
+	test("runs on valid TS file and allows hook execution", async () => {
 		const root = await mkdtemp(join(tmpdir(), "post-write-linter-"));
-		const fakeBin = join(root, "bin");
-		const srcDir = join(root, "src");
-		await mkdir(fakeBin);
-		await mkdir(srcDir);
+		const tsFile = join(root, "valid.ts");
+		await writeFile(tsFile, "export const x: number = 42;\n");
 
-		const shellcheckPath = join(fakeBin, "shellcheck");
-		await writeFile(
-			shellcheckPath,
-			"#!/usr/bin/env sh\necho fake shellcheck failed >&2\nexit 1\n",
-		);
-		await chmod(shellcheckPath, 0o755);
-
-		await writeFile(
-			join(root, "STACK_EVAL.yaml"),
-			"decisions:\n  linter: shellcheck\n  type_checker: none\n",
-		);
-		await writeFile(join(srcDir, "bad.sh"), "echo $missing\n");
-
-		const patch = `*** Begin Patch
-*** Update File: src/bad.sh
-@@
--echo old
-+echo $missing
-*** End Patch
-`;
-
-		const result = spawnSync("bun", [hookPath], {
+		const result = spawnSync(bunBinary, [hookPath], {
 			input: JSON.stringify({
 				hook_event_name: "PostToolUse",
-				turn_id: "t1",
-				model: "gpt-test",
+				turn_id: "t2",
+				tool_name: "Write",
+				tool_input: { file_path: tsFile },
 				cwd: root,
-				tool_name: "apply_patch",
-				tool_input: { command: patch },
 			}),
-			env: {
-				...process.env,
-				AGENT_HOOK_RUNTIME: "codex",
-				PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
-			},
+			env: { ...process.env, AGENT_HOOK_RUNTIME: "codex" },
 			encoding: "utf8",
-			cwd: root,
 		});
 
 		expect(result.status).toBe(0);
+		expect(result.stdout).toBe("");
+	});
 
+	test("blocks tool use when Biome linting/syntax fails on TS file", async () => {
+		const root = await mkdtemp(join(tmpdir(), "post-write-linter-"));
+		const tsFile = join(root, "invalid.ts");
+		await writeFile(tsFile, "const x = {\n");
+
+		const result = spawnSync(bunBinary, [hookPath], {
+			input: JSON.stringify({
+				hook_event_name: "PostToolUse",
+				turn_id: "t3",
+				tool_name: "Write",
+				tool_input: { file_path: tsFile },
+				cwd: root,
+			}),
+			env: { ...process.env, AGENT_HOOK_RUNTIME: "codex" },
+			encoding: "utf8",
+		});
+
+		expect(result.status).toBe(0);
 		const output = JSON.parse(result.stdout);
 		expect(output.decision).toBe("block");
-		expect(output.reason).toContain("Lint/format errors");
-		expect(output.reason).toContain("fake shellcheck failed");
+		expect(output.reason).toContain("Biome errors");
 		expect(output.hookSpecificOutput.hookEventName).toBe("PostToolUse");
 	});
 });
