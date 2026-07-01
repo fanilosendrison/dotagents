@@ -1,0 +1,2 @@
+Ce fichier a été créé uniquement pour tester le workflow git-commits-push-TL en conditions réelles.
+Il ne contient rien d'important.

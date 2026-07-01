@@ -1,10 +1,10 @@
 {
   "cleanScans": [
     {
-      "sessionId": "test-9",
-      "commandHash": "77da8b5745ae9802caf0a651bf3c096cf86c1814f0731ead2f57be1be4cbf103",
-      "command": "git commit -m \"test\"",
-      "createdAt": "2026-06-28T16:57:02.664Z"
+      "sessionId": "test-session",
+      "commandHash": "9e22f2b688a70c658270d973c152ef63c7b9596f15a24bc3d4e02fb6d12c5d9a",
+      "command": "git commit -m 'feat: clean commit'",
+      "createdAt": "2026-07-01T19:47:28.798Z"
     }
   ]
 }

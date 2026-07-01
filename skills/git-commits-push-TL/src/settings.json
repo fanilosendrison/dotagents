@@ -1,0 +1,9 @@
+{
+	"searchPaths": [],
+	"provider": "together",
+	"model": "minimax/minimax-text-01",
+	"temperature": 0,
+	"systemPromptPath": "../system-prompt.md",
+	"autoPush": false,
+	"skipTests": false
+}
