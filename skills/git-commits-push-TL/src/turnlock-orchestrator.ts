@@ -70,13 +70,17 @@ const config: OrchestratorConfig<GlobalState> = {
 					systemPrompt = fs.readFileSync(promptPath, "utf-8");
 				}
 			} catch (err) {
-				io.logger.warn(`Could not read system prompt: ${err}`);
+				process.stderr.write(
+					`[orchestrator] Could not read system prompt: ${err}\n`,
+				);
 			}
 
 			// Phase 1: Discovery
 			const repos = await runDiscovery(settings);
 			if (repos.length === 0) {
-				io.logger.info("No repositories with changes found. Exiting.");
+				process.stderr.write(
+					"[orchestrator] No repositories with changes found. Exiting.\n",
+				);
 				printReport({});
 				return io.done({});
 			}
@@ -114,7 +118,9 @@ const config: OrchestratorConfig<GlobalState> = {
 			}
 
 			if (validRepos.length === 0) {
-				io.logger.info("No repositories passed validation. Exiting.");
+				process.stderr.write(
+					"[orchestrator] No repositories passed validation. Exiting.\n",
+				);
 				printReport(nextRepos);
 				return io.done({});
 			}
