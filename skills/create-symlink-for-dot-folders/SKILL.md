@@ -34,4 +34,15 @@ bun run ~/.agents/skills/create-symlink-for-dot-folders/scripts/create_symlink.t
 3. Creates the symlink from `symlink_path` to `physical_target_dir`.
 4. Restores any backed-up contents directly into the new physical directory.
 
-You don't need to do any manual backups, the script handles it all. Just run the script and verify the output.
+You don't need to do any manual backups, the script handles it all.
+
+### How to verify
+
+**Warning:** Because `path-guard` rewrites bash commands, if you try to verify the result by running `ls -la ~/Developper/Projects/dot...`, your command will be silently rewritten and you will mistakenly think the physical folder is a symlink. 
+
+To correctly verify the physical folder and bypass path-guard's regex, you must evaluate the symlink dynamically:
+
+```bash
+ls -la "$(readlink ~/.agents/specs)"
+```
+*(This works because path-guard cannot resolve subshells during its static regex extraction).*
