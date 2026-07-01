@@ -1,9 +1,9 @@
-// tests/unit/validation.test.ts — Unit tests for src/modules/validation.ts
+// tests/unit/pre-commit-validators.test.ts — Unit tests for src/modules/pre-commit-validators.ts
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { processRepoValidationAndDiff, runTestCascade } from "../../src/modules/validation.ts";
-import type { SecretScanner, ScanResult } from "../../src/modules/validation.ts";
+import { processRepoValidationAndDiff, runTestCascade } from "../../src/modules/pre-commit-validators.ts";
+import type { SecretScanner, ScanResult } from "../../src/modules/pre-commit-validators.ts";
 import { GitRepoFixture } from "../fixtures/git-repo.ts";
 import type { RepositoryInfo, Settings } from "../../src/types.ts";
 

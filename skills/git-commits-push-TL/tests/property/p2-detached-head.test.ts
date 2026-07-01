@@ -8,7 +8,7 @@ import { MockTurnlockEnvironment } from "../fixtures/mock-turnlock-env.ts";
 let repoDetached: GitRepoFixture;
 let env: MockTurnlockEnvironment;
 
-const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/turnlock-skill.ts");
+const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/turnlock-orchestrator.ts");
 
 beforeAll(() => {
 	env = MockTurnlockEnvironment.create();

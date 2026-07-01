@@ -71,7 +71,7 @@ export function computeStateJson(runDir: string, state: GlobalState, runId: stri
 		label: "commit-jobs",
 		runId,
 		orchestrator: "git-commits-push-tl",
-		resumeCommand: `bun run src/turnlock-skill.ts --resume --run-id ${runId}`,
+		resumeCommand: `bun run src/turnlock-orchestrator.ts --resume --run-id ${runId}`,
 		timeoutMs: 600_000,
 		emittedAt: nowIso,
 		emittedAtEpochMs: now,

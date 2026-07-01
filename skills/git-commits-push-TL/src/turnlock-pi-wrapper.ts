@@ -1,6 +1,6 @@
 /**
- * src/pi-orch-git-commits-push.ts — Pi environment wrapper.
- * Intercepts @@TURNLOCK@@ DELEGATE protocol blocks from stdout of turnlock-skill.ts,
+ * src/turnlock-pi-wrapper.ts — Pi environment wrapper.
+ * Intercepts @@TURNLOCK@@ DELEGATE protocol blocks from stdout of turnlock-orchestrator.ts,
  * runs the parallel LLM inferences using @fanilosendrison/llm-runtime,
  * and resumes turnlock.
  */

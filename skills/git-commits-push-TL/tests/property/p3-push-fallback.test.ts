@@ -15,7 +15,7 @@ let repoBare: GitRepoFixture; // acts as the "remote" server
 let env: MockTurnlockEnvironment;
 let repoId: string;
 
-const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/turnlock-skill.ts");
+const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/turnlock-orchestrator.ts");
 
 beforeAll(async () => {
 	env = MockTurnlockEnvironment.create();

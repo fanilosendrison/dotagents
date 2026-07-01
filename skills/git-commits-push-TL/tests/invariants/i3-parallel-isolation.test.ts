@@ -13,7 +13,7 @@ let repoB: GitRepoFixture; // has a failing test suite
 let repoC: GitRepoFixture;
 let env: MockTurnlockEnvironment;
 
-const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/turnlock-skill.ts");
+const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/turnlock-orchestrator.ts");
 
 beforeAll(() => {
 	env = MockTurnlockEnvironment.create();

@@ -1,19 +1,18 @@
 /**
- * src/turnlock-skill.ts — Main entrypoint for the git-commits-push-TL skill.
+ * src/turnlock-orchestrator.ts — Main entrypoint for the git-commits-push-TL skill.
  * Orchestrates Phase 1-5 via Turnlock state machine.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { z } from "zod";
-import { runOrchestrator, definePhase } from "turnlock";
 import type { OrchestratorConfig } from "turnlock";
-
-import { readSettings } from "./settings.ts";
+import { definePhase, runOrchestrator } from "turnlock";
+import { z } from "zod";
 import { runDiscovery } from "./modules/discovery.ts";
-import { processRepoValidationAndDiff } from "./modules/validation.ts";
-import { executeCommitAndPush } from "./modules/git-execution.ts";
+import { executeCommitAndPush } from "./modules/git-publisher.ts";
+import { processRepoValidationAndDiff } from "./modules/pre-commit-validators.ts";
 import { printReport } from "./modules/reporter.ts";
-import type { GlobalState, CommitJobPayload } from "./types.ts";
+import { readSettings } from "./settings.ts";
+import type { CommitJobPayload, GlobalState } from "./types.ts";
 
 const commitMessageSchema = z.object({
 	type: z.string(),
@@ -45,7 +44,7 @@ const stateSchema = z.object({
 			diffHash: z.string().optional(),
 			commit: commitMessageSchema.optional(),
 			error: z.string().optional(),
-		})
+		}),
 	),
 });
 
@@ -53,16 +52,20 @@ const config: OrchestratorConfig<GlobalState> = {
 	name: "git-commits-push-tl",
 	initial: "discovery-and-validation",
 	initialState: { repos: {} },
-	resumeCommand: (runId) => `bun run src/turnlock-skill.ts --run-id ${runId} --resume`,
+	resumeCommand: (runId) =>
+		`bun run src/turnlock-orchestrator.ts --run-id ${runId} --resume`,
 	stateSchema,
 	phases: {
 		"discovery-and-validation": definePhase(async (state, io) => {
 			const settings = readSettings(__dirname);
-			
+
 			// Try to read system prompt if present, else empty string
 			let systemPrompt = "";
 			try {
-				const promptPath = path.resolve(__dirname, settings.systemPromptPath || "../system-prompt.md");
+				const promptPath = path.resolve(
+					__dirname,
+					settings.systemPromptPath || "../system-prompt.md",
+				);
 				if (fs.existsSync(promptPath)) {
 					systemPrompt = fs.readFileSync(promptPath, "utf-8");
 				}
@@ -79,18 +82,34 @@ const config: OrchestratorConfig<GlobalState> = {
 			}
 
 			// Phase 2: Validation
-			const validRepos: Array<{ id: string; path: string; diff: string; diffHash: string }> = [];
+			const validRepos: Array<{
+				id: string;
+				path: string;
+				diff: string;
+				diffHash: string;
+			}> = [];
 			const nextRepos = { ...state.repos };
-			
+
 			for (const repo of repos) {
 				try {
-					const { diff, diffHash } = await processRepoValidationAndDiff(repo, settings);
+					const { diff, diffHash } = await processRepoValidationAndDiff(
+						repo,
+						settings,
+					);
 					validRepos.push({ id: repo.id, path: repo.path, diff, diffHash });
-					nextRepos[repo.id] = { repository: repo.path, status: "PENDING", diffHash };
+					nextRepos[repo.id] = {
+						repository: repo.path,
+						status: "PENDING",
+						diffHash,
+					};
 				} catch (err) {
 					// Validation failed (tests, secret scan, etc). Mark as failed immediately.
 					const msg = err instanceof Error ? err.message : String(err);
-					nextRepos[repo.id] = { repository: repo.path, status: "FAILED", error: msg };
+					nextRepos[repo.id] = {
+						repository: repo.path,
+						status: "FAILED",
+						error: msg,
+					};
 				}
 			}
 
@@ -128,26 +147,30 @@ const config: OrchestratorConfig<GlobalState> = {
 					label: "commit-jobs",
 					jobs,
 					timeoutMs: 600_000,
-					retry: { maxAttempts: 1, backoffBaseMs: 1000, maxBackoffMs: 30000 }
+					retry: { maxAttempts: 1, backoffBaseMs: 1000, maxBackoffMs: 30000 },
 				},
 				"commit-and-push",
-				{ repos: nextRepos }
+				{ repos: nextRepos },
 			);
 		}),
 
 		"commit-and-push": definePhase(async (state, io) => {
 			const settings = readSettings(__dirname);
-			
+
 			// Phase 4: Retrieve results
 			const results = io.consumePendingBatchResults(commitJobResultSchema);
 			const nextRepos = { ...state.repos };
-			
+
 			for (const result of results) {
 				const repoState = nextRepos[result.id];
 				if (!repoState) continue; // Should never happen unless state was corrupted
 
 				if (!result.success) {
-					nextRepos[result.id] = { ...repoState, status: "FAILED", error: result.error };
+					nextRepos[result.id] = {
+						...repoState,
+						status: "FAILED",
+						error: result.error,
+					};
 					continue;
 				}
 
@@ -156,11 +179,19 @@ const config: OrchestratorConfig<GlobalState> = {
 						repoState.repository,
 						result.commit,
 						repoState.diffHash!,
-						settings
+						settings,
 					);
-					nextRepos[result.id] = { ...repoState, status: "SUCCESS", commit: result.commit };
+					nextRepos[result.id] = {
+						...repoState,
+						status: "SUCCESS",
+						commit: result.commit,
+					};
 				} catch (err) {
-					nextRepos[result.id] = { ...repoState, status: "FAILED", error: err instanceof Error ? err.message : String(err) };
+					nextRepos[result.id] = {
+						...repoState,
+						status: "FAILED",
+						error: err instanceof Error ? err.message : String(err),
+					};
 				}
 			}
 
@@ -175,7 +206,9 @@ const config: OrchestratorConfig<GlobalState> = {
 // Start orchestrator only if called directly
 if (import.meta.main) {
 	runOrchestrator(config).catch((err) => {
-		process.stderr.write(`[Fatal Error] ${err instanceof Error ? err.message : String(err)}\n`);
+		process.stderr.write(
+			`[Fatal Error] ${err instanceof Error ? err.message : String(err)}\n`,
+		);
 		process.exit(1);
 	});
 }

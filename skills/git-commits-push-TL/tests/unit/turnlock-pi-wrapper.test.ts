@@ -63,9 +63,9 @@ import {
 	parseSerializedValue,
 	invokeLlm,
 	handleTurnlockDelegation,
-} from "../../src/pi-orch-git-commits-push.ts";
+} from "../../src/turnlock-pi-wrapper.ts";
 
-describe("pi-orch-git-commits-push wrapper", () => {
+describe("turnlock-pi-wrapper", () => {
 	describe("parseSerializedValue", () => {
 		test("removes surrounding double quotes", () => {
 			expect(parseSerializedValue('"hello"')).toBe("hello");

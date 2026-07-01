@@ -11,7 +11,7 @@ let repoDirty: GitRepoFixture;
 let env: MockTurnlockEnvironment;
 let repoId: string;
 
-const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/turnlock-skill.ts");
+const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/turnlock-orchestrator.ts");
 
 const STALE_DIFF_HASH = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
 

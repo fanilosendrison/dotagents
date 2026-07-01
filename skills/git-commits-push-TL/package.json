@@ -6,8 +6,8 @@
   "private": true,
   "scripts": {
     "test": "bun test",
-    "test:run": "bun run src/turnlock-skill.ts",
-    "start": "bun run src/turnlock-skill.ts | bun run src/pi-orch-git-commits-push.ts",
+    "test:run": "bun run src/turnlock-orchestrator.ts",
+    "start": "bun run src/turnlock-orchestrator.ts | bun run src/turnlock-pi-wrapper.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check src/ tests/"
   },

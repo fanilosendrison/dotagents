@@ -8,7 +8,7 @@
  * fail-closed by default, the scanner is injected as a parameter with a
  * strict default that throws if not provided in production.
  *
- * Integration note: the Turnlock orchestrator (turnlock-skill.ts) must
+ * Integration note: the Turnlock orchestrator (turnlock-orchestrator.ts) must
  * instantiate this module with the real scanner once it is available.
  */
 import * as crypto from "node:crypto";

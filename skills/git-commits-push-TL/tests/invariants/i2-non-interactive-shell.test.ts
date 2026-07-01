@@ -13,7 +13,7 @@ let repoFakeRemote: GitRepoFixture;
 let env: MockTurnlockEnvironment;
 let repoId: string;
 
-const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/turnlock-skill.ts");
+const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/turnlock-orchestrator.ts");
 
 // Use an HTTPS URL that would require interactive credentials
 const UNREACHABLE_HTTPS_REMOTE = "https://github.com/nonexistent-org/nonexistent-repo-xyz.git";
