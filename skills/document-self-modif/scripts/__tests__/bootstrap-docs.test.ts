@@ -70,7 +70,7 @@ function setupHarness(): string {
 }
 
 async function run(json: string, home: string) {
-  const proc = Bun.spawn([SCRIPT], {
+  const proc = Bun.spawn([process.argv[0] || "bun", SCRIPT], {
     stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
