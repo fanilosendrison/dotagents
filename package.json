@@ -1,6 +1,9 @@
 {
   "name": "dotagents",
   "private": true,
+  "scripts": {
+    "test": "bun test"
+  },
   "dependencies": {
     "js-yaml": "^4.1.0"
   },
