@@ -34,3 +34,7 @@ When you need to document a new enforcer, look here first to understand what's a
 ### 5. Secret Scanner
 - **Date** : 2026-06-29
 - **Doc** : [`secret-scanner/CONTEXT.md`](secret-scanner/CONTEXT.md)
+
+### 6. Post-Write Linter
+- **Date** : 2026-07-01
+- **Doc** : [`post-write-linter/CONTEXT.md`](post-write-linter/CONTEXT.md)
