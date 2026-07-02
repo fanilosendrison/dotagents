@@ -7,7 +7,7 @@ This file is your map to `~/.agents/` — your core brain and governance center.
 `~/.agents/`, `~/.pi/agent/`, and `~/.claude/skills/` act as symlink gateways to their respective git repos.
 While `~/.claude/skills/` is a direct symlink, `~/.agents/` and `~/.pi/agent/` are physical folders that *contain* symlinks to the repos.
 
-> ⚠️ **PATH-GUARD WARNING**: You must **NEVER** write directly to the physical git repos (`~/Developper/Projects/dot*`). If you attempt to bypass the gateways, the `path-guard` enforcer will intercept your action. Your command will be either **strictly blocked** or **silently redirected** to the `~/.` gateways.
+> ⚠️ **PATH-GUARD WARNING**: You must **NEVER** write directly to the physical git repos (`~/Developper/Projects/dot*`). If you attempt to write there, the `path-guard` enforcer will intentionally intercept your action. Your command will be either **strictly blocked** or **silently redirected** to the `~/.` gateways. **This is normal and expected behavior.** Do not try to bypass or hack around this restriction; simply follow the rules and use the `~/.` gateways.
 
 **You must edit directly** through these `~/.` paths. 
 **Before you commit**, you must resolve a symlink to reach the physical git repo:
