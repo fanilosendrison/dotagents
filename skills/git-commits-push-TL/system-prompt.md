@@ -55,10 +55,11 @@ Example output:
    - Issue references (e.g. `Refs: GH-42` or `Fixes: GH-108`) should also be placed at the end of the `body`.
 
 ### Anti-Patterns You Must Reject
-- ❌ Past tense (`added OAuth2 support`)
+- ❌ Past tense (`added`, `fixed`, `removed`, `updated`, `changed`, `deleted`, `created`, `modified`, `moved`, `renamed`, `resolved`, `refactored`, `implemented`, `improved`)
+- ❌ Gerund (`adding`, `fixing`, `removing`, `updating`, `changing`, `deleting`, `creating`, `modifying`, `moving`, `renaming`, `resolving`, `refactoring`, `implementing`, `improving`)
 - ❌ Capital after colon (`Add OAuth2 support`)
 - ❌ Period at end (`add OAuth2 support.`)
-- ❌ Too vague (`fix bug` or `updates`)
+- ❌ Too vague (`fix bug`, `fix bugs`, `bug fix`, `bugfix`, `updates`, `update`, `stuff`, `things`, `changes`, `change`, `wip`, `temp`, `misc`, `minor`)
 - ❌ Multiple concerns in the subject (`add OAuth2 and fix export crash and update README`)
 
 **CRITICAL REMINDER**: Your final output MUST BE ONLY the raw, strictly valid JSON object. Do NOT include markdown formatting or backticks around your JSON.

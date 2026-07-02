@@ -2,13 +2,14 @@
  * src/turnlock-orchestrator.ts — Main entrypoint for the git-commits-push-TL skill.
  * Orchestrates Phase 1-5 via Turnlock state machine.
  */
+import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { OrchestratorConfig } from "turnlock";
 import { definePhase, runOrchestrator } from "turnlock";
 import { z } from "zod";
 import { runDiscovery } from "./modules/discovery.ts";
-import { executeCommitAndPush } from "./modules/git-publisher.ts";
+import { executeCommitAndPush, formatConventionalCommit } from "./modules/git-publisher.ts";
 import { processRepoValidationAndDiff } from "./modules/pre-commit-validators.ts";
 import { printReport } from "./modules/reporter.ts";
 import { readSettings } from "./settings.ts";
@@ -44,6 +45,7 @@ const stateSchema = z.object({
 			diffHash: z.string().optional(),
 			commit: commitMessageSchema.optional(),
 			error: z.string().optional(),
+			attempts: z.number().optional(),
 		}),
 	),
 });
@@ -163,9 +165,29 @@ const config: OrchestratorConfig<GlobalState> = {
 		"commit-and-push": definePhase(async (state, io) => {
 			const settings = readSettings(__dirname);
 
+			// Dynamically load the validator
+			let validateCommitMessage: any = null;
+			const validatorPath = path.resolve(__dirname, "../../../../agent-enforcers/commit-msg-validator/src/core/validator.ts");
+			if (fs.existsSync(validatorPath)) {
+				const module = await import(validatorPath);
+				validateCommitMessage = module.validateCommitMessage;
+			}
+
+			// Try to read system prompt if present, else empty string
+			let systemPrompt = "";
+			try {
+				const promptPath = path.resolve(__dirname, settings.systemPromptPath || "../system-prompt.md");
+				if (fs.existsSync(promptPath)) {
+					systemPrompt = fs.readFileSync(promptPath, "utf-8");
+				}
+			} catch (err) {
+				// ignore
+			}
+
 			// Phase 4: Retrieve results
 			const results = io.consumePendingBatchResults(commitJobResultSchema);
 			const nextRepos = { ...state.repos };
+			const retryJobs: any[] = [];
 
 			for (const result of results) {
 				const repoState = nextRepos[result.id];
@@ -178,6 +200,45 @@ const config: OrchestratorConfig<GlobalState> = {
 						error: result.error,
 					};
 					continue;
+				}
+
+				if (validateCommitMessage) {
+					const msgStr = formatConventionalCommit(result.commit);
+					const valRes = validateCommitMessage(msgStr);
+					if (!valRes.valid) {
+						const attempts = repoState.attempts || 0;
+						if (attempts < 1) { // 1 retry allowed
+							nextRepos[result.id].attempts = attempts + 1;
+							const diff = execSync("git diff --cached", { cwd: repoState.repository, encoding: "utf-8" }).toString();
+							
+							const payload: CommitJobPayload = {
+								repository: repoState.repository,
+								diff,
+								diffHash: repoState.diffHash!,
+								provider: settings.provider,
+								model: settings.model,
+								temperature: settings.temperature,
+								systemPrompt,
+								feedback: {
+									previous_commit: msgStr,
+									validation_errors: valRes.errors
+								}
+							};
+							
+							retryJobs.push({
+								id: result.id,
+								prompt: JSON.stringify(payload),
+							});
+							continue; // Skip executeCommitAndPush for now
+						} else {
+							nextRepos[result.id] = {
+								...repoState,
+								status: "FAILED",
+								error: "Validation failed after max retries: " + valRes.errors.join(", ")
+							};
+							continue;
+						}
+					}
 				}
 
 				try {
@@ -199,6 +260,21 @@ const config: OrchestratorConfig<GlobalState> = {
 						error: err instanceof Error ? err.message : String(err),
 					};
 				}
+			}
+
+			if (retryJobs.length > 0) {
+				return io.delegateAgentBatch(
+					{
+						kind: "agent-batch",
+						agentType: "git-commit-generator",
+						label: "commit-jobs-retry",
+						jobs: retryJobs,
+						timeoutMs: 600_000,
+						retry: { maxAttempts: 1, backoffBaseMs: 1000, maxBackoffMs: 30000 },
+					},
+					"commit-and-push",
+					{ repos: nextRepos },
+				);
 			}
 
 			// Phase 5: Reporting

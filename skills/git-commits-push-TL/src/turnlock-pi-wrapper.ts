@@ -70,6 +70,10 @@ interface CommitJobPayload {
 	model: string;
 	temperature: number;
 	systemPrompt: string;
+	feedback?: {
+		previous_commit: string;
+		validation_errors: string[];
+	};
 }
 
 interface CommitMessage {
@@ -145,13 +149,22 @@ export async function handleTurnlockDelegation(
 				console.log(
 					`[Pi Wrapper] [${job.id}] Invoking LLM (${payload.provider}/${payload.model})...`,
 				);
+				let finalUserPrompt = payload.diff;
+				if (payload.feedback) {
+					finalUserPrompt += `\n\n--- FEEDBACK FROM PREVIOUS FAILED ATTEMPT ---\n`;
+					finalUserPrompt += `Your previous commit message was rejected due to formatting errors.\n\n`;
+					finalUserPrompt += `Previous attempt:\n${payload.feedback.previous_commit}\n\n`;
+					finalUserPrompt += `Validation Errors:\n${payload.feedback.validation_errors.map((e) => `- ${e}`).join("\n")}\n\n`;
+					finalUserPrompt += `Please generate a NEW JSON object fixing these exact errors.\n`;
+				}
+
 				const llmResponse = await invokeLlm({
 					provider: payload.provider,
 					model: payload.model,
 					token: token,
 					temperature: payload.temperature,
 					systemPrompt: payload.systemPrompt,
-					userPrompt: payload.diff,
+					userPrompt: finalUserPrompt,
 					stripJsonFence: true, // Mandatory per specs
 				});
 

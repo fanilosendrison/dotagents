@@ -40,6 +40,10 @@ export interface CommitJobPayload {
 	model: string;
 	temperature: number;
 	systemPrompt: string;
+	feedback?: {
+		previous_commit: string;
+		validation_errors: string[];
+	};
 }
 
 /** Written by the Pi wrapper to each job's resultPath on success */
@@ -64,6 +68,7 @@ export interface RepoState {
 	diffHash?: string;
 	commit?: CommitMessage;
 	error?: string;
+	attempts?: number;
 }
 
 export interface GlobalState {
