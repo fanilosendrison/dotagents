@@ -66,9 +66,20 @@ function main() {
     }
   }
 
-  // 2. Create physical target directory safely (bypasses path-guard when paths are quoted in bash)
-  printStatus("Creating physical target directory...");
-  mkdirSync(targetDir, { recursive: true });
+  const isFile = symlinkPath.match(/\.[a-zA-Z0-9]+$/) || backupFile !== null;
+
+  // 2. Create physical target safely (bypasses path-guard when paths are quoted in bash)
+  if (isFile) {
+    printStatus("Creating physical target parent directory...");
+    mkdirSync(resolve(targetDir, '..'), { recursive: true });
+    // Write an empty file so symlink has a target, unless we are restoring over it immediately
+    if (!backupFile && !existsSync(targetDir)) {
+      import("node:fs").then(fs => fs.writeFileSync(targetDir, ''));
+    }
+  } else {
+    printStatus("Creating physical target directory...");
+    mkdirSync(targetDir, { recursive: true });
+  }
 
   // 3. Create the symlink
   printStatus("Creating symlink...");
@@ -86,8 +97,7 @@ function main() {
     }
   } else if (backupFile) {
     printStatus("Restoring file into new physical target...");
-    const dest = join(targetDir, symlinkPath.split('/').pop()!);
-    renameSync(backupFile, dest);
+    renameSync(backupFile, targetDir);
   }
 
   printStatus("✅ Symlink creation successful!");
