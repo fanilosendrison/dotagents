@@ -25,10 +25,8 @@ const ROUTER_FIXTURE = `# Harness Config
 ├── AGENTS.md
 ├── docs/
 │   ├── CONTEXT.md          ← Index
-│   ├── alpha-tool/
-│   │   └── CONTEXT.md         ← First tool
-│   └── zulu-tool/
-│       └── CONTEXT.md         ← Last tool
+│   ├── alpha-tool.md  ← First tool
+│   └── zulu-tool.md   ← Last tool
 ├── patches/
 └── settings.json
 \`\`\`
@@ -37,8 +35,8 @@ const ROUTER_FIXTURE = `# Harness Config
 
 | Want to... | Go here |
 |------------|---------|
-| Use alpha | \`docs/alpha-tool/CONTEXT.md\` (First tool) |
-| Use zulu  | \`docs/zulu-tool/CONTEXT.md\` (Last tool) |
+| Use alpha | \`docs/alpha-tool.md\` (First tool) |
+| Use zulu  | \`docs/zulu-tool.md\` (Last tool) |
 
 ## Skills
 
@@ -51,11 +49,11 @@ const INDEX_FIXTURE = `# Docs
 
 ### 1. Alpha Tool
 - **Date** : 2026-01-01
-- **Doc** : [\`alpha-tool/CONTEXT.md\`](alpha-tool/CONTEXT.md)
+- **Doc** : [\`alpha-tool.md\`](alpha-tool.md)
 
 ### 2. Zulu Tool
 - **Date** : 2026-01-01
-- **Doc** : [\`zulu-tool/CONTEXT.md\`](zulu-tool/CONTEXT.md)
+- **Doc** : [\`zulu-tool.md\`](zulu-tool.md)
 `;
 
 // ── helpers ───────────────────────────────────────────────────
@@ -124,9 +122,9 @@ describe("bootstrap-docs CLI integration", () => {
   // ── CONTEXT.md ──────────────────────────────────────────
 
   describe("CONTEXT.md file", () => {
-    it("creates folder and writes content", async () => {
+    it("creates file and writes content", async () => {
       await run(makeJson({ topic: "test-tool" }), home);
-      const doc = join(home, ".pi", "agent", "docs", "test-tool", "CONTEXT.md");
+      const doc = join(home, ".pi", "agent", "docs", "test-tool.md");
       expect(existsSync(doc)).toBe(true);
       expect(readFileSync(doc, "utf8")).toContain("Middle Tool");
     });
@@ -169,16 +167,16 @@ describe("bootstrap-docs CLI integration", () => {
       );
 
       // Order: alpha, gamma, zulu
-      const ai = router.indexOf("│   ├── alpha-tool/");
-      const gi = router.indexOf("│   ├── gamma-tool/");
-      const zi = router.indexOf("│   └── zulu-tool/");
+      const ai = router.indexOf("│   ├── alpha-tool.md");
+      const gi = router.indexOf("│   ├── gamma-tool.md");
+      const zi = router.indexOf("│   └── zulu-tool.md");
       expect(ai).toBeGreaterThan(0);
       expect(gi).toBeGreaterThan(ai);
       expect(zi).toBeGreaterThan(gi);
 
       // zulu was old last, gamma is in middle → zulu stays └──, gamma is ├──
-      expect(router).toContain("│   ├── gamma-tool/");
-      expect(router).toContain("│   └── zulu-tool/");
+      expect(router).toContain("│   ├── gamma-tool.md");
+      expect(router).toContain("│   └── zulu-tool.md");
     });
   });
 
@@ -197,17 +195,17 @@ describe("bootstrap-docs CLI integration", () => {
 
       const { exitCode, stdout } = await run(json, home);
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("✓ docs/auto-compactor/CONTEXT.md");
+      expect(stdout).toContain("✓ docs/auto-compactor.md");
       expect(stdout).toContain("✓ docs/CONTEXT.md (entry 3)");
       expect(stdout).toContain("✓ Quick Navigation row");
-      expect(stdout).toContain("✓ Folder Structure (docs/auto-compactor/)");
+      expect(stdout).toContain("✓ Folder Structure (docs/auto-compactor.md)");
       expect(stdout).toContain("Done.");
 
       const agent = join(home, ".pi", "agent");
 
       // File created
       const doc = readFileSync(
-        join(agent, "docs", "auto-compactor", "CONTEXT.md"), "utf8",
+        join(agent, "docs", "auto-compactor.md"), "utf8",
       );
       expect(doc).toContain("# Auto Compactor");
       expect(doc).toContain("`extensions/auto-compactor.ts`");
@@ -220,7 +218,7 @@ describe("bootstrap-docs CLI integration", () => {
       // Router has QuickNav + Folder Structure
       const router = readFileSync(join(agent, "CONTEXT.md"), "utf8");
       expect(router).toContain("Customize compaction behavior");
-      expect(router).toContain("│   ├── auto-compactor/");
+      expect(router).toContain("│   ├── auto-compactor.md");
       expect(router).toContain("Custom compaction rules per project");
     });
   });

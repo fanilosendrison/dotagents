@@ -80,14 +80,14 @@ describe("formatIndexEntry", () => {
     expect(result).toBe(
       "\n### 7. My Tool\n" +
       "- **Date** : 2026-06-29\n" +
-      "- **Doc** : [`my-tool/CONTEXT.md`](my-tool/CONTEXT.md)\n",
+      "- **Doc** : [`my-tool.md`](my-tool.md)\n",
     );
   });
 
   it("uses backtick-escaped path", () => {
     const result = formatIndexEntry(1, "X", "2026-01-01", "some-topic");
-    expect(result).toContain("[`some-topic/CONTEXT.md`]");
-    expect(result).toContain("(some-topic/CONTEXT.md)");
+    expect(result).toContain("[`some-topic.md`]");
+    expect(result).toContain("(some-topic.md)");
   });
 });
 
@@ -96,7 +96,7 @@ describe("formatIndexEntry", () => {
 describe("formatQuickNavRow", () => {
   it("includes action, escaped path, and description", () => {
     const row = formatQuickNavRow("Do the thing", "my-topic", "A thing");
-    expect(row).toBe("| Do the thing | `docs/my-topic/CONTEXT.md` (A thing) |");
+    expect(row).toBe("| Do the thing | `docs/my-topic.md` (A thing) |");
   });
 
   it("handles special characters in description", () => {
@@ -173,10 +173,8 @@ describe("parseDocEntries", () => {
   it("parses header and entries", () => {
     const lines = [
       "│   ├── CONTEXT.md          ← Index",
-      "│   ├── alpha-tool/",
-      "│   │   └── CONTEXT.md         ← First",
-      "│   └── zulu-tool/",
-      "│       └── CONTEXT.md         ← Last",
+      "│   ├── alpha-tool.md  ← First",
+      "│   └── zulu-tool.md   ← Last",
     ];
     const result = parseDocEntries(lines);
     expect(result.header).toEqual(["│   ├── CONTEXT.md          ← Index"]);
@@ -188,8 +186,7 @@ describe("parseDocEntries", () => {
 
   it("handles entries without descriptions", () => {
     const lines = [
-      "│   ├── bare/",
-      "│   │   └── CONTEXT.md",
+      "│   ├── bare.md",
     ];
     const result = parseDocEntries(lines);
     expect(result.entries[0].desc).toBe("");
@@ -201,11 +198,9 @@ describe("parseDocEntries", () => {
 
   it("skips non-entry lines between entries", () => {
     const lines = [
-      "│   ├── foo/",
-      "│   │   └── CONTEXT.md         ← Foo",
+      "│   ├── foo.md  ← Foo",
       "",                          // blank line
-      "│   └── bar/",
-      "│       └── CONTEXT.md         ← Bar",
+      "│   └── bar.md  ← Bar",
     ];
     const result = parseDocEntries(lines);
     expect(result.entries).toHaveLength(2);
@@ -223,8 +218,7 @@ describe("buildDocTree", () => {
     );
     expect(result).toEqual([
       "├── docs/",
-      "│   └── only/",
-      "│       └── CONTEXT.md         ← One",
+      "│   └── only.md  ← One",
     ]);
   });
 
@@ -238,12 +232,9 @@ describe("buildDocTree", () => {
         { name: "c", desc: "C" },
       ],
     );
-    expect(result[2]).toBe("│   ├── a/");
-    expect(result[3]).toBe("│   │   └── CONTEXT.md         ← A");
-    expect(result[4]).toBe("│   ├── b/");
-    expect(result[5]).toBe("│   │   └── CONTEXT.md         ← B");
-    expect(result[6]).toBe("│   └── c/");
-    expect(result[7]).toBe("│       └── CONTEXT.md         ← C");
+    expect(result[2]).toBe("│   ├── a.md  ← A");
+    expect(result[3]).toBe("│   ├── b.md  ← B");
+    expect(result[4]).toBe("│   └── c.md  ← C");
   });
 
   it("empty entries produces only docLine + header", () => {
@@ -264,10 +255,8 @@ describe("insertFolderEntry", () => {
     "~/.pi/agent/",
     "├── docs/",
     "│   ├── CONTEXT.md",
-    "│   ├── beta/",
-    "│   │   └── CONTEXT.md         ← B",
-    "│   └── delta/",
-    "│       └── CONTEXT.md         ← D",
+    "│   ├── beta.md      ← B",
+    "│   └── delta.md     ← D",
     "├── patches/",
     "```",
   ].join("\n");
@@ -275,34 +264,32 @@ describe("insertFolderEntry", () => {
   it("inserts at beginning alphabetically", () => {
     const result = insertFolderEntry(ROUTER, "alpha", "First!");
     // alpha should be before beta
-    const idx = result.indexOf("│   ├── alpha/");
+    const idx = result.indexOf("│   ├── alpha.md");
     expect(idx).toBeGreaterThan(0);
-    expect(result.indexOf("│   ├── beta/")).toBeGreaterThan(idx);
+    expect(result.indexOf("│   ├── beta.md")).toBeGreaterThan(idx);
   });
 
   it("inserts in the middle", () => {
     const result = insertFolderEntry(ROUTER, "charlie", "Middle");
     // charlie between beta and delta alphabetically
-    const idx = result.indexOf("│   ├── charlie/");
-    expect(idx).toBeGreaterThan(result.indexOf("│   ├── beta/"));
-    expect(result.indexOf("│   └── delta/")).toBeGreaterThan(idx);
+    const idx = result.indexOf("│   ├── charlie.md");
+    expect(idx).toBeGreaterThan(result.indexOf("│   ├── beta.md"));
+    expect(result.indexOf("│   └── delta.md")).toBeGreaterThan(idx);
   });
 
   it("inserts at end (old last becomes ├──)", () => {
     const result = insertFolderEntry(ROUTER, "zeta", "Last!");
     // delta was └──, now should be ├──
-    expect(result).toContain("│   ├── delta/");
+    expect(result).toContain("│   ├── delta.md");
     // zeta gets └──
-    expect(result).toContain("│   └── zeta/");
-    // vertical bar resets for new last
-    expect(result).toContain("│       └── CONTEXT.md         ← Last!");
+    expect(result).toContain("│   └── zeta.md");
   });
 
   it("is case-insensitive", () => {
     const result = insertFolderEntry(ROUTER, "ALPHA", "Upper");
     // "ALPHA" < "beta" in case-insensitive sort
-    expect(result.indexOf("│   ├── ALPHA/")).toBeLessThan(
-      result.indexOf("│   ├── beta/"),
+    expect(result.indexOf("│   ├── ALPHA.md")).toBeLessThan(
+      result.indexOf("│   ├── beta.md"),
     );
   });
 
@@ -310,3 +297,4 @@ describe("insertFolderEntry", () => {
     expect(() => insertFolderEntry("# No tree\n", "x", "x")).toThrow("docs/");
   });
 });
+

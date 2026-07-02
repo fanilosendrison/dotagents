@@ -17,7 +17,7 @@ ready (e.g. `Managing API Keys` → `managing-api-keys`).
 
 You are writing for your future self — when you read this again, you need to
 understand what was done and how to act on it immediately. Reference
-`docs/managing-api-keys/CONTEXT.md` as the canonical example for tone, table
+`docs/managing-api-keys.md` as the canonical example for tone, table
 formatting, and section depth.
 
 Sections, in this order:
@@ -73,7 +73,7 @@ Pipe the JSON from STEP 1 into the script bundled with this skill:
 echo '<json>' | ./scripts/bootstrap-docs
 ```
 
-It creates the folder, writes `CONTEXT.md`, updates the docs index,
+It writes the markdown file, updates the docs index,
 appends the Quick Navigation row, and inserts into the Folder Structure
 tree — all in one shot. **Zero LLM calls after STEP 1.**
 

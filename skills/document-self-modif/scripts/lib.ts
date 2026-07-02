@@ -59,7 +59,7 @@ export function formatIndexEntry(
   return (
     `\n### ${num}. ${title}\n` +
     `- **Date** : ${date}\n` +
-    `- **Doc** : [\`${topic}/CONTEXT.md\`](${topic}/CONTEXT.md)\n`
+    `- **Doc** : [\`${topic}.md\`](${topic}.md)\n`
   );
 }
 
@@ -71,7 +71,7 @@ export function formatQuickNavRow(
   topic: string,
   description: string,
 ): string {
-  return `| ${action} | \`docs/${topic}/CONTEXT.md\` (${description}) |`;
+  return `| ${action} | \`docs/${topic}.md\` (${description}) |`;
 }
 
 /**
@@ -133,28 +133,24 @@ export function parseDocEntries(
 
   let i = 0;
 
-  // Collect header lines (before first folder entry)
+  // Collect header lines (before first file entry)
   while (i < sectionLines.length) {
-    if (/^│   [├└]── .+\/$/.test(sectionLines[i])) break;
+    if (/^│   [├└]── .+\.md\s*(?:←|$)/.test(sectionLines[i]) && !sectionLines[i].includes("CONTEXT.md")) break;
     header.push(sectionLines[i]);
     i++;
   }
 
   // Collect entry pairs
   while (i < sectionLines.length) {
-    const m = sectionLines[i].match(/^│   [├└]── (.+?)\/\s*(← .*)?$/);
-    if (!m) {
+    const m = sectionLines[i].match(/^│   [├└]── (.+?)\.md(?:\s*← (.*))?$/);
+    if (!m || sectionLines[i].includes("CONTEXT.md")) {
       i++;
       continue;
     }
     const name = m[1].trim();
-    let desc = "";
-    if (i + 1 < sectionLines.length) {
-      const dm = sectionLines[i + 1].match(/← (.+)$/);
-      if (dm) desc = dm[1].trim();
-    }
+    const desc = m[2] ? m[2].trim() : "";
     entries.push({ name, desc });
-    i += 2;
+    i++;
   }
 
   return { header, entries };
@@ -172,12 +168,16 @@ export function buildDocTree(
 ): string[] {
   const rebuilt: string[] = [];
 
+  let maxNameLen = 0;
+  entries.forEach(({ name }) => {
+    if (name.length > maxNameLen) maxNameLen = name.length;
+  });
+
   entries.forEach(({ name, desc }, idx) => {
     const last = idx === entries.length - 1;
     const branch = last ? "└──" : "├──";
-    const indent = last ? "    " : "│   ";
-    rebuilt.push(`│   ${branch} ${name}/`);
-    rebuilt.push(`│   ${indent}└── CONTEXT.md         ← ${desc}`);
+    const paddedName = (name + ".md").padEnd(maxNameLen + 4);
+    rebuilt.push(`│   ${branch} ${paddedName} ← ${desc}`);
   });
 
   return [docLine, ...header, ...rebuilt];
