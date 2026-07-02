@@ -17,7 +17,7 @@ First, read the target enforcer's source code. You must understand:
 
 ## STEP 2. Draft the Documentation and fill the JSON
 
-Draft the full `CONTEXT.md` content for this enforcer.
+Draft the full markdown content for this enforcer.
 Do not use client-specific terms like `PreToolUse` or `PostToolUse` — keep it entirely agnostic.
 
 ### Template
@@ -71,7 +71,7 @@ When an action is blocked by this enforcer, you will receive an error message. *
 | `description` | Short summary — 6 words max |
 | `action` | Short imperative action (e.g. "Validate bash commands") |
 | `date` | Today's date in `YYYY-MM-DD` |
-| `content` | The full CONTEXT.md text drafted above |
+| `content` | The full `.md` text drafted above |
 
 ---
 
@@ -83,4 +83,4 @@ Pipe the JSON from STEP 2 into the script bundled with this skill:
 echo '<json>' | ./scripts/bootstrap-enforcer-docs
 ```
 
-It creates the folder, writes `CONTEXT.md` in `~/.agents/docs/`, and updates the docs index all in one shot. **Zero LLM calls after STEP 2.**
+It writes `<topic>.md` in `~/.agents/docs/`, and updates the docs index all in one shot. **Zero LLM calls after STEP 2.**

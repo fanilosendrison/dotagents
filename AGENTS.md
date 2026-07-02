@@ -23,23 +23,21 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ```
 ~/.agents/
 ├── AGENTS.md                 ← You are here.
-├── operational-implementation-rules.md ← How you must implement code
-├── conventions/              ← Passive rules and conventions
+├── agent-credentials.json    ← Global API keys registry (gitignored)
+├── agent-credentials.json.template ← Template for API keys
+├── operational-rules/        ← Core rules and architecture standards
+│   ├── implementation.md     ← How you must implement code
+│   └── managing-api-keys.md  ← How you manage API keys
+├── conventions/              ← Passive conventions
 │   └── semver.md             ← Shows you how to number versions
 ├── docs/                     ← Documentation for agent enforcers
-│   ├── CONTEXT.md            ← Index of all enforcers
-│   ├── command-validator/
-│   │   └── CONTEXT.md        ← Forces you to verify bash commands
-│   ├── commit-msg-validator/
-│   │   └── CONTEXT.md        ← Forces you to validate commit messages
-│   ├── git-commits-push-enforcer/
-│   │   └── CONTEXT.md        ← Forces you to push after you commit
-│   ├── path-guard/
-│   │   └── CONTEXT.md        ← Shows you how to operate in symlink folders
-│   ├── post-write-linter/
-│   │   └── CONTEXT.md        ← Forces you to lint the code you write
-│   └── secret-scanner/
-│       └── CONTEXT.md        ← Prevents you to leak secrets
+│   ├── command-validator.md         ← Forces you to verify bash commands
+│   ├── commit-msg-validator.md      ← Forces you to validate commit messages
+│   ├── CONTEXT.md                   ← Index of all enforcers
+│   ├── git-commits-push-enforcer.md ← Forces you to push after you commit
+│   ├── path-guard.md                ← Shows you how to operate in symlink folders
+│   ├── post-write-linter.md         ← Forces you to lint the code you write
+│   └── secret-scanner.md            ← Prevents you to leak secrets
 ├── agent-enforcers/          ← scripts for security and validation rules
 │   ├── command-validator/
 │   ├── commit-msg-validator/
@@ -60,14 +58,15 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 
 | Want to...                                          | Go here first                                |
 |-----------------------------------------------------|----------------------------------------------|
-| Implement a feature?                                | `operational-implementation-rules.md`        |
+| Implement a feature?                                | `operational-rules/implementation.md`        |
+| Know how you manage API keys                        | `operational-rules/managing-api-keys.md`     |
 | Know how to number versions                         | `conventions/semver.md`                      |
-| Know about the way you verify bash commands         | `docs/command-validator/CONTEXT.md`          |
-| Know about the way you validate commit messages     | `docs/commit-msg-validator/CONTEXT.md`       |
-| Know about how you enforce git commit and push      | `docs/git-commits-push-enforcer/CONTEXT.md`  |
-| Know how to operate in symlink folders              | `docs/path-guard/CONTEXT.md`                 |
-| Know about the way you lint the code you write      | `docs/post-write-linter/CONTEXT.md`          |
-| Know how you prevents yourself from leaking secrets | `docs/secret-scanner/CONTEXT.md`             |
+| Know about the way you verify bash commands         | `docs/command-validator.md`                  |
+| Know about the way you validate commit messages     | `docs/commit-msg-validator.md`               |
+| Know about how you enforce git commit and push      | `docs/git-commits-push-enforcer.md`          |
+| Know how to operate in symlink folders              | `docs/path-guard.md`                         |
+| Know about the way you lint the code you write      | `docs/post-write-linter.md`                  |
+| Know how you prevents yourself from leaking secrets | `docs/secret-scanner.md`                     |
 | See all agent enforcers                             | `docs/CONTEXT.md`                            |
 
 

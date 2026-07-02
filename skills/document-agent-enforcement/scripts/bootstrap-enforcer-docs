@@ -39,11 +39,10 @@ if (err) {
 
 const { topic, title, action, date, content } = inp;
 
-// ── 1. Create folder + write CONTEXT.md ──────────────────────
-const docDir = join(HARNESS, "docs", topic);
-mkdirSync(docDir, { recursive: true });
-writeFileSync(join(docDir, "CONTEXT.md"), content, "utf8");
-console.log(`✓ docs/${topic}/CONTEXT.md`);
+// ── 1. Write <topic>.md ───────────────────────────────────────
+const docPath = join(HARNESS, "docs", `${topic}.md`);
+writeFileSync(docPath, content, "utf8");
+console.log(`✓ docs/${topic}.md`);
 
 // ── 2. Append to docs/CONTEXT.md index ───────────────────────
 const indexPath = join(HARNESS, "docs", "CONTEXT.md");
@@ -62,7 +61,7 @@ try {
   const routerContent = readFileSync(routerPath, "utf8");
   const fsUpdated = insertFolderEntry(routerContent, topic, action);
   writeFileSync(routerPath, fsUpdated, "utf8");
-  console.log(`✓ Folder Structure (docs/${topic}/)`);
+  console.log(`✓ Folder Structure (docs/${topic}.md)`);
 } catch (e: any) {
   console.error(`ERROR: ${e.message}`);
   process.exit(1);

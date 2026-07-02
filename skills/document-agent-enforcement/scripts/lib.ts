@@ -52,7 +52,7 @@ export function formatIndexEntry(
   return (
     `\n### ${num}. ${title}\n` +
     `- **Date** : ${date}\n` +
-    `- **Doc** : [\`${topic}/CONTEXT.md\`](${topic}/CONTEXT.md)\n`
+    `- **Doc** : [\`${topic}.md\`](${topic}.md)\n`
   );
 }
 
@@ -95,26 +95,26 @@ export function parseDocEntries(
 
   // Collect header lines (before first folder entry)
   while (i < sectionLines.length) {
-    if (/^│   [├└]── .+\/$/.test(sectionLines[i])) break;
+    if (/^│   [├└]── .+\.md/.test(sectionLines[i])) break;
     header.push(sectionLines[i]);
     i++;
   }
 
   // Collect entry pairs
   while (i < sectionLines.length) {
-    const m = sectionLines[i].match(/^│   [├└]── (.+?)\/\s*(← .*)?$/);
+    const m = sectionLines[i].match(/^│   [├└]── (.+?)\.md\s*(← .*)?$/);
     if (!m) {
       i++;
       continue;
     }
     const name = m[1].trim();
     let desc = "";
-    if (i + 1 < sectionLines.length) {
-      const dm = sectionLines[i + 1].match(/← (.+)$/);
+    if (m[2]) {
+      const dm = m[2].match(/← (.+)$/);
       if (dm) desc = dm[1].trim();
     }
     entries.push({ name, desc });
-    i += 2;
+    i += 1;
   }
 
   return { header, entries };
@@ -131,13 +131,13 @@ export function buildDocTree(
   entries: DocEntry[],
 ): string[] {
   const rebuilt: string[] = [];
+  const maxLen = Math.max(...entries.map((e) => e.name.length));
 
   entries.forEach(({ name, desc }, idx) => {
     const last = idx === entries.length - 1;
     const branch = last ? "└──" : "├──";
-    const indent = last ? "    " : "│   ";
-    rebuilt.push(`│   ${branch} ${name}/`);
-    rebuilt.push(`│   ${indent}└── CONTEXT.md        ← ${desc}`);
+    const pad = " ".repeat(maxLen - name.length);
+    rebuilt.push(`│   ${branch} ${name}.md ${pad} ← ${desc}`);
   });
 
   return [docLine, ...header, ...rebuilt];
