@@ -1,5 +1,4 @@
 node_modules/
-.turnlock/
 agent-enforcers/command-validator/data/security.log
 agent-enforcers/command-validator/data/overrides.json
 agent-enforcers/secret-scanner/data/scan-state.json
