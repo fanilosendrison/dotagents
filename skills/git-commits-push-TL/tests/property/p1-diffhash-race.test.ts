@@ -5,13 +5,13 @@ import { spawnSync } from "node:child_process";
 import { GitRepoFixture } from "../fixtures/git-repo.ts";
 import { MockTurnlockEnvironment } from "../fixtures/mock-turnlock-env.ts";
 import type { CommitJobResultSuccess } from "../../src/types.ts";
-import { computeStateJson } from "../../src/test-helpers.ts";
+import { computeStateJson } from "../helpers/test-helpers.ts";
 
 let repoDirty: GitRepoFixture;
 let env: MockTurnlockEnvironment;
 let repoId: string;
 
-const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/turnlock-orchestrator.ts");
+const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/entrypoints/turnlock-orchestrator.ts");
 
 const STALE_DIFF_HASH = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
 
@@ -21,7 +21,7 @@ beforeAll(async () => {
 	repoDirty.commit("initial commit");
 	repoDirty.writeAndStage("change.ts", "export const x = 1;\n");
 
-	repoId = await import("../../src/git-utils.ts").then((m) =>
+	repoId = await import("../../src/utils/git-utils.ts").then((m) =>
 		m.computeRepoId(repoDirty.dir),
 	);
 

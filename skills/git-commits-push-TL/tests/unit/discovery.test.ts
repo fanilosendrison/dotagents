@@ -11,7 +11,7 @@ import {
 	hasUnpushedCommits,
 	findGitDirectoriesRecursively,
 	computeRepoId,
-} from "../../src/git-utils.ts";
+} from "../../src/utils/git-utils.ts";
 import { runDiscovery } from "../../src/modules/discovery.ts";
 import { GitRepoFixture } from "../fixtures/git-repo.ts";
 import type { Settings } from "../../src/types.ts";

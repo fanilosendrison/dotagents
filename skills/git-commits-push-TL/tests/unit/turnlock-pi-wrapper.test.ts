@@ -65,7 +65,7 @@ import {
 	parseSerializedValue,
 	invokeLlm,
 	handleTurnlockDelegation,
-} from "../../src/turnlock-pi-wrapper.ts";
+} from "../../src/entrypoints/turnlock-pi-wrapper.ts";
 
 describe("turnlock-pi-wrapper", () => {
 	describe("parseSerializedValue", () => {

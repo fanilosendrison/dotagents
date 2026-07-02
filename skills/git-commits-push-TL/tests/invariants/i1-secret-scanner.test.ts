@@ -12,7 +12,7 @@ let repoClean: GitRepoFixture;
 let repoWithSecret: GitRepoFixture;
 let env: MockTurnlockEnvironment;
 
-const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/turnlock-orchestrator.ts");
+const SKILL_ENTRYPOINT = path.resolve(import.meta.dir, "../../src/entrypoints/turnlock-orchestrator.ts");
 
 beforeAll(() => {
 	env = MockTurnlockEnvironment.create();
