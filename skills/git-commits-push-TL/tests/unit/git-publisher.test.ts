@@ -337,3 +337,35 @@ describe("U-GE-14 | executeMultiCommitAndPush — diffHash mismatch → throws b
 		expect(log.stdout.trim().split("\n").length).toBe(1);
 	});
 });
+
+describe("U-GE-15 | executeMultiCommitAndPush — duplicate file across plans → throws before git", () => {
+	let repo: GitRepoFixture;
+	beforeAll(() => {
+		repo = GitRepoFixture.create();
+		repo.commit("initial");
+		repo.writeAndStage("shared.ts", "export const a = 1;\n");
+		repo.writeAndStage("other.ts", "export const b = 2;\n");
+	});
+	afterAll(() => repo.dispose());
+
+	test("throws with clear Fat Commit message before any git operation", async () => {
+		const { diffHash } = await extractDiff(repo.dir);
+		const plans: CommitPlan[] = [
+			{
+				commit: { type: "feat", description: "add feature", isBreaking: false },
+				files: ["shared.ts"],
+			},
+			{
+				commit: { type: "fix", description: "fix bug", isBreaking: false },
+				files: ["shared.ts", "other.ts"], // shared.ts appears twice!
+			},
+		];
+		await expect(
+			executeMultiCommitAndPush(repo.dir, plans, diffHash, NO_PUSH_SETTINGS),
+		).rejects.toThrow(/shared\.ts.*multiple plans|Fat Commit/i);
+
+		// No commit should have been created — guard fires before git reset
+		const log = spawnSync("git", ["log", "--oneline"], { cwd: repo.dir, encoding: "utf-8" });
+		expect(log.stdout.trim().split("\n").length).toBe(1);
+	});
+});
