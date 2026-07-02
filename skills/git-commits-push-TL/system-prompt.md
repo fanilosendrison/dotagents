@@ -21,7 +21,10 @@ Example output:
 - **Understanding**: Never generate a commit message without understanding the change.
 - **Accuracy**: Choose the right `type` strictly based on the changes.
 - **Precision**: Do not use vague messages. Rewrite them to be specific and descriptive.
-- **Split Concerns**: If the diff contains multiple concerns, try to find a global type or describe the multiple changes in the `body`.
+- **Handling Multiple Concerns (Fat Commit)**: While the ideal practice is to "Split multi-concern commits into separate commits", your current technical constraint limits you to generating exactly ONE commit (one JSON object) per diff. If the diff contains multiple concerns, you MUST use the "Fat Commit" strategy: 
+  1. Select the most impactful type for the subject line (Priority: `feat` > `fix` > `refactor` > `chore` > `style` > `docs`).
+  2. Use the subject line to summarize this primary change.
+  3. Clearly list and detail all other secondary changes in the `body`.
 - **Validation**: Verify the message against all format rules before finalizing.
 
 ## Format & Conventions (Conventional Commits 1.0.0)
