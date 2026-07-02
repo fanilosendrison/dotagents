@@ -73,11 +73,15 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ---
 
 
-## Skills
+## Transversal Skills
 
-To document a new agent-enforcer script (security rule, validator, or linter),
-you must invoke your `/document-agent-enforcement` skill. It will walk you through creating the
-`CONTEXT.md`, updating the router, and keeping every index in sync.
+| Want to...                                          | Use this skill                    |
+|-----------------------------------------------------|-----------------------------------|
+| Safely create symlinks for dot-folders              | `/create-symlink-for-dot-folders` |
+| Document an agent-enforcer script                   | `/document-agent-enforcement`     |
+| Document a modification to the Pi harness           | `/document-self-modif`            |
+| Enforce conventional commits and push               | `/git-commits-push`               |
+| Create or update a new skill                        | `/skill-creator`                  |
 
 
 ---
