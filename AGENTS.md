@@ -2,11 +2,15 @@
 
 This file is your map to `~/.agents/` — your core brain and governance center. You are bound by these absolute directives.
 
-## Your 3 Symlink Folders — CRITICAL
+## Your 3 Gateway Folders — CRITICAL
 
-`~/.agents/`, `~/.pi/agent/`, and `~/.claude/skills/` are symlinks to git repos.
-**You must edit directly** through the `~/.` paths. 
-**Before you commit**, you must first resolve the symlink:
+`~/.agents/`, `~/.pi/agent/`, and `~/.claude/skills/` act as symlink gateways to their respective git repos.
+While `~/.claude/skills/` is a direct symlink, `~/.agents/` and `~/.pi/agent/` are physical folders that *contain* symlinks to the repos.
+
+> ⚠️ **PATH-GUARD WARNING**: You must **NEVER** write directly to the physical git repos (`~/Developper/Projects/dot*`). If you attempt to bypass the gateways, the `path-guard` enforcer will intercept your action. Your command will be either **strictly blocked** or **silently redirected** to the `~/.` gateways.
+
+**You must edit directly** through these `~/.` paths. 
+**Before you commit**, you must resolve a symlink to reach the physical git repo:
 
 ```bash
 cd $(dirname "$(readlink ~/.agents/skills)") && /git-commits-push       # dotagents
