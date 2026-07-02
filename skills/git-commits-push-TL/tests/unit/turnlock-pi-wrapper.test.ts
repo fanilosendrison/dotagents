@@ -6,6 +6,7 @@ import * as path from "node:path";
 
 // Set up module mocks before importing the target wrapper
 let lastExecCmd: string | null = null;
+let lastUserPrompt: string | null = null;
 
 mock.module("@fanilosendrison/llm-runtime", () => ({
 	createOpenAIAdapter: (config: any) => {
@@ -15,6 +16,7 @@ mock.module("@fanilosendrison/llm-runtime", () => ({
 		return {
 			call: async (args: any) => {
 				if (args.temperature !== 0) throw new Error("Unexpected temperature");
+				lastUserPrompt = args.messages.user;
 				return { content: JSON.stringify({ type: "feat", description: "mock openai commit" }) };
 			},
 		};
@@ -231,6 +233,49 @@ describe("turnlock-pi-wrapper", () => {
 			expect(resultData.success).toBe(false);
 			expect(resultData.id).toBe("job-2");
 			expect(resultData.error).toContain("LLM Fatal Error: mock auth fail");
+		});
+
+		test("injects feedback into prompt if present", async () => {
+			const mockJobPayload = {
+				repository: "/path/to/repo",
+				diff: "staged-diff",
+				diffHash: "hash123",
+				provider: "openai",
+				model: "gpt-5.4-mini",
+				temperature: 0,
+				systemPrompt: "sys-prompt",
+				feedback: {
+					previous_commit: "BAD COMMIT",
+					validation_errors: ["Error 1", "Error 2"],
+				}
+			};
+
+			const manifest = {
+				manifestVersion: 1,
+				runId: "run-123",
+				orchestratorName: "git-commits-push-tl",
+				phase: "commit-and-push",
+				resumeAt: "commit-and-push",
+				label: "commit-jobs-retry",
+				kind: "agent-batch",
+				jobs: [
+					{
+						id: "job-3",
+						prompt: JSON.stringify(mockJobPayload),
+						resultPath: tempResultPath,
+					},
+				],
+			};
+
+			fs.writeFileSync(tempManifestPath, JSON.stringify(manifest), "utf-8");
+			lastUserPrompt = null;
+			
+			await handleTurnlockDelegation(tempManifestPath, "resume-cmd --test", () => {});
+			
+			expect(lastUserPrompt).toContain("FEEDBACK FROM PREVIOUS FAILED ATTEMPT");
+			expect(lastUserPrompt).toContain("BAD COMMIT");
+			expect(lastUserPrompt).toContain("- Error 1");
+			expect(lastUserPrompt).toContain("- Error 2");
 		});
 	});
 });
