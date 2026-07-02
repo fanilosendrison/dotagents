@@ -141,6 +141,21 @@ export async function executeMultiCommitAndPush(
 		throw new Error("executeMultiCommitAndPush: received an empty plans array.");
 	}
 
+	// Guard: detect duplicate files across plans before touching git.
+	// A file appearing in two plans means the LLM violated the Fat Commit rule.
+	const seen = new Set<string>();
+	for (const plan of plans) {
+		for (const file of plan.files) {
+			if (seen.has(file)) {
+				throw new Error(
+					`Invalid commit plan: file "${file}" appears in multiple plans. ` +
+					`Files that contain multiple concerns must be grouped into a single Fat Commit plan.`,
+				);
+			}
+			seen.add(file);
+		}
+	}
+
 	// 1. Race condition protection — check the full staged diff hasn't changed
 	const currentDiff = execSync("git diff --cached", {
 		cwd: repoPath,
