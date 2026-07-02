@@ -17,22 +17,22 @@ export async function resolveAuthToken(provider: string): Promise<string> {
 		return process.env[envKey].trim();
 	}
 
-	// 2. Read ~/.pi/agent/auth.json
-	const authFilePath = path.join(os.homedir(), ".pi", "agent", "auth.json");
+	// 2. Read ~/.agents/agent-credentials.json
+	const authFilePath = path.join(os.homedir(), ".agents", "agent-credentials.json");
 	let authData: Record<string, any>;
 	try {
 		const raw = fs.readFileSync(authFilePath, "utf-8");
 		authData = JSON.parse(raw);
 	} catch {
 		throw new Error(
-			`Authentication token for provider ${provider} not found in env and failed to read auth.json`,
+			`Authentication token for provider ${provider} not found in env and failed to read agent-credentials.json`,
 		);
 	}
 
 	const tokenConfig = authData[provider];
 	if (!tokenConfig) {
 		throw new Error(
-			`Authentication token for provider ${provider} not found in env or auth.json`,
+			`Authentication token for provider ${provider} not found in env or agent-credentials.json`,
 		);
 	}
 
@@ -43,20 +43,20 @@ export async function resolveAuthToken(provider: string): Promise<string> {
 		tokenConfigStr = (tokenConfig as any).key;
 	} else {
 		throw new Error(
-			`Authentication token for provider ${provider} in auth.json is malformed`,
+			`Authentication token for provider ${provider} in agent-credentials.json is malformed`,
 		);
 	}
 
 	const trimmedConfig = tokenConfigStr.trim();
 
-	// 3. Dynamic Execution (Starts with !)
-	if (trimmedConfig.startsWith("!")) {
-		const command = trimmedConfig.slice(1);
+	// 3. Dynamic Execution
+	try {
 		// execSync throws if exit code !== 0, which correctly propagates
-		const result = execSync(command, { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
+		const result = execSync(trimmedConfig, { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
 		return result.trim();
+	} catch (err: any) {
+		throw new Error(
+			`Failed to execute credential command for provider ${provider}. Ensure the key in agent-credentials.json is a valid shell command (e.g. doppler). Error: ${err.message}`,
+		);
 	}
-
-	// 4. Raw static token
-	return trimmedConfig;
 }

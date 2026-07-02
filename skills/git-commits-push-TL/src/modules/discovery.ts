@@ -14,7 +14,7 @@ import {
 	hasLocalChanges,
 	hasUnpushedCommits,
 	isDetachedHead,
-} from "../git-utils.ts";
+} from "../utils/git-utils.ts";
 
 function expandPath(p: string): string {
 	if (p.startsWith("~/")) {

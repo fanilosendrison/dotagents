@@ -6,8 +6,8 @@
   "private": true,
   "scripts": {
     "test": "bun test",
-    "test:run": "bun run src/turnlock-orchestrator.ts",
-    "start": "bun run src/turnlock-orchestrator.ts | bun run src/turnlock-pi-wrapper.ts",
+    "test:run": "bun run src/entrypoints/turnlock-orchestrator.ts",
+    "start": "bun run src/entrypoints/turnlock-orchestrator.ts | bun run src/entrypoints/turnlock-pi-wrapper.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check src/ tests/"
   },
