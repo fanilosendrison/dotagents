@@ -84,10 +84,15 @@ interface CommitMessage {
 	isBreaking: boolean;
 }
 
+interface CommitPlan {
+	commit: CommitMessage;
+	files: string[];
+}
+
 interface CommitJobResultSuccess {
 	success: true;
 	id: string;
-	commit: CommitMessage;
+	commits: CommitPlan[];
 }
 
 interface CommitJobResultError {
@@ -152,10 +157,10 @@ export async function handleTurnlockDelegation(
 				let finalUserPrompt = payload.diff;
 				if (payload.feedback) {
 					finalUserPrompt += `\n\n--- FEEDBACK FROM PREVIOUS FAILED ATTEMPT ---\n`;
-					finalUserPrompt += `Your previous commit message was rejected due to formatting errors.\n\n`;
-					finalUserPrompt += `Previous attempt:\n${payload.feedback.previous_commit}\n\n`;
+					finalUserPrompt += `Your previous commit plan was rejected due to formatting errors.\n\n`;
+					finalUserPrompt += `Previous attempt (all commits):\n${payload.feedback.previous_commit}\n\n`;
 					finalUserPrompt += `Validation Errors:\n${payload.feedback.validation_errors.map((e) => `- ${e}`).join("\n")}\n\n`;
-					finalUserPrompt += `Please generate a NEW JSON object fixing these exact errors.\n`;
+					finalUserPrompt += `Please generate a NEW JSON array fixing these exact errors.\n`;
 				}
 
 				const llmResponse = await invokeLlm({
@@ -171,7 +176,10 @@ export async function handleTurnlockDelegation(
 				console.log(
 					`[Pi Wrapper] [${job.id}] LLM response received. Parsing JSON...`,
 				);
-				const commit: CommitMessage = JSON.parse(llmResponse);
+				const commits: CommitPlan[] = JSON.parse(llmResponse);
+				if (!Array.isArray(commits) || commits.length === 0) {
+					throw new Error("LLM returned an invalid response: expected a non-empty JSON array of commit plans.");
+				}
 
 				// Ensure directory for result exists
 				const dir = path.dirname(job.resultPath);
@@ -182,7 +190,7 @@ export async function handleTurnlockDelegation(
 				const successResult: CommitJobResult = {
 					success: true,
 					id: job.id,
-					commit,
+					commits,
 				};
 				fs.writeFileSync(
 					job.resultPath,

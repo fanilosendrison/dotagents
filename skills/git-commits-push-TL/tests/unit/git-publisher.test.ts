@@ -7,9 +7,10 @@ import * as path from "node:path";
 import { extractDiff } from "../../src/git-utils.ts";
 import {
 	executeCommitAndPush,
+	executeMultiCommitAndPush,
 	formatConventionalCommit,
 } from "../../src/modules/git-publisher.ts";
-import type { CommitMessage, Settings } from "../../src/types.ts";
+import type { CommitMessage, CommitPlan, Settings } from "../../src/types.ts";
 import { GitRepoFixture } from "../fixtures/git-repo.ts";
 
 // ─── Pure function tests (no git I/O) ────────────────────────────────────────
@@ -250,5 +251,89 @@ describe("U-GE-11 | GIT_TERMINAL_PROMPT=0 is set on all git invocations", () => 
 		// Should fail fast (no interactive prompt) — not necessarily exit 0
 		expect(result.status).not.toBeNull();
 		expect(elapsed).toBeLessThan(5000);
+	});
+});
+
+// ─── executeMultiCommitAndPush tests ─────────────────────────────────────────
+
+describe("U-GE-12 | executeMultiCommitAndPush — two files → two distinct commits", () => {
+	let repo: GitRepoFixture;
+	beforeAll(() => {
+		repo = GitRepoFixture.create();
+		repo.commit("initial");
+		repo.writeAndStage("api.ts", "export const api = 1;\n");
+		repo.writeAndStage("ci.yml", "name: CI\n");
+	});
+	afterAll(() => repo.dispose());
+
+	test("git log shows 2 commits in the right order", async () => {
+		const { diffHash } = await extractDiff(repo.dir);
+		const plans: CommitPlan[] = [
+			{
+				commit: { type: "feat", description: "add api module", isBreaking: false },
+				files: ["api.ts"],
+			},
+			{
+				commit: { type: "ci", description: "add ci workflow", isBreaking: false },
+				files: ["ci.yml"],
+			},
+		];
+		await executeMultiCommitAndPush(repo.dir, plans, diffHash, NO_PUSH_SETTINGS);
+
+		const log = spawnSync("git", ["log", "--oneline", "-2"], {
+			cwd: repo.dir,
+			encoding: "utf-8",
+		});
+		expect(log.stdout).toContain("feat: add api module");
+		expect(log.stdout).toContain("ci: add ci workflow");
+	});
+});
+
+describe("U-GE-13 | executeMultiCommitAndPush — hallucinated file → throws", () => {
+	let repo: GitRepoFixture;
+	beforeAll(() => {
+		repo = GitRepoFixture.create();
+		repo.commit("initial");
+		repo.writeAndStage("real.ts", "export const x = 1;\n");
+	});
+	afterAll(() => repo.dispose());
+
+	test("throws when a listed file is not present in staging", async () => {
+		const { diffHash } = await extractDiff(repo.dir);
+		const plans: CommitPlan[] = [
+			{
+				commit: { type: "feat", description: "add real file", isBreaking: false },
+				files: ["real.ts", "ghost.ts"], // ghost.ts does not exist
+			},
+		];
+		await expect(
+			executeMultiCommitAndPush(repo.dir, plans, diffHash, NO_PUSH_SETTINGS),
+		).rejects.toThrow();
+	});
+});
+
+describe("U-GE-14 | executeMultiCommitAndPush — diffHash mismatch → throws before any commit", () => {
+	let repo: GitRepoFixture;
+	beforeAll(() => {
+		repo = GitRepoFixture.create();
+		repo.commit("initial");
+		repo.writeAndStage("f.ts", "export const a = 1;\n");
+	});
+	afterAll(() => repo.dispose());
+
+	test("throws DiffHash mismatch and makes no commits", async () => {
+		const plans: CommitPlan[] = [
+			{
+				commit: { type: "chore", description: "update f", isBreaking: false },
+				files: ["f.ts"],
+			},
+		];
+		await expect(
+			executeMultiCommitAndPush(repo.dir, plans, "wrong-hash-00000000", NO_PUSH_SETTINGS),
+		).rejects.toThrow("DiffHash mismatch");
+
+		// No commit should have been created beyond "initial"
+		const log = spawnSync("git", ["log", "--oneline"], { cwd: repo.dir, encoding: "utf-8" });
+		expect(log.stdout.trim().split("\n").length).toBe(1);
 	});
 });

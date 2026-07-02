@@ -56,12 +56,17 @@ beforeAll(async () => {
 	const llmResult: CommitJobResultSuccess = {
 		success: true,
 		id: repoId,
-		commit: {
-			type: "feat",
-			scope: "core",
-			description: "add x constant",
-			isBreaking: false,
-		},
+		commits: [
+			{
+				commit: {
+					type: "feat",
+					scope: "core",
+					description: "add x constant",
+					isBreaking: false,
+				},
+				files: ["change.ts"],
+			},
+		],
 	};
 	env.writeLLMResult(repoId, llmResult, "test-run-seeded");
 	void diff; // used implicitly via computeStateJson
@@ -117,5 +122,14 @@ describe("A2 — End-to-End Resume Run", () => {
 			encoding: "utf-8",
 		});
 		expect(result.stdout).toContain("feat(core): add x constant");
+	});
+
+	test("A2-06 | only one commit was created (single plan)", () => {
+		const result = spawnSync("git", ["log", "--oneline"], {
+			cwd: repoDirty.dir,
+			encoding: "utf-8",
+		});
+		// "initial commit" + the one we just made = 2 total
+		expect(result.stdout.trim().split("\n").length).toBe(2);
 	});
 });

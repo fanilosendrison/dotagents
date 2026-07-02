@@ -29,6 +29,15 @@ export interface CommitMessage {
 }
 
 /**
+ * A single commit plan: one commit message + the list of files to stage for it.
+ * Multiple CommitPlans per repo enable file-level commit splitting.
+ */
+export interface CommitPlan {
+	commit: CommitMessage;
+	files: string[]; // relative paths from the repo root
+}
+
+/**
  * Payload embedded as JSON string inside an AgentBatchDelegationRequest job's `prompt` field.
  * See: NIB-S §3 > CommitJobPayload, DC-TURNLOCK §4.
  */
@@ -50,7 +59,7 @@ export interface CommitJobPayload {
 export interface CommitJobResultSuccess {
 	success: true;
 	id: string;
-	commit: CommitMessage;
+	commits: CommitPlan[];
 }
 
 /** Written by the Pi wrapper to each job's resultPath on failure */

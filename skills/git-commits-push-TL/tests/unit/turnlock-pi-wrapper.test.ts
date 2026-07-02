@@ -17,7 +17,7 @@ mock.module("@fanilosendrison/llm-runtime", () => ({
 			call: async (args: any) => {
 				if (args.temperature !== 0) throw new Error("Unexpected temperature");
 				lastUserPrompt = args.messages.user;
-				return { content: JSON.stringify({ type: "feat", description: "mock openai commit" }) };
+				return { content: JSON.stringify([{ commit: { type: "feat", description: "mock openai commit", isBreaking: false }, files: ["src/index.ts"] }]) };
 			},
 		};
 	},
@@ -26,7 +26,7 @@ mock.module("@fanilosendrison/llm-runtime", () => ({
 		return {
 			call: async (args: any) => {
 				if (args.temperature !== 0) throw new Error("Unexpected temperature");
-				return { content: JSON.stringify({ type: "fix", description: "mock anthropic commit" }) };
+				return { content: JSON.stringify([{ commit: { type: "fix", description: "mock anthropic commit", isBreaking: false }, files: ["src/fix.ts"] }]) };
 			},
 		};
 	},
@@ -35,7 +35,7 @@ mock.module("@fanilosendrison/llm-runtime", () => ({
 		return {
 			call: async (args: any) => {
 				if (args.temperature !== 0) throw new Error("Unexpected temperature");
-				return { content: JSON.stringify({ type: "docs", description: "mock google commit" }) };
+				return { content: JSON.stringify([{ commit: { type: "docs", description: "mock google commit", isBreaking: false }, files: ["README.md"] }]) };
 			},
 		};
 	},
@@ -44,7 +44,7 @@ mock.module("@fanilosendrison/llm-runtime", () => ({
 		return {
 			call: async (args: any) => {
 				if (args.temperature !== 0) throw new Error("Unexpected temperature");
-				return { content: JSON.stringify({ type: "chore", description: "mock custom commit" }) };
+				return { content: JSON.stringify([{ commit: { type: "chore", description: "mock custom commit", isBreaking: false }, files: ["chore.ts"] }]) };
 			},
 		};
 	},
@@ -187,8 +187,8 @@ describe("turnlock-pi-wrapper", () => {
 			const resultData = JSON.parse(fs.readFileSync(tempResultPath, "utf-8"));
 			expect(resultData.success).toBe(true);
 			expect(resultData.id).toBe("job-1");
-			expect(resultData.commit.type).toBe("feat");
-			expect(resultData.commit.description).toBe("mock openai commit");
+			expect(resultData.commits[0].commit.type).toBe("feat");
+			expect(resultData.commits[0].commit.description).toBe("mock openai commit");
 
 			// Verify execSync resume command was executed
 			expect(lastExecCmd).toBe("resume-cmd --test");

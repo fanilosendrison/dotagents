@@ -9,7 +9,7 @@ import type { OrchestratorConfig } from "turnlock";
 import { definePhase, runOrchestrator } from "turnlock";
 import { z } from "zod";
 import { runDiscovery } from "./modules/discovery.ts";
-import { executeCommitAndPush, formatConventionalCommit } from "./modules/git-publisher.ts";
+import { executeMultiCommitAndPush, formatConventionalCommit } from "./modules/git-publisher.ts";
 import { processRepoValidationAndDiff } from "./modules/pre-commit-validators.ts";
 import { printReport } from "./modules/reporter.ts";
 import { readSettings } from "./settings.ts";
@@ -23,11 +23,16 @@ const commitMessageSchema = z.object({
 	isBreaking: z.boolean(),
 });
 
+const commitPlanSchema = z.object({
+	commit: commitMessageSchema,
+	files: z.array(z.string()),
+});
+
 const commitJobResultSchema = z.union([
 	z.object({
 		success: z.literal(true),
 		id: z.string(),
-		commit: commitMessageSchema,
+		commits: z.array(commitPlanSchema),
 	}),
 	z.object({
 		success: z.literal(false),
@@ -43,7 +48,7 @@ const stateSchema = z.object({
 			repository: z.string(),
 			status: z.enum(["PENDING", "RUNNING", "SUCCESS", "FAILED"]),
 			diffHash: z.string().optional(),
-			commit: commitMessageSchema.optional(),
+			commits: z.array(commitPlanSchema).optional(),
 			error: z.string().optional(),
 			attempts: z.number().optional(),
 		}),
@@ -203,14 +208,24 @@ const config: OrchestratorConfig<GlobalState> = {
 				}
 
 				if (validateCommitMessage) {
-					const msgStr = formatConventionalCommit(result.commit);
-					const valRes = validateCommitMessage(msgStr);
-					if (!valRes.valid) {
+					// Validate every commit in the plan
+					const allErrors: string[] = [];
+					const allFormatted: string[] = [];
+					for (const plan of result.commits) {
+						const msgStr = formatConventionalCommit(plan.commit);
+						allFormatted.push(msgStr);
+						const valRes = validateCommitMessage(msgStr);
+						if (!valRes.valid) {
+							for (const e of valRes.errors) {
+								allErrors.push(`[${msgStr}] ${e}`);
+							}
+						}
+					}
+					if (allErrors.length > 0) {
 						const attempts = repoState.attempts || 0;
-						if (attempts < 1) { // 1 retry allowed
+						if (attempts < 1) {
 							nextRepos[result.id].attempts = attempts + 1;
 							const diff = execSync("git diff --cached", { cwd: repoState.repository, encoding: "utf-8" }).toString();
-							
 							const payload: CommitJobPayload = {
 								repository: repoState.repository,
 								diff,
@@ -220,21 +235,17 @@ const config: OrchestratorConfig<GlobalState> = {
 								temperature: settings.temperature,
 								systemPrompt,
 								feedback: {
-									previous_commit: msgStr,
-									validation_errors: valRes.errors
-								}
+									previous_commit: allFormatted.join("\n---\n"),
+									validation_errors: allErrors,
+								},
 							};
-							
-							retryJobs.push({
-								id: result.id,
-								prompt: JSON.stringify(payload),
-							});
-							continue; // Skip executeCommitAndPush for now
+							retryJobs.push({ id: result.id, prompt: JSON.stringify(payload) });
+							continue;
 						} else {
 							nextRepos[result.id] = {
 								...repoState,
 								status: "FAILED",
-								error: "Validation failed after max retries: " + valRes.errors.join(", ")
+								error: "Validation failed after max retries: " + allErrors.join(", "),
 							};
 							continue;
 						}
@@ -242,16 +253,16 @@ const config: OrchestratorConfig<GlobalState> = {
 				}
 
 				try {
-					await executeCommitAndPush(
+					await executeMultiCommitAndPush(
 						repoState.repository,
-						result.commit,
+						result.commits,
 						repoState.diffHash!,
 						settings,
 					);
 					nextRepos[result.id] = {
 						...repoState,
 						status: "SUCCESS",
-						commit: result.commit,
+						commits: result.commits,
 					};
 				} catch (err) {
 					nextRepos[result.id] = {

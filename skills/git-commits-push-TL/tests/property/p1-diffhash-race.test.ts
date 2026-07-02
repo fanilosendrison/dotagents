@@ -51,11 +51,12 @@ beforeAll(async () => {
 	const llmResult: CommitJobResultSuccess = {
 		success: true,
 		id: repoId,
-		commit: {
-			type: "feat",
-			description: "add x constant",
-			isBreaking: false,
-		},
+		commits: [
+			{
+				commit: { type: "feat", description: "add x constant", isBreaking: false },
+				files: ["change.ts"],
+			},
+		],
 	};
 	env.writeLLMResult(repoId, llmResult);
 });
