@@ -1,0 +1,7 @@
+{
+  "name": "create-symlink-for-dot-folders",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
