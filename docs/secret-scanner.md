@@ -2,14 +2,15 @@
 
 Prevents committing secrets (API keys, tokens, passwords) by scanning the **staged diff** before every `git commit`.
 
-## 1. Wiring — 4 interception points
+## 1. Wiring — 5 interception points
 
 | # | Mechanism | Runtime | File |
 |---|-----------|---------|------|
 | 1 | **Pi Extension** · `pi.on("tool_call")` | **Pi** | `~/.pi/agent/extensions/secret-scanner.ts` |
-| 2 | **Pre-tool-use hook** · reads stdin JSON | **Claude + Codex** | `~/.claude/hooks/secret-scanner.ts` (Claude) / `~/.codex/hooks/secret-scanner.ts` (Codex) |
-| 3 | **Post-tool-use hook** · injects context | **Codex only** | `~/.codex/hooks/secret-scanner-post.ts` |
-| 4 | **Antigravity wrapper** · git `pre-commit` hook | **Git (any repo)** | `~/.gravity/wrappers/secret-scanner/hook.ts` |
+| 2 | **Pre-tool-use hook** · reads stdin JSON | **Claude Code** | `~/.claude/hooks/secret-scanner.ts` |
+| 3 | **Pre-tool-use hook** · reads stdin JSON | **Codex** | `~/.codex/hooks/secret-scanner.ts` |
+| 4 | **Post-tool-use hook** · injects context | **Codex only** | `~/.codex/hooks/secret-scanner-post.ts` |
+| 5 | **Antigravity wrapper** · git `pre-commit` hook | **Git (any repo)** | `~/.gravity/wrappers/secret-scanner/hook.ts` |
 
 All share the **same scan engine** : `scanner.ts`.
 
@@ -84,19 +85,11 @@ export function scanDiff(diff: string): ScanResult
 
 ```
 secret-scanner/
-├── data/
-│   └── scan-state.json              ← Last scan state (pre/post coordination)
-├── src/
-│   ├── core/
-│   │   ├── types.ts                 ← Finding, ScanResult interfaces
-│   │   ├── scanner.ts               ← scanDiff() — the engine
-│   │   └── __tests__/scanner.test.ts
-│   ├── bin/
-│   │   ├── pre-tool-use.ts          ← Pre-execution hook (Claude + Codex)
-│   │   ├── post-tool-use.ts         ← Post-execution hook (Codex only)
-│   │   └── __tests__/hooks.test.ts
-│   └── runtime/
-│       └── scan-state.ts            ← read/write scan-state.json
+└── src/
+    └── core/
+        ├── types.ts                   ← Finding, ScanResult interfaces
+        ├── scanner.ts                 ← scanDiff() — the engine
+        └── __tests__/scanner.test.ts
 ```
 
 ## 5. Behavior by runtime
