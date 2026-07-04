@@ -13,33 +13,41 @@ When you need to document a new enforcer, look here first to understand what's a
 
 ## Existing Enforcers
 
-*(No enforcers documented here yet. Run `document-agent-enforcement` to start!)*
+> **Note :** All docs were rewritten on 2026-07-04 with a common structure (wiring, flow diagram, file tree, behavior by runtime).
 
 ### 1. Command Validator
-- **Date** : 2026-06-29
+- **Date** : 2026-06-29 · **Rewritten** : 2026-07-04
 - **Doc** : [`command-validator.md`](command-validator.md)
+- **Wiring** : Pi extension + pre-tool-use hook (Claude/Codex)
+- **Trigger** : Any bash command → CRITICAL/HIGH pattern matching
 
 ### 2. Commit Message Validator
-- **Date** : 2026-06-29
+- **Date** : 2026-06-29 · **Rewritten** : 2026-07-04
 - **Doc** : [`commit-msg-validator.md`](commit-msg-validator.md)
+- **Wiring** : Pi extension + pre-tool-use + post-tool-use hooks + Antigravity wrapper
+- **Trigger** : `git commit -m "..."`
 
 ### 3. Git Commits Push Enforcer
-- **Date** : 2026-06-29
+- **Date** : 2026-06-29 · **Rewritten** : 2026-07-04
 - **Doc** : [`git-commits-push-enforcer.md`](git-commits-push-enforcer.md)
+- **Wiring** : Pi extension + pre-tool-use hook + Antigravity wrapper (Zsh trap)
+- **Trigger** : `git commit` without Conventional Commits or without `&& git push`
 
 ### 4. Path Guard
-- **Date** : 2026-06-29
+- **Date** : 2026-06-29 · **Rewritten** : 2026-07-04
 - **Doc** : [`path-guard.md`](path-guard.md)
+- **Wiring** : Pi extension (rewrite) + pre-tool-use hook (block)
+- **Trigger** : Write/Edit/Bash targeting `~/Developper/Projects/dot*`
 
 ### 5. Secret Scanner
-- **Date** : 2026-06-29
+- **Date** : 2026-06-29 · **Rewritten** : 2026-07-04
 - **Doc** : [`secret-scanner.md`](secret-scanner.md)
+- **Wiring** : Pi extension + pre-tool-use + post-tool-use hooks + Antigravity wrapper
+- **Trigger** : `git commit` → scans staged diff
 
 ### 6. Post-Write Linter
-- **Date** : 2026-07-01
+- **Date** : 2026-07-01 · **Rewritten** : 2026-07-04
 - **Doc** : [`post-write-linter.md`](post-write-linter.md)
+- **Wiring** : Pi extension `tool_result` + post-tool-use hook
+- **Trigger** : After every `Write`/`Edit`/`apply_patch` → biome check
 
-### 7. Logrotate (security.log)
-- **Date** : 2026-07-02
-- **Doc** : [`logrotate.md`](logrotate.md)
-- **Note** : Not an enforcer, but a maintenance utility. Documents the rotation script and launchd job for `agent-enforcers/command-validator/data/security.log`.
