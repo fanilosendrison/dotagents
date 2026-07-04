@@ -1,25 +1,122 @@
 # Commit Message Validator
 
-**Core Rule:** Enforces Conventional Commits syntax and best practices on your git commits. Blocks invalid commit messages.
+Validates commit messages according to the **Conventional Commits 1.0.0** specification.
 
-## Execution Context
+## 1. Wiring — 4 interception points
 
-| Target Data | Interception Phase |
-|-------------|--------------------|
-| Bash Command String (`git commit -m ...`) | Preventive (Before Action) |
+| # | Mechanism | Runtime | File |
+|---|-----------|---------|------|
+| 1 | **Pi Extension** · `pi.on("tool_call")` | **Pi** | `~/.pi/agent/extensions/commit-validator.ts` |
+| 2 | **Pre-tool-use hook** · reads stdin JSON | **Claude + Codex** | `~/.claude/hooks/commit-msg-validator.ts` (Claude) / `~/.codex/hooks/commit-msg-validator.ts` (Codex) |
+| 3 | **Post-tool-use hook** · injects context | **Codex only** | `~/.codex/hooks/commit-msg-validator-post.ts` |
+| 4 | **Antigravity wrapper** · git `commit-msg` hook | **Git (any repo)** | `~/.gravity/wrappers/commit-msg-validator/hook.ts` |
 
-## Enforcement Behavior (Blocked vs Allowed)
+## 2. Trigger flow
 
-| Status | Example Input | Reason / Logic |
-|--------|---------------|----------------|
-| ❌ **Blocked** | `git commit -m "Fixed bug"` | Uses past tense instead of imperative, missing type/scope. |
-| ❌ **Blocked** | `git commit -m "fix: Bug"` | Capital letter after the colon. |
-| ❌ **Blocked** | `git commit -m "fix: bug."` | Trailing period. |
-| ✅ **Allowed** | `git commit -m "fix(auth): handle null token"` | Correct Conventional Commits format with imperative present tense. |
+```
+Bash command → "git commit" ?
+        │
+        ▼
+┌──────────────────────────────────┐
+│  extractCommitMessage(command)   │
+│  (supports -m and multi-line)    │
+└──────────────┬───────────────────┘
+    No -m      │  Message extracted
+    (editor)   ▼
+    Passes  ┌──────────────────────────────────┐
+            │  validateCommitMessage(message)   │
+            │  → { valid, errors[] } object     │
+            └──────────────┬───────────────────┘
+            Valid          │  Invalid
+            ▼              ▼
+       ✅ Allow        ❌ Block/Deny
+```
 
-## Agent Mitigation (If you are blocked)
+## 3. Validation rules
 
-When an action is blocked by this enforcer, you will receive an error message. **You must immediately:**
-1. **Acknowledge the block**: Do not attempt to bypass the enforcer using obfuscation or retries.
-2. **Understand the rule**: Read the error message to identify which rule you broke.
-3. **Change approach**: Rewrite the commit message to follow Conventional Commits syntax (`type(scope): description`), using imperative present tense, no capitalization after the colon, and no trailing period.
+| Rule | Blocked example | Reason |
+|------|----------------|--------|
+| **Format** : `<type>(<scope>): <description>` | `Fixed bug` | No type |
+| **Type** : must be a valid type (feat, fix, chore, docs, style, refactor, perf, test, build, ci, revert) | `stuff: add feature` | `stuff` is not a recognized type |
+| **Scope** : optional, in parentheses | `fix: bug` | ✅ scope is optional |
+| **Description** : **imperative present tense** | `fix(auth): fixed bug` | `fixed` → past tense, not imperative |
+| **No capital letter** after `:` | `fix: Bug` | `B` is uppercase |
+| **No trailing period** | `fix: bug.` | `.` at end of message |
+| **Body** : optional, separated by blank line | ✅ `fix: bug\n\ndetails` | |
+
+### Valid types
+
+```
+feat, fix, chore, docs, style, refactor, perf, test, build, ci, revert
+```
+
+## 4. File tree
+
+```
+commit-msg-validator/
+├── src/
+│   ├── core/
+│   │   ├── types.ts                   ← ValidationResult interface
+│   │   ├── validator.ts               ← isGitCommit, extractCommitMessage, validateCommitMessage
+│   │   └── __tests__/validator.test.ts
+│   └── bin/
+│       ├── pre-tool-use.ts            ← Pre-execution hook
+│       ├── post-tool-use.ts           ← Post-execution hook (Codex)
+│       └── __tests__/hooks.test.ts
+```
+
+## 5. Behavior by runtime
+
+| Scenario | Pi (Extension) | Claude (Pre) | Codex (Pre+Post) | Antigravity — Git `commit-msg` hook |
+|----------|---------------|-------------|------------------|--------------------------------------|
+| Valid Conventional Commits | ✅ Passes | ✅ allow + context | ✅ + post: context | ✅ exit 0 — commit proceeds |
+| Invalid format/uppercase/period | ❌ Block | ❌ deny | ❌ deny | ❌ exit 1 + `[ENFORCER_API_RESPONSE]` JSON — commit aborted |
+| `git commit` (editor) | ✅ Passes | ✅ Passes | ✅ Passes | ✅ exit 0 — skipped (no `-m`) |
+| Message file cannot be read | N/A | N/A | N/A | ❌ exit 1 — fail-closed |
+
+**Antigravity trigger :** Git `commit-msg` hook — fires after the user writes a commit message, receives the message file path as `argv[2]`.
+
+**Entrypoint :** `~/.gravity/wrappers/commit-msg-validator/hook.ts`
+
+**Flow :**
+
+```
+git commit (any repo)
+        │
+        ▼
+┌──────────────────────────────────────────┐
+│  commit-msg hook                         │
+│  bun run wrappers/commit-msg-validator/hook.ts <msg_file>
+└──────────────┬───────────────────────────┘
+               ▼
+┌──────────────────────────────────────────┐
+│  fs.readFileSync(msgFilePath)            │
+│  validateCommitMessage(message)          │
+│  → logs telemetry                        │
+│  → prints [ENFORCER_API_RESPONSE]        │
+└──────────────┬───────────────────────────┘
+      Valid    │  Invalid
+      exit 0   ▼  exit 1 → commit aborted
+```
+
+**Telemetry :** Logs to `~/.gravity/logs/events.jsonl` with status and validation errors.
+
+## 6. Interaction with the `/git-commits-push` skill
+
+The skill **dynamically imports** `commit-msg-validator` in its `commit-and-push` phase to validate LLM-generated messages **before** committing :
+
+```typescript
+// turnlock-orchestrator.ts — "commit-and-push" phase
+const module = await import(validatorPath);
+validateCommitMessage = module.validateCommitMessage;
+```
+
+If validation fails, the skill can **retry** (up to 1 time) with LLM feedback.
+
+## 7. Agent mitigation (when blocked)
+
+1. **Use the skill** : `/git-commits-push` generates and validates messages automatically
+2. **Manually** : format as `<type>(<scope>): <imperative description>`
+   - Lowercase type, scope optional
+   - Description in imperative present tense, no leading capital, no trailing period
+3. **Do not cheat** : no `--no-verify`, no empty message
