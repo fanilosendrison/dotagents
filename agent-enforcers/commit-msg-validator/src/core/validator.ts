@@ -1,4 +1,7 @@
-import type { ValidationResult } from "./types";
+export interface ValidationResult {
+	valid: boolean;
+	errors: string[];
+}
 
 const VALID_TYPES = [
 	"feat",
