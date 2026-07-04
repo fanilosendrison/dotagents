@@ -13,8 +13,8 @@ You are documenting a strict security rule or guardrail script located in the `~
 First, read the target enforcer's source code. You must understand:
 - **Wiring** — how does it connect to each runtime?
   - Pi extension (`~/.pi/agent/extensions/<name>.ts`) — `pi.on("tool_call")` or `pi.on("tool_result")`
-  - Pre-tool-use hook (`src/bin/pre-tool-use.ts`) — reads stdin JSON
-  - Post-tool-use hook (`src/bin/post-tool-use.ts`) — injects context after execution
+  - Claude Code hook (`~/.claude/hooks/<name>.ts`) — reads stdin JSON
+  - Codex hook (`~/.codex/hooks/<name>.ts`) — reads stdin JSON
   - Antigravity wrapper (`~/.gravity/wrappers/<name>/hook.ts`) — git hook entrypoint
 - **Trigger** — what exact event fires it (bash command, git commit, tool_write, etc.)?
 - **Decision logic** — what patterns/regex/heuristics determine allow vs block?
@@ -36,11 +36,11 @@ Draft the full markdown content for this enforcer using the template below.
 | # | Mechanism | Runtime | File |
 |---|-----------|---------|------|
 | 1 | **Pi Extension** · `pi.on("tool_call")` | Pi | `~/.pi/agent/extensions/<name>.ts` |
-| 2 | **Pre-tool-use hook** · reads stdin JSON | Claude + Codex | `~/.agents/agent-enforcers/<name>/src/bin/pre-tool-use.ts` |
-| 3 | **Post-tool-use hook** · injects context | Codex only | `~/.agents/agent-enforcers/<name>/src/bin/post-tool-use.ts` |
+| 2 | **Claude Code hook** · reads stdin JSON | Claude Code | `~/.claude/hooks/<name>.ts` |
+| 3 | **Codex hook** · reads stdin JSON | Codex | `~/.codex/hooks/<name>.ts` |
 | 4 | **Antigravity wrapper** · git hook | Git (any repo) | `~/.gravity/wrappers/<name>/hook.ts` |
 
-All share the **same core logic** : `<shared-file>`. Only include rows that exist (omit rows 3 or 4 if absent).
+All share the **same core logic** : `<shared-file>`. Only include rows that exist (omit rows 2-4 if absent).
 
 ## 2. Trigger flow
 
@@ -56,11 +56,10 @@ All share the **same core logic** : `<shared-file>`. Only include rows that exis
 
 ```
 <name>/
-├── src/
-│   ├── core/
-│   │   └── ...
-│   └── bin/
-│       └── ...
+└── src/
+    └── core/
+        ├── validator.ts
+        └── __tests__/
 ```
 
 ## 5. Behavior by runtime
@@ -72,14 +71,14 @@ All share the **same core logic** : `<shared-file>`. Only include rows that exis
 | ... | ✅ ... |
 | ... | ❌ ... |
 
-### Claude (Pre-tool-use hook)
+### Claude Code (hook)
 
 | Situation | Behavior |
 |-----------|----------|
 | ... | ✅ ... |
 | ... | ❌ ... |
 
-### Codex (Pre + Post tool-use)
+### Codex (hook)
 
 | Situation | Behavior |
 |-----------|----------|
@@ -103,7 +102,7 @@ All share the **same core logic** : `<shared-file>`. Only include rows that exis
 | ... | ✅ ... |
 | ... | ❌ ... |
 
-**Telemetry :** Logs to `~/.gravity/logs/events.jsonl` with status details.
+**Telemetry :** Logs to `~/neelopedia/stats/antigravity/events.jsonl` with status details.
 
 ## 6. Agent mitigation (when blocked)
 
