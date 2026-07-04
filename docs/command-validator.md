@@ -2,13 +2,14 @@
 
 Prevents execution of **destructive** or **dangerous** bash commands. This is the system's first line of defense.
 
-## 1. Wiring — 3 interception points
+## 1. Wiring — 4 interception points
 
 | # | Mechanism | Runtime | File |
 |---|-----------|---------|------|
 | 1 | **Pi Extension** · `pi.on("tool_call")` | **Pi** | `~/.pi/agent/extensions/command-validator.ts` |
-| 2 | **Pre-tool-use hook** · reads stdin JSON | **Claude + Codex** | `~/.claude/hooks/command-validator.ts` (Claude) / `~/.codex/hooks/command-validator.ts` (Codex) |
-| 3 | **User-prompt-submit** · validates user prompts | **Codex** | `~/.codex/hooks/user-prompt-submit.ts` |
+| 2 | **Pre-tool-use hook** · reads stdin JSON | **Claude Code** | `~/.claude/hooks/command-validator.ts` |
+| 3 | **Pre-tool-use hook** · reads stdin JSON | **Codex** | `~/.codex/hooks/command-validator.ts` |
+| 4 | **User-prompt-submit** · validates user prompts | **Codex** | `~/.codex/hooks/user-prompt-submit.ts` |
 
 ## 2. Trigger flow
 
@@ -139,20 +140,12 @@ Each event contains `source`, `action`, `severity`, and `violations`.
 
 ```
 command-validator/
-├── data/
-│   └── overrides.json                 ← Persisted user approvals
-├── src/
-│   ├── core/
-│   │   ├── types.ts                   ← ValidationResult, Severity
-│   │   ├── validator.ts               ← CommandValidator class
-│   │   ├── security-rules.ts          ← CRITICAL/HIGH rules
-│   │   └── __tests__/validator.test.ts
-│   ├── bin/
-│   │   ├── pre-tool-use.ts            ← Pre-execution hook
-│   │   ├── user-prompt-submit.ts      ← User prompt validation
-│   │   └── __tests__/hooks.test.ts
-│   └── runtime/
-│       └── override-store.ts          ← Approval token management
+└── src/
+    └── core/
+        ├── types.ts                   ← ValidationResult, Severity
+        ├── validator.ts               ← CommandValidator class
+        ├── security-rules.ts          ← CRITICAL/HIGH rules
+        └── __tests__/validator.test.ts
 ```
 
 ## 7. Agent mitigation (when blocked)
