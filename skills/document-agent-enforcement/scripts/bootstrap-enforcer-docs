@@ -37,7 +37,7 @@ if (err) {
   process.exit(1);
 }
 
-const { topic, title, action, date, content } = inp;
+const { topic, title, action, date, content, wiring, trigger } = inp;
 
 // ── 1. Write <topic>.md ───────────────────────────────────────
 const docPath = join(HARNESS, "docs", `${topic}.md`);
@@ -50,7 +50,7 @@ const indexContent = readFileSync(indexPath, "utf8");
 const next = computeNextIndex(indexContent);
 writeFileSync(
   indexPath,
-  indexContent + formatIndexEntry(next, title, date, topic),
+  indexContent + formatIndexEntry(next, title, date, topic, wiring, trigger),
   "utf8",
 );
 console.log(`✓ docs/CONTEXT.md (entry ${next})`);
