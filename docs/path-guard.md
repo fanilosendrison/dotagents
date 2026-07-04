@@ -2,14 +2,13 @@
 
 Prevents writing directly to `~/Developper/Projects/dot*` repos. All writes must go through the **symlink gateway** `~/.<name>/`.
 
-## 1. Wiring — 2 interception points
+## 1. Wiring — 1 interception point
 
 | # | Mechanism | Runtime | File |
 |---|-----------|---------|------|
 | 1 | **Pi Extension** · `pi.on("tool_call")` | **Pi** | `~/.pi/agent/extensions/path-guard.ts` |
-| 2 | **Pre-tool-use hook** · reads stdin JSON | **Claude + Codex** | `~/.claude/hooks/path-guard.ts` (Claude) / `~/.codex/hooks/path-guard.ts` (Codex) |
 
-Both share the **same engine** : `path-guard.ts`.
+The **same engine** is shared across runtimes : `path-guard.ts`.
 
 ## 2. Trigger flow
 
@@ -122,13 +121,10 @@ Each segment (separated by `&&` or `;`) must be either `git ...`, `cd ...`, `ech
 
 ```
 path-guard/
-├── src/
-│   ├── core/
-│   │   ├── path-guard.ts              ← checkPath, checkBashCommand, rewriteBashCommand, extractBashPaths
-│   │   └── __tests__/path-guard.test.ts
-│   └── bin/
-│       ├── pre-tool-use.ts            ← Pre-execution hook
-│       └── __tests__/pre-tool-use.test.ts
+└── src/
+    └── core/
+        ├── path-guard.ts              ← checkPath, checkBashCommand, rewriteBashCommand, extractBashPaths
+        └── __tests__/path-guard.test.ts
 ```
 
 ## 6. Agent mitigation (when blocked)
