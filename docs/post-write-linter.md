@@ -2,12 +2,13 @@
 
 Automatically runs **Biome** on modified files after every `Write` or `Edit`, and blocks the result if linting fails.
 
-## 1. Wiring — 2 interception points
+## 1. Wiring — 3 interception points
 
 | # | Mechanism | Runtime | File |
 |---|-----------|---------|------|
 | 1 | **Pi Extension** · `pi.on("tool_result")` | **Pi** | `~/.pi/agent/extensions/post-write-linter.ts` |
-| 2 | **Post-tool-use hook** · reads stdin JSON | **Claude + Codex** | `~/.claude/hooks/post-write-linter.ts` (Claude) / `~/.codex/hooks/post-write-linter.ts` (Codex) |
+| 2 | **Post-tool-use hook** · reads stdin JSON | **Claude Code** | `~/.claude/hooks/post-write-linter.ts` |
+| 3 | **Post-tool-use hook** · reads stdin JSON | **Codex** | `~/.codex/hooks/post-write-linter.ts` |
 
 This is the **only** enforcer that acts **after** tool execution, not before.
 
@@ -101,14 +102,12 @@ export function extractTouchedFilesFromApplyPatch(
 
 ```
 post-write-linter/
-├── src/
-│   ├── core/
-│   │   ├── linter.ts                  ← checkFile() — runs biome check --write
-│   │   ├── patch-files.ts             ← extractTouchedFilesFromApplyPatch()
-│   │   └── patch-files.test.ts
-│   └── bin/
-│       ├── post-tool-use.ts           ← Post-execution hook
-│       └── post-tool-use.test.ts
+└── src/
+    └── core/
+        ├── linter.ts                  ← checkFile() — runs biome check --write
+        ├── patch-files.ts             ← extractTouchedFilesFromApplyPatch()
+        └── __tests__/
+            └── patch-files.test.ts
 ```
 
 ## 7. Agent mitigation (when blocked)
