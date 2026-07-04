@@ -2,14 +2,15 @@
 
 Validates commit messages according to the **Conventional Commits 1.0.0** specification.
 
-## 1. Wiring — 4 interception points
+## 1. Wiring — 5 interception points
 
 | # | Mechanism | Runtime | File |
 |---|-----------|---------|------|
 | 1 | **Pi Extension** · `pi.on("tool_call")` | **Pi** | `~/.pi/agent/extensions/commit-validator.ts` |
-| 2 | **Pre-tool-use hook** · reads stdin JSON | **Claude + Codex** | `~/.claude/hooks/commit-msg-validator.ts` (Claude) / `~/.codex/hooks/commit-msg-validator.ts` (Codex) |
-| 3 | **Post-tool-use hook** · injects context | **Codex only** | `~/.codex/hooks/commit-msg-validator-post.ts` |
-| 4 | **Antigravity wrapper** · git `commit-msg` hook | **Git (any repo)** | `~/.gravity/wrappers/commit-msg-validator/hook.ts` |
+| 2 | **Pre-tool-use hook** · reads stdin JSON | **Claude Code** | `~/.claude/hooks/commit-msg-validator.ts` |
+| 3 | **Pre-tool-use hook** · reads stdin JSON | **Codex** | `~/.codex/hooks/commit-msg-validator.ts` |
+| 4 | **Post-tool-use hook** · injects context | **Codex only** | `~/.codex/hooks/commit-msg-validator-post.ts` |
+| 5 | **Antigravity wrapper** · git `commit-msg` hook | **Git (any repo)** | `~/.gravity/wrappers/commit-msg-validator/hook.ts` |
 
 ## 2. Trigger flow
 
@@ -54,15 +55,10 @@ feat, fix, chore, docs, style, refactor, perf, test, build, ci, revert
 
 ```
 commit-msg-validator/
-├── src/
-│   ├── core/
-│   │   ├── types.ts                   ← ValidationResult interface
-│   │   ├── validator.ts               ← isGitCommit, extractCommitMessage, validateCommitMessage
-│   │   └── __tests__/validator.test.ts
-│   └── bin/
-│       ├── pre-tool-use.ts            ← Pre-execution hook
-│       ├── post-tool-use.ts           ← Post-execution hook (Codex)
-│       └── __tests__/hooks.test.ts
+└── src/
+    └── core/
+        ├── validator.ts               ← isGitCommit, extractCommitMessage, validateCommitMessage
+        └── __tests__/validator.test.ts
 ```
 
 ## 5. Behavior by runtime
