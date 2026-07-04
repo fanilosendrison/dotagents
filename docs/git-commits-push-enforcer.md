@@ -65,7 +65,7 @@ const CC_REGEX = /^[a-z]+(\([^)]+\))?!?:\s\S/;
 | `fix: Bug` | ❌ | Uppercase after `:` |
 | `fix: bug.` | ✅ * | Regex does not block trailing period |
 
-**Note :** this regex is **permissive** — it only validates the minimal structure. Semantic validation is left to `commit-msg-validator`.
+**Note :** this regex is **permissive** — it only validates the minimal structure. Semantic validation (valid types, past tense, etc.) is done by the `/git-commits-push` skill itself, which has its own built-in validator.
 
 ### Chained push (`hasPush`)
 
@@ -148,7 +148,7 @@ User runs: git commit -m "fix: stuff"
 
 ## 7. Interaction with the `/git-commits-push` skill
 
-The skill **bypasses** this enforcer because it uses `execSync("git commit ...")` directly (Node.js), not Pi's `bash` tool. Conventional Commits validation is done **by the skill itself** via a dynamic import of `commit-msg-validator`.
+The skill **bypasses** this enforcer because it uses `execSync("git commit ...")` directly (Node.js), not Pi's `bash` tool. Conventional Commits validation is done **by the skill itself** via its built-in `commit-message-validator.ts` module.
 
 ## 8. Agent mitigation (when blocked)
 
