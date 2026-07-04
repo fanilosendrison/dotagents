@@ -42,7 +42,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 │   ├── path-guard.md                ← Shows you how to operate in symlink folders
 │   ├── post-write-linter.md         ← Forces you to lint the code you write
 │   └── secret-scanner.md            ← Prevents you to leak secrets
-├── agent-enforcers/          ← scripts for security and validation rules
+├── agent-enforcers/          ← Shared core enforcement logic (validators, scanners, linters, path guards)
 │   ├── command-validator/
 │   ├── commit-msg-validator/
 │   ├── git-commits-push-enforcer/
@@ -72,7 +72,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 | Know how to operate in symlink folders              | `docs/path-guard.md`                         |
 | Know about the way you lint the code you write      | `docs/post-write-linter.md`                  |
 | Know how you prevents yourself from leaking secrets | `docs/secret-scanner.md`                     |
-| See all agent enforcers                             | `docs/CONTEXT.md`                            |
+| See all agent enforcers                             | `docs/CONTEXT.md`                                     |
 
 
 ---
@@ -85,7 +85,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 | Safely create symlinks for dot-folders              | `/create-symlink-for-dot-folders` |
 | Document an agent-enforcer script                   | `/document-agent-enforcement`     |
 | Document a modification to the Pi harness           | `/document-self-modif`            |
-| Enforce conventional commits and push               | `/git-commits-push`               |
+| Commit changes               | `/git-commits-push`               |
 | Create or update a new skill                        | `/skill-creator`                  |
 
 
