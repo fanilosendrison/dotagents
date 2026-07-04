@@ -11,56 +11,121 @@ You are documenting a strict security rule or guardrail script located in the `~
 ## STEP 1. Read the Source Code
 
 First, read the target enforcer's source code. You must understand:
-- What input data it analyzes (Bash string, file content, git commit).
-- Its interception phase (preventive vs reactive).
-- What exact patterns or heuristics cause it to block or allow an action.
+- **Wiring** — how does it connect to each runtime?
+  - Pi extension (`~/.pi/agent/extensions/<name>.ts`) — `pi.on("tool_call")` or `pi.on("tool_result")`
+  - Pre-tool-use hook (`src/bin/pre-tool-use.ts`) — reads stdin JSON
+  - Post-tool-use hook (`src/bin/post-tool-use.ts`) — injects context after execution
+  - Antigravity wrapper (`~/.gravity/wrappers/<name>/hook.ts`) — git hook entrypoint
+- **Trigger** — what exact event fires it (bash command, git commit, tool_write, etc.)?
+- **Decision logic** — what patterns/regex/heuristics determine allow vs block?
+- **Behavior per runtime** — does it differ between Pi, Claude, Codex, Antigravity?
 
 ## STEP 2. Draft the Documentation and fill the JSON
 
-Draft the full markdown content for this enforcer.
-Do not use client-specific terms like `PreToolUse` or `PostToolUse` — keep it entirely agnostic.
+Draft the full markdown content for this enforcer using the template below.
 
 ### Template
 
 ~~~markdown
 # [Enforcer Name]
 
-**Core Rule:** [One sentence explaining what this enforcer ensures or prevents. e.g., "Empêche l'exécution de commandes bash destructrices."]
+[One sentence explaining what this enforcer ensures or prevents.]
 
-## Execution Context
+## 1. Wiring — [N] interception point(s)
 
-| Target Data | Interception Phase |
-|-------------|--------------------|
-| [e.g., Bash Command String] | [Preventive (Before Action) / Reactive (After Action)] |
+| # | Mechanism | Runtime | File |
+|---|-----------|---------|------|
+| 1 | **Pi Extension** · `pi.on("tool_call")` | Pi | `~/.pi/agent/extensions/<name>.ts` |
+| 2 | **Pre-tool-use hook** · reads stdin JSON | Claude + Codex | `~/.agents/agent-enforcers/<name>/src/bin/pre-tool-use.ts` |
+| 3 | **Post-tool-use hook** · injects context | Codex only | `~/.agents/agent-enforcers/<name>/src/bin/post-tool-use.ts` |
+| 4 | **Antigravity wrapper** · git hook | Git (any repo) | `~/.gravity/wrappers/<name>/hook.ts` |
 
-## Enforcement Behavior (Blocked vs Allowed)
+All share the **same core logic** : `<shared-file>`. Only include rows that exist (omit rows 3 or 4 if absent).
 
-| Status | Example Input | Reason / Logic |
-|--------|---------------|----------------|
-| ❌ **Blocked** | `rm -rf /` | Matches destructive pattern list. |
-| ❌ **Blocked** | `echo "token" > .env` | Matches secret leak heuristic. |
-| ✅ **Allowed** | `rm file.txt` | Safe, targeted file deletion. |
+## 2. Trigger flow
 
-## Agent Mitigation (If you are blocked)
+```
+[ASCII flow diagram showing when the enforcer fires]
+```
 
-When an action is blocked by this enforcer, you will receive an error message. **You must immediately:**
-1. **Acknowledge the block**: Do not attempt to bypass the enforcer using obfuscation or retries.
-2. **Understand the rule**: Read the error message to identify which rule you broke.
-3. **Change approach**: [Specific mitigation strategy, e.g., "Use `git clean` instead of `rm -rf`"].
+## 3. How it works
+
+[Detailed explanation of the detection logic, patterns, regex, etc.]
+
+## 4. File tree
+
+```
+<name>/
+├── src/
+│   ├── core/
+│   │   └── ...
+│   └── bin/
+│       └── ...
+```
+
+## 5. Behavior by runtime
+
+### Pi (Extension)
+
+| Situation | Behavior |
+|-----------|----------|
+| ... | ✅ ... |
+| ... | ❌ ... |
+
+### Claude (Pre-tool-use hook)
+
+| Situation | Behavior |
+|-----------|----------|
+| ... | ✅ ... |
+| ... | ❌ ... |
+
+### Codex (Pre + Post tool-use)
+
+| Situation | Behavior |
+|-----------|----------|
+| ... | ✅ ... |
+| ... | ❌ ... |
+
+### Antigravity — Git `<hook-name>` hook
+
+**Trigger :** Description of the git hook trigger.
+
+**Entrypoint :** `~/.gravity/wrappers/<name>/hook.ts`
+
+**Flow :**
+
+```
+[ASCII flow for the Gravity wrapper]
+```
+
+| Situation | Behavior |
+|-----------|----------|
+| ... | ✅ ... |
+| ... | ❌ ... |
+
+**Telemetry :** Logs to `~/.gravity/logs/events.jsonl` with status details.
+
+## 6. Agent mitigation (when blocked)
+
+1. **Do not bypass** — ...
+2. **Understand the rule** — ...
+3. **Change approach** — ...
 ~~~
 
 ---
 
-**Then, output this JSON block.** Put the full drafted text in the `content` field. Everything below feeds the mechanical step.
+**Then, output this JSON block.** Put the full drafted text in the `content` field.
 
 ```json
 {
   "topic": "enforcer-name",
   "title": "Enforcer Name",
-  "description": "Short description of the enforcer rule",
-  "action": "Document agent enforcer",
+  "description": "Short description",
+  "action": "Short imperative",
   "date": "YYYY-MM-DD",
-  "content": "# Enforcer Name\n\n**Core Rule:** ...\n\n## Execution Context\n\n..."
+  "wiring": "Pi ext + pre-hook + ...",
+  "trigger": "What fires it",
+  "content": "# Enforcer Name\n\nFull markdown content..."
 }
 ```
 
@@ -71,6 +136,8 @@ When an action is blocked by this enforcer, you will receive an error message. *
 | `description` | Short summary — 6 words max |
 | `action` | Short imperative action (e.g. "Validate bash commands") |
 | `date` | Today's date in `YYYY-MM-DD` |
+| `wiring` | Comma-separated mechanisms (e.g. "Pi ext + pre-hook + post-hook + Antigravity") |
+| `trigger` | What event triggers the enforcer (e.g. "git commit → staged diff scan") |
 | `content` | The full `.md` text drafted above |
 
 ---
