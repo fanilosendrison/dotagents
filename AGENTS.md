@@ -42,7 +42,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 │   ├── path-guard.md                ← Shows you how to operate in symlink folders
 │   ├── post-write-linter.md         ← Forces you to lint the code you write
 │   └── secret-scanner.md            ← Prevents you to leak secrets
-├── agent-enforcers/          ← Core logic shared across Claude Code, Codex, Pi and Antigravity
+├── agent-enforcers/          ← Core logic of your enforcers
 │   ├── command-validator/
 │   ├── commit-msg-validator/
 │   ├── git-commits-push-enforcer/
