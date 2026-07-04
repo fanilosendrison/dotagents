@@ -2,13 +2,12 @@
 
 Prevents commits without a **Conventional Commits** message or a **chained push**.
 
-## 1. Wiring — 3 interception points
+## 1. Wiring — 2 interception points
 
 | # | Mechanism | Runtime | File |
 |---|-----------|---------|------|
 | 1 | **Pi Extension** · `pi.on("tool_call")` | **Pi** | `~/.pi/agent/extensions/git-commits-push-enforcer.ts` |
-| 2 | **Pre-tool-use hook** · reads stdin JSON | **Claude + Codex** | `~/.claude/hooks/git-commits-push-enforcer.ts` (Claude) / `~/.codex/hooks/git-commits-push-enforcer.ts` (Codex) |
-| 3 | **Antigravity wrapper** · git `pre-commit` hook + Zsh trap (`_RAW_GIT_CMD`) | **Git (any repo)** | `~/.gravity/wrappers/git-commits-push-enforcer/hook.ts` |
+| 2 | **Antigravity wrapper** · git `pre-commit` hook + Zsh trap (`_RAW_GIT_CMD`) | **Git (any repo)** | `~/.gravity/wrappers/git-commits-push-enforcer/hook.ts` |
 
 All share the **same validator** : `validator.ts`.
 
@@ -100,13 +99,10 @@ export function extractMessage(command: string): string | null {
 
 ```
 git-commits-push-enforcer/
-├── src/
-│   ├── core/
-│   │   ├── validator.ts               ← isGitCommit, extractMessage, isValidCC, hasPush
-│   │   └── __tests__/validator.test.ts
-│   └── bin/
-│       ├── pre-tool-use.ts            ← Pre-execution hook
-│       └── __tests__/pre-tool-use.test.ts
+└── src/
+    └── core/
+        ├── validator.ts               ← isGitCommit, extractMessage, isValidCC, hasPush
+        └── __tests__/validator.test.ts
 ```
 
 ## 6. Behavior by runtime
