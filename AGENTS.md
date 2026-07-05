@@ -85,7 +85,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 | Safely create symlinks for dot-folders              | `/create-symlink-for-dot-folders` |
 | Document an agent-enforcer script                   | `/document-agent-enforcement`     |
 | Document a modification to the Pi harness           | `/document-self-modif`            |
-| Commit changes               | `/git-commits-push`               |
+| Commit changes                                      | `/git-commits-push`               |
 | Create or update a new skill                        | `/skill-creator`                  |
 
 
