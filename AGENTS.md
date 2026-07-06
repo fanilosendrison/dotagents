@@ -2,6 +2,15 @@
 
 This file is your map to `~/.agents/` — your core brain and governance center. You are bound by these absolute directives.
 
+## General Guidelines
+- When making technical decisions, do not give much weight to development cost. Instead, prefer quality, simplicity, robustness, scalability, and long term mainainability.
+- When doing bug fixes, always start with reproducing the bug in an E2E setting as closely aligned with how an end use. This makes sure you find the real problem so your fix will actually solve it.
+- Apply high standard to engineering excellence. If you see a test failure or test flakiness, even if it is not caused by what you are working on right now, still get it fixed.
+
+
+---
+
+
 ## Your 3 Gateway Folders — CRITICAL
 
 `~/.agents/`, `~/.pi/agent/`, and `~/.claude/skills/` act as symlink gateways to their respective git repos.
