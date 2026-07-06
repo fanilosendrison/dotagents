@@ -45,19 +45,15 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 │   └── semver.md             ← Shows you how to number versions
 ├── docs/                     ← Documentation for agent enforcers
 │   ├── command-validator.md         ← Forces you to verify bash commands
-│   ├── commit-msg-validator.md      ← Forces you to validate commit messages
 │   ├── CONTEXT.md                   ← Index of all enforcers
 │   ├── git-commits-push-enforcer.md ← Forces you to push after you commit
 │   ├── path-guard.md                ← Shows you how to operate in symlink folders
-│   ├── post-write-linter.md         ← Forces you to lint the code you write
-│   └── secret-scanner.md            ← Prevents you to leak secrets
+│   └── post-write-linter.md         ← Forces you to lint the code you write
 ├── agent-enforcers/          ← Core logic of your enforcers
 │   ├── command-validator/
-│   ├── commit-msg-validator/
 │   ├── git-commits-push-enforcer/
 │   ├── path-guard/
 │   ├── post-write-linter/
-│   ├── secret-scanner/
 │   └── shared/               ← Hook protocol helpers (stdin JSON parsing, allow/deny responses)
 ├── specs/                    ← Future specs and workflow drafts
 ├── archived/                 ← Old skills and retired experiments
@@ -84,11 +80,9 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 | Know how you manage API keys                        | `operational-rules/managing-api-keys.md`     |
 | Know how to number versions                         | `conventions/semver.md`                      |
 | Know about the way you verify bash commands         | `docs/command-validator.md`                  |
-| Know about the way you validate commit messages     | `docs/commit-msg-validator.md`               |
 | Know about how you enforce git commit and push      | `docs/git-commits-push-enforcer.md`          |
 | Know how to operate in symlink folders              | `docs/path-guard.md`                         |
 | Know about the way you lint the code you write      | `docs/post-write-linter.md`                  |
-| Know how you prevents yourself from leaking secrets | `docs/secret-scanner.md`                     |
 | See all agent enforcers                             | `docs/CONTEXT.md`                                     |
 
 
