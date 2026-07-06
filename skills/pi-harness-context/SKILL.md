@@ -6,7 +6,8 @@ description: >-
   mentions "Pi harness", "pi harness", ~/.pi/agent/, .pi/agent or
   dotpi (the repo).
   Valid triggers: the user cites "Pi harness" by name, cites
-  ~/.pi/agent/, .pi/agent or dotpi, asks to modify the Pi harness,
+  ~/.pi/agent/, .pi/agent or dotpi, reports a path-guard redirect
+  specifically to ~/.pi/agent/, asks to modify the Pi harness,
   invokes a harness-related skill (e.g. /document-self-modif), or
   works on extensions/patches/docs under ~/.pi/agent/.
 ---
