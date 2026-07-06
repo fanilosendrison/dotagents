@@ -62,6 +62,14 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ├── specs/                    ← Future specs and workflow drafts
 ├── archived/                 ← Old skills and retired experiments
 └── skills/                   ← Your auto-discovered capabilities (listed in your system prompt)
+    ├── antigravity-harness-context/   ← Load Antigravity harness (~/.gravity/)
+    ├── create-symlink-for-dot-folders/
+    ├── document-agent-enforcement/
+    ├── document-self-modif/
+    ├── document-wrapper/
+    ├── git-commits-push/
+    ├── pi-harness-context/            ← Load Pi harness (~/.pi/agent/)
+    └── skill-creator/
 ```
 
 
@@ -94,6 +102,9 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 | Safely create symlinks for dot-folders              | `/create-symlink-for-dot-folders` |
 | Document an agent-enforcer script                   | `/document-agent-enforcement`     |
 | Document a modification to the Pi harness           | `/document-self-modif`            |
+| Load Antigravity harness context (~/.gravity/)      | `/antigravity-harness-context`    |
+| Load Pi harness context (~/.pi/agent/)              | `/pi-harness-context`             |
+| Document a wrapper (Antigravity)                    | `/document-wrapper`               |
 | Commit changes                                      | `/git-commits-push`               |
 | Create or update a new skill                        | `/skill-creator`                  |
 
