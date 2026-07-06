@@ -1,4 +1,22 @@
-import type { Finding, ScanResult } from "./types";
+/**
+ * Secret scanner — detects secrets in git diffs.
+ * Inlined from agent-enforcers/secret-scanner.
+ */
+
+// ── Types ─────────────────────────────────────────────────────────────────
+
+export interface ScanResult {
+	clean: boolean;
+	findings: Finding[];
+}
+
+export interface Finding {
+	name: string;
+	line: string;
+	lineNumber: number;
+}
+
+// ── Patterns ──────────────────────────────────────────────────────────────
 
 interface SecretPattern {
 	name: string;
@@ -20,7 +38,7 @@ const PASSWORD_PLACEHOLDERS = [
 function extractAssignedValue(content: string): string {
 	const match = content.match(/[:=]\s*['"]?(.*?)['"]?\s*$/);
 	if (!match) return "";
-	return match[1].replace(/^['"]|['"]$/g, "");
+	return match[1]?.replace(/^['"]|['"]$/g, "") ?? "";
 }
 
 const SECRET_PATTERNS: SecretPattern[] = [
@@ -69,13 +87,15 @@ const SECRET_PATTERNS: SecretPattern[] = [
 ];
 
 const FALSE_POSITIVE_PATTERNS = [
-	/process\.env[\.\[]\w+/,
+	/process\.env[.[]\w+/,
 	/os\.environ\[/,
 	/\$\{?\w+\}?/,
 	/getenv\(/,
 	/requireEnv\(/,
 	/getApiKey\(/,
 ];
+
+// ── Main export ───────────────────────────────────────────────────────────
 
 export function scanDiff(diff: string): ScanResult {
 	if (!diff.trim()) {
@@ -86,7 +106,7 @@ export function scanDiff(diff: string): ScanResult {
 	const lines = diff.split("\n");
 
 	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i];
+		const line = lines[i]!;
 		if (!line.startsWith("+")) continue;
 		if (line.startsWith("+++")) continue;
 

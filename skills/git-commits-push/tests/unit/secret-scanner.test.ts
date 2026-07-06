@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { scanDiff } from "../scanner";
+import { scanDiff } from "../../src/modules/secret-scanner";
 
 describe("secret-scanner Core Unit Tests", () => {
 	test("empty diff is clean", () => {
@@ -29,35 +29,35 @@ describe("secret-scanner Core Unit Tests", () => {
 		const diff = "+AKIAIOSFODNN7EXAMPLE";
 		const r = scanDiff(diff);
 		expect(r.clean).toBe(false);
-		expect(r.findings.some(f => f.name === "AWS Access Key")).toBe(true);
+		expect(r.findings.some((f) => f.name === "AWS Access Key")).toBe(true);
 	});
 
 	test("detects GitHub token", () => {
 		const diff = "+ghp_1234567890abcdefghijklmnopqrstuvwxyz";
 		const r = scanDiff(diff);
 		expect(r.clean).toBe(false);
-		expect(r.findings.some(f => f.name === "GitHub Token")).toBe(true);
+		expect(r.findings.some((f) => f.name === "GitHub Token")).toBe(true);
 	});
 
 	test("detects private key block", () => {
 		const diff = "+-----BEGIN PRIVATE KEY-----";
 		const r = scanDiff(diff);
 		expect(r.clean).toBe(false);
-		expect(r.findings.some(f => f.name === "Private Key")).toBe(true);
+		expect(r.findings.some((f) => f.name === "Private Key")).toBe(true);
 	});
 
 	test("detects connection strings with credentials", () => {
 		const diff = "+mongodb://user:password@localhost:27017/db";
 		const r = scanDiff(diff);
 		expect(r.clean).toBe(false);
-		expect(r.findings.some(f => f.name === "Connection String")).toBe(true);
+		expect(r.findings.some((f) => f.name === "Connection String")).toBe(true);
 	});
 
 	test("detects generic API key", () => {
 		const diff = '+api_key: "abcdefghijklmnopqrstuvwxyz123456"';
 		const r = scanDiff(diff);
 		expect(r.clean).toBe(false);
-		expect(r.findings.some(f => f.name === "Generic API Key")).toBe(true);
+		expect(r.findings.some((f) => f.name === "Generic API Key")).toBe(true);
 	});
 
 	test("ignores additions with env var references", () => {
@@ -111,6 +111,6 @@ describe("secret-scanner Core Unit Tests", () => {
 +AKIAIOSFODNN7EXAMPLE
  line 3`;
 		const r = scanDiff(diff);
-		expect(r.findings[0].lineNumber).toBe(2);
+		expect(r.findings[0]!.lineNumber).toBe(2);
 	});
 });
