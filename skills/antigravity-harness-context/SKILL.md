@@ -1,5 +1,5 @@
 ---
-name: antigravity-context
+name: antigravity-harness-context
 description: >-
   Loads the Antigravity harness directives and architecture
   (~/.gravity/ / dotgravity). Use ONLY when the request explicitly
@@ -11,7 +11,7 @@ description: >-
   extensions/docs under ~/.gravity/.
 ---
 
-# Antigravity Context
+# Antigravity Harness Context
 
 Read `/Users/famillesendrison/.gravity/CONTEXT.md`.
 
