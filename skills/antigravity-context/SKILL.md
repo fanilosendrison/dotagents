@@ -1,37 +1,35 @@
 ---
 name: antigravity-context
 description: >-
-  Charge les directives et l'architecture du harnais Antigravity
-  (~/.gravity/ / dotgravity). Utilise UNIQUEMENT quand la requête
-  mentionne explicitement Antigravity, ~/.gravity/, .gravity ou
-  dotgravity (le repo).
-  Déclencheurs valides : l'utilisateur cite Antigravity par son nom,
-  cite ~/.gravity/, .gravity ou dotgravity, signale une redirection
-  path-guard spécifiquement vers ~/.gravity/, demande de modifier le
-  harnais Antigravity, invoque un skill lié au harnais
-  (ex: /document-wrapper), ou travaille sur des extensions/docs sous
-  ~/.gravity/.
+  Loads the Antigravity harness directives and architecture
+  (~/.gravity/ / dotgravity). Use ONLY when the request explicitly
+  mentions Antigravity, ~/.gravity/, .gravity or dotgravity (the repo).
+  Valid triggers: the user cites Antigravity by name, cites
+  ~/.gravity/, .gravity or dotgravity, reports a path-guard redirect
+  specifically to ~/.gravity/, asks to modify the Antigravity harness,
+  invokes a harness-related skill (e.g. /document-wrapper), or works on
+  extensions/docs under ~/.gravity/.
 ---
 
 # Antigravity Context
 
-Charge le fichier d'entrée du harnais pour comprendre son architecture, ses règles et localiser ses composants.
+Load the harness entry point to understand its architecture, rules, and locate its components.
 
 ```bash
 read /Users/famillesendrison/.gravity/CONTEXT.md
 ```
 
-Une fois chargé, suis les directives du fichier (règles d'écriture, navigation vers docs/wrappers/specs/tests).
+Once loaded, follow the file's directives (writing rules, navigation to docs/wrappers/specs/tests).
 
-## Cas d'usage (Antigravity uniquement)
+## Use cases (Antigravity only)
 
-| Quand l'utilisateur dit... | Alors... |
+| When the user says... | Then... |
 |---|---|
-| "mon commit est rejeté **dans dotgravity**" / "**Antigravity** a bloqué mon commit" | Identifier l'enforcer via l'architecture hooks → wrappers → enforcers |
-| "ajoute un hook **dans .gravity**" / "modifie le wrapper X **d'Antigravity**" | Suivre la navigation vers `git-hooks/` ou `wrappers/<name>/` |
-| "le path-guard redirige vers **~/.gravity/**" | Appliquer la règle : écrire via `~/.gravity/`, jamais dans `dotgravity/` |
-| "commite **dotgravity**" | Utiliser la commande de commit indiquée dans le fichier |
-| "explique l'architecture **Antigravity**" | Charger le fichier et naviguer vers les docs/specs indiqués |
-| "modifie le harnais **Antigravity**" / "ajoute une extension **dans .gravity**" | Charger le fichier puis suivre les conventions du harnais |
-| invoque `/document-wrapper` ou un autre skill lié au harnais | Charger le fichier pour accéder à la config du harnais |
-| travaille sur des extensions/docs sous **".gravity/"** / **"~/.gravity/"** | Charger le fichier pour naviguer vers les specs et la doc |
+| "my commit was rejected **in dotgravity**" / "**Antigravity** blocked my commit" | Identify the enforcer via the hooks → wrappers → enforcers architecture |
+| "add a hook **in .gravity**" / "modify the **Antigravity** wrapper X" | Navigate to `git-hooks/` or `wrappers/<name>/` |
+| "the path-guard redirects to **~/.gravity/**" | Apply the rule: write through `~/.gravity/`, never into `dotgravity/` |
+| "commit **dotgravity**" | Use the commit command indicated in the file |
+| "explain the **Antigravity** architecture" | Load the file and navigate to the indicated docs/specs |
+| "modify the **Antigravity** harness" / "add an extension **in .gravity**" | Load the file then follow harness conventions |
+| invokes `/document-wrapper` or another harness-related skill | Load the file to access harness configuration |
+| works on wrappers/docs under **".gravity/"** / **"~/.gravity/"** | Load the file to navigate to specs and docs |
