@@ -1,14 +1,15 @@
 ---
 name: antigravity-context
 description: >-
-  Charges les directives et l'architecture du harnais Antigravity (~/.gravity/).
-  Utilise ce skill quand l'utilisateur : (1) interroge sur le rejet/blocage d'un commit,
-  (2) demande comment fonctionnent les git hooks, wrappers ou enforcers,
-  (3) signale un faux positif au secret-scanner,
-  (4) veut modifier/ajouter un hook, wrapper ou enforcer,
-  (5) interroge sur une redirection path-guard vers ~/.gravity/,
-  (6) veut comprendre l'architecture Antigravity,
-  (7) veut commiter des changements dans dotgravity.
+  Charge les directives et l'architecture du harnais Antigravity
+  (~/.gravity/ / dotgravity). Utilise UNIQUEMENT quand la requête
+  mentionne explicitement Antigravity, ~/.gravity/, .gravity ou
+  dotgravity (le repo). Ne pas utiliser pour des problèmes génériques
+  de hooks/wrappers/enforcers/commits qui pourraient concerner un
+  autre harnais (dotagents, dotpi, etc.).
+  Déclencheurs valides : l'utilisateur cite Antigravity par son nom,
+  cite ~/.gravity/, .gravity ou dotgravity, ou signale une redirection
+  path-guard spécifiquement vers ~/.gravity/.
 ---
 
 # Antigravity Context
@@ -21,12 +22,12 @@ read /Users/famillesendrison/.gravity/CONTEXT.md
 
 Une fois chargé, suis les directives du fichier (règles d'écriture, navigation vers docs/wrappers/specs/tests).
 
-## Cas d'usage principaux
+## Cas d'usage (Antigravity uniquement)
 
-| Situation | Action |
+| Quand l'utilisateur dit... | Alors... |
 |---|---|
-| Commit rejeté/bloqué | Identifier l'enforcer responsable via l'architecture hooks → wrappers → enforcers |
-| Modifier un hook | Suivre la navigation vers `git-hooks/` puis le wrapper correspondant |
-| Modifier un wrapper | Navigation vers `wrappers/<name>/` |
-| Comprendre le path-guard | Appliquer la règle : écrire via `~/.gravity/`, jamais dans `dotgravity/` |
-| Commiter dotgravity | Utiliser la commande de commit indiquée dans le fichier |
+| "mon commit est rejeté **dans dotgravity**" / "**Antigravity** a bloqué mon commit" | Identifier l'enforcer via l'architecture hooks → wrappers → enforcers |
+| "ajoute un hook **dans .gravity**" / "modifie le wrapper X **d'Antigravity**" | Suivre la navigation vers `git-hooks/` ou `wrappers/<name>/` |
+| "le path-guard redirige vers **~/.gravity/**" | Appliquer la règle : écrire via `~/.gravity/`, jamais dans `dotgravity/` |
+| "commite **dotgravity**" | Utiliser la commande de commit indiquée dans le fichier |
+| "explique l'architecture **Antigravity**" | Charger le fichier et naviguer vers les docs/specs indiqués |
