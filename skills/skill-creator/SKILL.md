@@ -182,6 +182,7 @@ Create the skill under `~/.agents/skills/`:
 
 ```bash
 mkdir -p ~/.agents/skills/<skill-name>/{scripts,references,assets}
+ln -sf ~/.agents/skills/<skill-name> ~/.codex/skills/<skill-name>
 ```
 
 Then write `SKILL.md` with the frontmatter and body — use the table above to fill in
