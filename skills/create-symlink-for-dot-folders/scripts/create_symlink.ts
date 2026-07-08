@@ -97,7 +97,11 @@ function main() {
     }
   } else if (backupFile) {
     printStatus("Restoring file into new physical target...");
-    renameSync(backupFile, join(targetDir, basename(symlinkPath)));
+    if (isFile) {
+      renameSync(backupFile, targetDir);
+    } else {
+      renameSync(backupFile, join(targetDir, basename(symlinkPath)));
+    }
   }
 
   printStatus("✅ Symlink creation successful!");
