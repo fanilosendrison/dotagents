@@ -1,5 +1,6 @@
-import { describe, expect, test } from "bun:test";
-import { CommandValidator } from "../validator";
+import { describe, expect, test, spyOn, beforeEach, afterEach } from "bun:test";
+import { CommandValidator } from "../validator.ts";
+import * as state from "../../../../permission-enforcer/src/core/state.ts";
 
 const validator = new CommandValidator();
 
@@ -57,7 +58,7 @@ describe("CommandValidator Core Unit Tests", () => {
 		const result = validator.validate("rm -rf /tmp/stuff");
 		expect(result.action).toBe("deny");
 		expect(result.severity).toBe("CRITICAL");
-		expect(result.violations).toContain("rm -rf is forbidden - use trash instead");
+		expect(result.violations).toContain("❌ rm -rf is forbidden - use trash instead");
 	});
 
 	test("asks for dangerous commands", () => {
@@ -111,5 +112,39 @@ describe("CommandValidator Core Unit Tests", () => {
 	test("containsDangerousCommand returns command name", () => {
 		expect(validator.containsDangerousCommand("sudo rm file")).toBe("sudo");
 		expect(validator.containsDangerousCommand("kill -9 123")).toBe("kill");
+	});
+
+	describe("Modifying tools permission validation", () => {
+		let isPermissionGrantedSpy: any;
+
+		beforeEach(() => {
+			isPermissionGrantedSpy = spyOn(state, "isPermissionGranted");
+		});
+
+		afterEach(() => {
+			isPermissionGrantedSpy.mockRestore();
+		});
+
+		test("blocks modifying tools when permission is false", () => {
+			isPermissionGrantedSpy.mockReturnValue(false);
+			const result = validator.validate("some-content", "write_to_file");
+			expect(result.action).toBe("deny");
+			expect(result.severity).toBe("CRITICAL");
+			expect(result.violations[0]).toContain("Permission denied. You cannot implement code");
+		});
+
+		test("allows modifying tools when permission is true, without applying bash rules", () => {
+			isPermissionGrantedSpy.mockReturnValue(true);
+			// Si un outil de modification contient une chaîne de commande bash dangereuse, 
+			// il ne doit PAS être bloqué (ex: écrire un script contenant rm -rf)
+			const result = validator.validate("rm -rf /", "write_to_file");
+			expect(result.action).toBe("allow");
+		});
+
+		test("allows non-modifying tools even when permission is false", () => {
+			isPermissionGrantedSpy.mockReturnValue(false);
+			const result = validator.validate("ls", "Bash");
+			expect(result.action).toBe("allow");
+		});
 	});
 });
