@@ -18,7 +18,7 @@ export function checkFile(file: string): LintResult {
 	try {
 		const isBun = process.argv[0] && process.argv[0].includes("bun");
 		const runner = isBun ? `"${process.argv[0]}" x` : `"${process.env.HOME || '/Users/famillesendrison'}/.bun/bin/bun" x`;
-		execSync(`${runner} @biomejs/biome check --write "${file}"`, {
+		execSync(`${runner} @biomejs/biome format --write "${file}"`, {
 			encoding: "utf-8",
 			stdio: "pipe",
 		});
