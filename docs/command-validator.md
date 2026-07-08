@@ -2,34 +2,44 @@
 
 Prévient l'exécution de **commandes bash destructrices ou dangereuses** et bloque l'usage d'**outils de modification** sans autorisation préalable (`/go`).
 
-## 1. Wiring — 4 interception points
+Le validateur a été refactoré en deux validateurs spécialisés :
+- **BashValidator** — valide les commandes bash contre les règles de sécurité
+- **ToolPermissionValidator** — bloque les outils d'écriture/édition si `/go` n'a pas été accordé (consomme `permission-enforcer`)
+
+## 1. Wiring — 3 interception points
 
 | # | Mechanism | Runtime | File |
 |---|-----------|---------|------|
 | 1 | **Pi Extension** · `pi.on("tool_call")` | **Pi** | `~/.pi/agent/extensions/command-validator.ts` |
 | 2 | **Pre-tool-use hook** · reads stdin JSON | **Claude Code** | `~/.claude/hooks/command-validator.ts` |
 | 3 | **Pre-tool-use hook** · reads stdin JSON | **Codex** | `~/.codex/hooks/command-validator.ts` |
-| 4 | **User-prompt-submit** · validates user prompts | **Codex** | `~/.codex/hooks/user-prompt-submit.ts` |
+
+Tous partagent la **même logique core** : `~/.agents/agent-enforcers/command-validator/`.
+
+**Note :** les hooks Claude/Codex ne valident actuellement que les commandes bash (`tool_name === "Bash"`).
+La validation des outils d'écriture (tool-validator) est disponible dans le core mais non câblée dans les hooks runtime.
+Le blocage des outils de modification s'appuie principalement sur la directive AGENTS.md et le skill `/go`.
 
 ## 2. Trigger flow
 
 ```
-Outil invoqué ou commande exécutée par l'agent
+Outil invoqué par l'agent
         │
         ▼
-┌──────────────────────────────────────────────────┐
-│  CommandValidator.validate(command, toolName)     │
-│                                                   │
-│  1. Check modifying tool & permission-enforcer   │
-│  2. Checks destructive patterns (CRITICAL)        │
-│  3. Checks dangerous commands (HIGH)              │
-│  4. Checks shell injection patterns               │
-└──────────────┬───────────────────────────────────┘
-         │
-         ├── CRITICAL (deny)  ──→ ❌ Bloqué sans appel (ou manque /go)
-         ├── HIGH (ask)       ──→ ⚠️ Demande de confirmation
-         │                       (Pi : UI dialog / Claude : ask / Codex : token)
-         └── allow            ──→ ✅ Autorisé
+┌───────────────────────────────────────────────┐
+│  CommandValidator.validate(command, toolName)  │
+│                                                 │
+│  RESTRICTED_TOOLS.includes(toolName) ?          │
+│    ├── Oui → ToolPermissionValidator.validate() │
+│    │          └─ isPermissionGranted() ?         │
+│    │               ├─ true  → ✅ allow           │
+│    │               └─ false → ❌ deny (/go requis)│
+│    │                                             │
+│    └── Non → BashValidator.validate(command)     │
+│               ├─ rm -rf        → ❌ CRITICAL deny │
+│               ├─ sudo, chmod.. → ⚠️ HIGH ask      │
+│               └─ ls, git...    → ✅ allow          │
+└───────────────────────────────────────────────┘
 ```
 
 ## 3. Severity levels
@@ -142,11 +152,16 @@ Each event contains `source`, `action`, `severity`, and `violations`.
 command-validator/
 └── src/
     └── core/
-        ├── types.ts                   ← ValidationResult, Severity
-        ├── validator.ts               ← CommandValidator class
-        ├── security-rules.ts          ← CRITICAL/HIGH rules
+        ├── types.ts                   ← ValidationResult, Severity, SecurityRules
+        ├── validator.ts               ← CommandValidator — dispatches to bash or tool validator
+        ├── bash-validator.ts          ← BashValidator — validates shell commands
+        ├── tool-validator.ts          ← ToolPermissionValidator — blocks write tools sans /go
+        ├── tool-rules.ts              ← RESTRICTED_TOOLS list (write, edit, etc.)
+        ├── security-rules.ts          ← CRITICAL/HIGH/DANGEROUS_PATTERNS rules
         └── __tests__/validator.test.ts
 ```
+
+**Dépendance :** `tool-validator.ts` importe `isPermissionGranted` depuis `~/.agents/agent-enforcers/permission-enforcer/src/core/state.ts`.
 
 ## 7. Agent mitigation (when blocked)
 
@@ -156,5 +171,5 @@ command-validator/
 2. **HIGH (ask) :**
    - **Pi :** a UI dialog appears — respond in the dialog
    - **Codex :** the error contains a token `allow-command <token>` — ask the user to approve
-3. **Manque de permission (/go) :** Si l'outil est bloqué pour manque d'autorisation de modification, demandez à l'utilisateur de taper `/go` dans son prochain message pour déverrouiller la permission.
+3. **Permission refusée (/go manquant) :** Si un outil d'écriture est bloqué (`ToolPermissionValidator`), demandez à l'utilisateur de taper `/go` dans son prochain message. Cela déclenchera le skill `/go` qui charge `operational-rules/implementation.md` et déverrouille l'autorisation d'implémentation.
 4. **Never** use obfuscation (`rm -rf /` disguised as `rm -rf $ROOT` or via `eval`)

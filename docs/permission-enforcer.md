@@ -2,47 +2,57 @@
 
 Gère le cycle d'autorisation globale de modification de code via le mot-clé sémantique `/go`.
 
-Cet enforcer est uniquement responsable de **la mise à jour de l'état** (Phase 1). La logique de blocage physique des outils (Phase 2) a été déléguée à **Command Validator** pour simplifier la structure des hooks.
+L'enforcer a été simplifié en **bibliothèque d'état partagée** — il ne possède plus de hooks runtime indépendants.
+La logique de blocage des outils (ex-`checker.ts`) a été fusionnée dans le **ToolPermissionValidator** de `command-validator`.
 
-## 1. Wiring — 3 points d'interception (Prompts)
+**Deux mécanismes distincts :**
+1. **Directive AGENTS.md** — règle comportementale : « Do not implement anything without asking the user for explicit permission first. »
+2. **Skill `/go`** — quand l'utilisateur tape `/go`, le skill charge `operational-rules/implementation.md` pour déverrouiller l'implémentation.
 
-| # | Mechanism | Runtime | File |
-|---|-----------|---------|------|
-| 1 | **Pi Extension** · `pi.on("user_prompt")` | Pi | `~/.pi/agent/extensions/permission-enforcer.ts` |
-| 2 | **Claude Code hook** · `user-prompt-submit` | Claude Code | `~/.claude/hooks/permission-enforcer-state.ts` |
-| 3 | **Codex hook** · `user-prompt-submit` | Codex | `~/.codex/hooks/permission-enforcer-state.ts` |
+Le fichier `state.ts` fournit `isPermissionGranted()` (consommé par `command-validator`) et `updatePermissionState()` (disponible pour un futur câblage runtime).
 
-Tous partagent la **même logique core** : `~/.agents/agent-enforcers/permission-enforcer/src/core/state.ts`.
+## 1. Wiring — 1 point de consommation
+
+| # | Mechanism | Consommateur | Fichier |
+|---|-----------|-------------|---------|
+| 1 | **Import direct** · `isPermissionGranted()` | Command Validator | `~/.agents/agent-enforcers/command-validator/src/core/tool-validator.ts` |
+
+**Aucun hook runtime dédié.** Le permission-enforcer n'a pas de Pi extension, de hook Claude ni de hook Codex propres.
+La mise à jour de l'état (`updatePermissionState`) est disponible dans `state.ts` mais n'est pas encore câblée à un runtime.
 
 ## 2. Trigger flow
 
 ```
-Utilisateur soumet son message
+Agent tente d'utiliser un outil d'écriture (Write, Edit, write_to_file...)
         │
         ▼
-┌──────────────────────────────────────┐
-│  Phase 1: Débloqueur                 │
-│  (permission-enforcer)               │
-│                                      │
-│  Regex: /(^|\s)\/go(\s|$)/ dans msg? │
-└──────────────┬───────────────────────┘
-         No    │   Yes
-         ▼     ▼
-  State=false  State=true
-        │            │
-        └─────┬──────┘
-              ▼
-    Écriture dans le fichier d'état
-    (.state/config.json)
+┌───────────────────────────────────────────┐
+│  ToolPermissionValidator.validate()        │
+│  (dans command-validator)                  │
+│                                             │
+│  isPermissionGranted() ?                    │
+│    ├── true  → ✅ allow                     │
+│    └── false → ❌ deny                      │
+│                "Permission denied.          │
+│                 Ask user to type /go"       │
+└───────────────────────────────────────────┘
+        │
+        ▼ (si deny)
+  L'utilisateur tape /go dans son prochain message
+        │
+        ▼
+  Le skill /go est activé
+  → L'agent lit operational-rules/implementation.md
+  → L'autorisation d'implémenter est déverrouillée
 ```
 
 ## 3. How it works
 
-L'enforcer est stateless par rapport aux sessions d'agent mais maintient le statut d'autorisation dans un fichier JSON partagé : `~/.agents/agent-enforcers/permission-enforcer/.state/config.json`.
-1. À chaque message de l'utilisateur, le texte brut est intercepté.
-2. Si le mot `/go` est présent (détecté par la regex `/(^|\s)\/go(\s|$)/`), le fichier d'état est écrit avec `{"allowed": true}`.
-3. Si le mot n'est pas présent, il est réinitialisé avec `{"allowed": false}`.
-4. Ce fichier d'état est ensuite lu par **Command Validator** pour valider ou bloquer l'usage des outils.
+L'enforcer maintient le statut d'autorisation dans un fichier JSON partagé : `~/.agents/agent-enforcers/permission-enforcer/.state/config.json`.
+
+1. `isPermissionGranted()` lit le fichier d'état. S'il n'existe pas ou contient `{"allowed": false}`, retourne `false`.
+2. `updatePermissionState(promptText)` détecte `/go` via la regex `/(^|\s)\/go(\s|$)/` et écrit l'état dans le fichier.
+3. **Actuellement**, `updatePermissionState` n'est pas appelé par les hooks runtime — le blocage s'appuie principalement sur la directive AGENTS.md et le skill `/go`.
 
 ## 4. File tree
 
@@ -50,13 +60,14 @@ L'enforcer est stateless par rapport aux sessions d'agent mais maintient le stat
 permission-enforcer/
 └── src/
     └── core/
-        ├── state.ts                   ← updatePermissionState(promptText) & isPermissionGranted()
+        ├── state.ts                   ← isPermissionGranted() & updatePermissionState()
         └── __tests__/
             └── state.test.ts          ← Tests de validation de la Regex d'état
 ```
 
 ## 5. Behavior by runtime
 
-Pour tous les runtimes (Pi, Claude, Codex, Antigravity) :
-- Si l'utilisateur saisit `/go` (ou `Fais-le /go`), l'état passe à `true`.
-- Si l'utilisateur envoie un message sans `/go` (ex: `Merci`), l'état repasse instantanément à `false`.
+Le comportement est identique quel que soit le runtime, car le blocage s'effectue via le core partagé de `command-validator` :
+
+- **Outil d'écriture sans `/go`** → ❌ Bloqué par `ToolPermissionValidator` avec message « Permission denied. Ask user to type /go. »
+- **L'utilisateur tape `/go`** → Le skill `/go` s'active, l'agent lit les règles d'implémentation, l'autorisation est accordée pour ce tour.
