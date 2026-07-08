@@ -15,7 +15,7 @@ This file is your map to `~/.agents/` — your core brain and governance center.
 ## Your 3 Gateway Folders — CRITICAL
 
 `~/.agents/`, `~/.pi/agent/`, `~/.codex/`and `~/.claude/skills/` act as symlink gateways to their respective git repos.
-While `~/.claude/skills/` is a direct symlink, `~/.agents/` and `~/.pi/agent/` are physical folders that *contain* symlinks to the repos.
+While `~/.claude/skills/` is a direct symlink, `~/.agents/`, `~/.codex/` and `~/.pi/agent/` are physical folders that *contain* symlinks to the repos.
 
 > ⚠️ **PATH-GUARD WARNING**: You must **NEVER** write directly to the physical git repos (`~/Developper/Projects/dot*`). If you attempt to write there, the `path-guard` enforcer will intentionally intercept your action. Your command will be either **strictly blocked** or **silently redirected** to the `~/.` gateways. **This is normal and expected behavior.** Do not try to bypass or hack around this restriction; simply follow the rules and use the `~/.` gateways.
 
@@ -26,6 +26,7 @@ While `~/.claude/skills/` is a direct symlink, `~/.agents/` and `~/.pi/agent/` a
 cd $(dirname "$(readlink ~/.agents/skills)") && /git-commits-push       # dotagents
 cd $(dirname "$(readlink ~/.pi/agent/AGENTS.md)") && /git-commits-push  # dotpi
 cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotclaude
+cd $(dirname "$(readlink ~/.codex)") && /git-commits-push               # dotcodex    
 ```
 
 
