@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { extractTouchedFilesFromApplyPatch } from "./patch-files";
+import { extractTouchedFilesFromApplyPatch } from "../patch-files";
 
 describe("extractTouchedFilesFromApplyPatch", () => {
 	test("extracts added and updated files as absolute paths", () => {
