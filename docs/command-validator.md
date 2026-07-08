@@ -1,6 +1,6 @@
-# Command Validator
+# Command & Tool Validator
 
-Prevents execution of **destructive** or **dangerous** bash commands. This is the system's first line of defense.
+Prévient l'exécution de **commandes bash destructrices ou dangereuses** et bloque l'usage d'**outils de modification** sans autorisation préalable (`/go`).
 
 ## 1. Wiring — 4 interception points
 
@@ -14,22 +14,22 @@ Prevents execution of **destructive** or **dangerous** bash commands. This is th
 ## 2. Trigger flow
 
 ```
-Any bash command executed by the agent
+Outil invoqué ou commande exécutée par l'agent
         │
         ▼
 ┌──────────────────────────────────────────────────┐
 │  CommandValidator.validate(command, toolName)     │
 │                                                   │
-│  1. Checks destructive patterns (CRITICAL)        │
-│  2. Checks dangerous commands (HIGH)              │
-│  3. Checks shell injection patterns               │
-│  4. Consults user overrides                       │
+│  1. Check modifying tool & permission-enforcer   │
+│  2. Checks destructive patterns (CRITICAL)        │
+│  3. Checks dangerous commands (HIGH)              │
+│  4. Checks shell injection patterns               │
 └──────────────┬───────────────────────────────────┘
          │
-         ├── CRITICAL (deny)  ──→ ❌ Blocked, no appeal
-         ├── HIGH (ask)       ──→ ⚠️ Asks for confirmation
+         ├── CRITICAL (deny)  ──→ ❌ Bloqué sans appel (ou manque /go)
+         ├── HIGH (ask)       ──→ ⚠️ Demande de confirmation
          │                       (Pi : UI dialog / Claude : ask / Codex : token)
-         └── allow            ──→ ✅ Passes
+         └── allow            ──→ ✅ Autorisé
 ```
 
 ## 3. Severity levels
@@ -156,4 +156,5 @@ command-validator/
 2. **HIGH (ask) :**
    - **Pi :** a UI dialog appears — respond in the dialog
    - **Codex :** the error contains a token `allow-command <token>` — ask the user to approve
-3. **Never** use obfuscation (`rm -rf /` disguised as `rm -rf $ROOT` or via `eval`)
+3. **Manque de permission (/go) :** Si l'outil est bloqué pour manque d'autorisation de modification, demandez à l'utilisateur de taper `/go` dans son prochain message pour déverrouiller la permission.
+4. **Never** use obfuscation (`rm -rf /` disguised as `rm -rf $ROOT` or via `eval`)
