@@ -45,15 +45,17 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
 ├── conventions/              ← Passive conventions
 │   └── semver.md             ← Shows you how to number versions
 ├── docs/                     ← Documentation for agent enforcers
-│   ├── command-validator.md         ← Forces you to verify bash commands
-│   ├── CONTEXT.md                   ← Index of all enforcers
-│   ├── git-commits-push-enforcer.md ← Forces you to push after you commit
+│   ├── command-validator.md          ← Forces you to verify bash commands
+│   ├── CONTEXT.md                    ← Index of all enforcers
+│   ├── git-commits-push-enforcer.md  ← Forces you to push after you commit
 │   ├── path-guard.md                ← Shows you how to operate in symlink folders
-│   └── post-write-linter.md         ← Forces you to lint the code you write
+│   ├── permission-enforcer.md       ← Prevents code implementation without /go
+│   └── post-write-linter.md          ← Forces you to lint the code you write
 ├── agent-enforcers/          ← Core logic of your enforcers
 │   ├── command-validator/
 │   ├── git-commits-push-enforcer/
 │   ├── path-guard/
+│   ├── permission-enforcer/
 │   ├── post-write-linter/
 │   └── shared/               ← Hook protocol helpers (stdin JSON parsing, allow/deny responses)
 ├── specs/                    ← Future specs and workflow drafts
@@ -65,6 +67,7 @@ cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotcla
     ├── document-self-modif/
     ├── document-wrapper/
     ├── git-commits-push/
+    ├── go/
     ├── pi-harness-context/           
     └── skill-creator/
 ```

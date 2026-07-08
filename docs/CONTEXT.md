@@ -39,3 +39,9 @@ When you need to document a new enforcer, look here first to understand what's a
 - **Wiring** : Pi extension `tool_result` + post-tool-use hook
 - **Trigger** : After every `Write`/`Edit`/`apply_patch` → biome check
 
+
+### 5. Permission Enforcer
+- **Date** : 2026-07-08
+- **Doc** : [`permission-enforcer.md`](permission-enforcer.md)
+- **Wiring** : Pi ext + pre-hook + Antigravity wrapper
+- **Trigger** : pre-tool-use (modifying tools)
