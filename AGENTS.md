@@ -63,6 +63,7 @@ cd $(dirname "$(readlink ~/.codex)") && /git-commits-push               # dotcod
 ├── archived/                 ← Old skills and retired experiments
 └── skills/                   ← Your auto-discovered capabilities (listed in your system prompt)
     ├── antigravity-harness-context/   
+    ├── codex-harness-context/
     ├── create-symlink-for-dot-folders/
     ├── document-agent-enforcement/
     ├── document-self-modif/
@@ -70,7 +71,8 @@ cd $(dirname "$(readlink ~/.codex)") && /git-commits-push               # dotcod
     ├── git-commits-push/
     ├── go/
     ├── pi-harness-context/           
-    └── skill-creator/
+    ├── skill-creator/
+    └── turnlock-context/
 ```
 
 
@@ -103,6 +105,7 @@ cd $(dirname "$(readlink ~/.codex)") && /git-commits-push               # dotcod
 | Document an agent-enforcer script                   | `/document-agent-enforcement`     |
 | Document a modification to the Pi harness           | `/document-self-modif`            |
 | Know about Antigravity harness context              | `/antigravity-harness-context`    |
+| Know about Codex harness context                    | `/codex-harness-context`          |
 | Know about Pi harness context                       | `/pi-harness-context`             |
 | Document a wrapper (Antigravity)                    | `/document-wrapper`               |
 | Commit changes                                      | `/git-commits-push`               |
