@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readlinkSync, rmSync, symlinkSync, mkdirSync, cpSync, readdirSync, renameSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, basename } from 'node:path';
 import { homedir } from 'node:os';
 
 function printStatus(msg: string) {
@@ -66,7 +66,7 @@ function main() {
     }
   }
 
-  const isFile = symlinkPath.match(/\.[a-zA-Z0-9]+$/) || backupFile !== null;
+  const isFile = !!symlinkPath.match(/\.[a-zA-Z0-9]+$/);
 
   // 2. Create physical target safely (bypasses path-guard when paths are quoted in bash)
   if (isFile) {
@@ -97,7 +97,7 @@ function main() {
     }
   } else if (backupFile) {
     printStatus("Restoring file into new physical target...");
-    renameSync(backupFile, targetDir);
+    renameSync(backupFile, join(targetDir, basename(symlinkPath)));
   }
 
   printStatus("✅ Symlink creation successful!");
