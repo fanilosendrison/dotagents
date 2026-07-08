@@ -26,7 +26,7 @@ While `~/.claude/skills/` is a direct symlink, `~/.agents/`, `~/.codex/` and `~/
 cd $(dirname "$(readlink ~/.agents/skills)") && /git-commits-push       # dotagents
 cd $(dirname "$(readlink ~/.pi/agent/AGENTS.md)") && /git-commits-push  # dotpi
 cd $(readlink ~/.claude/skills)/.. && /git-commits-push                 # dotclaude
-cd $(dirname "$(readlink ~/.codex)") && /git-commits-push               # dotcodex    
+cd $(dirname "$(readlink ~/.codex/hooks)") && /git-commits-push         # dotcodex    
 ```
 
 
