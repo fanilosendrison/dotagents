@@ -73,7 +73,6 @@ describe("CommandValidator Core Unit Tests", () => {
 			"mount /dev/sda1 /mnt",
 			"dd if=/dev/zero of=test bs=1M count=10",
 			"shred file.txt",
-			"mkfs.ext4 /dev/sdb1",
 		];
 		for (const cmd of dangerous) {
 			const result = validator.validate(cmd);
@@ -82,10 +81,25 @@ describe("CommandValidator Core Unit Tests", () => {
 		}
 	});
 
-	test("network commands are allowed by shared validator", () => {
-		expect(validator.validate("nc -l 8080").action).toBe("allow");
-		expect(validator.validate("nmap localhost").action).toBe("allow");
-		expect(validator.validate("iptables -L").action).toBe("allow");
+	test("denies destructive patterns like mkfs to /dev", () => {
+		const destructive = [
+			"mkfs.ext4 /dev/sdb1",
+			"shred -z -n 1 /dev/sda",
+			"dd if=/dev/zero of=/dev/sda",
+			"rm -rf /usr",
+			":(){ :|:& };:",
+		];
+		for (const cmd of destructive) {
+			const result = validator.validate(cmd);
+			expect(result.action).toBe("deny");
+			expect(result.severity).toBe("CRITICAL");
+		}
+	});
+
+	test("network commands ask for confirmation", () => {
+		expect(validator.validate("nc -l 8080").action).toBe("ask");
+		expect(validator.validate("nmap localhost").action).toBe("ask");
+		expect(validator.validate("iptables -L").action).toBe("ask");
 	});
 
 	test("detects dangerous command in pipeline", () => {

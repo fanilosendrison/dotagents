@@ -5,6 +5,7 @@ const DANGEROUS_COMMANDS: readonly string[] = [
 	...SECURITY_RULES.CRITICAL_COMMANDS,
 	...SECURITY_RULES.PRIVILEGE_COMMANDS,
 	...SECURITY_RULES.SYSTEM_COMMANDS,
+	...SECURITY_RULES.NETWORK_COMMANDS,
 ];
 
 export class BashValidator {
@@ -34,6 +35,16 @@ export class BashValidator {
 			result.violations.push("❌ rm -rf is forbidden - use trash instead");
 			result.action = "deny";
 			return result;
+		}
+
+		for (const pattern of SECURITY_RULES.DANGEROUS_PATTERNS) {
+			if (pattern.test(command)) {
+				result.isValid = false;
+				result.severity = "CRITICAL";
+				result.violations.push(`❌ Destructive command blocked: ${command.slice(0, 80)}`);
+				result.action = "deny";
+				return result;
+			}
 		}
 
 		const dangerousCmd = this.containsDangerousCommand(command);
