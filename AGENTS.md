@@ -56,6 +56,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
 │   ├── post-write-linter/
 │   └── shared/               ← Hook protocol helpers (stdin JSON parsing, allow/deny responses)
 ├── specs/                    ← Future specs and workflow drafts
+├── memory/                   ← Core memory and historical lessons (e.g., known-bug-fixes.md, session-locations.md)
 ├── archived/                 ← Old skills and retired experiments
 └── skills/                   ← Your auto-discovered capabilities (listed in your system prompt)
     ├── antigravity-harness-context/   
@@ -67,6 +68,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
     ├── git-commits-push/
     ├── go/
     ├── pi-harness-context/           
+    ├── session-lookup/
     ├── skill-creator/
     └── turnlock-context/
 ```
@@ -103,6 +105,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
 | Know about Antigravity harness context              | `/antigravity-harness-context`    |
 | Know about Codex harness context                    | `/codex-harness-context`          |
 | Know about Pi harness context                       | `/pi-harness-context`             |
+| Look up or search past session history               | `/session-lookup`                  |
 | Document a wrapper (Antigravity)                    | `/document-wrapper`               |
 | Commit changes                                      | `/git-commits-push`               |
 | Create or update a new skill                        | `/skill-creator`                  |
