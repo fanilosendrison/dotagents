@@ -30,23 +30,26 @@ import { createEventSink } from "/Users/famillesendrison/Developper/Projects/tel
 import { CommandValidator } from "/Users/famillesendrison/Developper/Projects/dotagents/agent-enforcers/command-validator/src/core/validator.ts";
 ```
 
-## ImportMeta main Property Type Error in Bun Standalone Scripts
+## Missing Global Types (Node/Bun) in Standalone Scripts
 
 **Description:**
-When writing standalone hook scripts intended to be executed by Bun, you may see IDE TypeScript errors saying:
-`Property 'main' does not exist on type 'ImportMeta'.`
+When writing standalone hook scripts (e.g., in `~/.codex/hooks/` or `~/.pi/agent/extensions/`), you may see IDE TypeScript errors for global execution objects like `process` or `import.meta.main`. 
 
-This happens because default TypeScript environment types do not include Bun-specific properties like `import.meta.main`.
+Examples of errors:
+- `Cannot find name 'process'.`
+- `Property 'main' does not exist on type 'ImportMeta'.`
+
+This happens because the IDE's TypeScript language server evaluates these standalone files without the full Node or Bun global type definitions loaded. However, the runtime (`bun`) executes them perfectly fine.
 
 **Generic Fix:**
-For standalone hook scripts (e.g. in `~/.codex/hooks/` or `~/.pi/agent/extensions/`), do not augment global types or modify `tsconfig.json`.
+For standalone hook scripts, do **NOT** attempt to fix this by modifying `tsconfig.json` or creating global type augmentations.
 
-The established fix is to suppress the error using `// @ts-expect-error` with a clear explanation right above the usage.
+The established and cleanest fix is to suppress the error using `// @ts-expect-error` with a clear explanation right above the usage.
 
 *Incorrect (Causes IDE Errors):*
 ```typescript
 if (import.meta.main) {
-	main().catch((err) => { ... });
+	process.exit(2);
 }
 ```
 
@@ -54,6 +57,7 @@ if (import.meta.main) {
 ```typescript
 // @ts-expect-error: Bun specific property missing from default types.
 if (import.meta.main) {
-	main().catch((err) => { ... });
+	// @ts-expect-error: Missing Node global types in standalone hook script.
+	process.exit(2);
 }
 ```
