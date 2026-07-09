@@ -29,3 +29,31 @@ import { CommandValidator } from "../../dotagents/agent-enforcers/command-valida
 import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
 import { CommandValidator } from "/Users/famillesendrison/Developper/Projects/dotagents/agent-enforcers/command-validator/src/core/validator.ts";
 ```
+
+## ImportMeta main Property Type Error in Bun Standalone Scripts
+
+**Description:**
+When writing standalone hook scripts intended to be executed by Bun, you may see IDE TypeScript errors saying:
+`Property 'main' does not exist on type 'ImportMeta'.`
+
+This happens because default TypeScript environment types do not include Bun-specific properties like `import.meta.main`.
+
+**Generic Fix:**
+For standalone hook scripts (e.g. in `~/.codex/hooks/` or `~/.pi/agent/extensions/`), do not augment global types or modify `tsconfig.json`.
+
+The established fix is to suppress the error using `// @ts-expect-error` with a clear explanation right above the usage.
+
+*Incorrect (Causes IDE Errors):*
+```typescript
+if (import.meta.main) {
+	main().catch((err) => { ... });
+}
+```
+
+*Correct (Works for both IDE and Bun):*
+```typescript
+// @ts-expect-error: Bun specific property missing from default types.
+if (import.meta.main) {
+	main().catch((err) => { ... });
+}
+```
