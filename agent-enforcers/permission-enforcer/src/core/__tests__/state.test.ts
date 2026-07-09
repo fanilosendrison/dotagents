@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { existsSync, rmSync } from "fs";
-import { updatePermissionState, isPermissionGranted } from "../state.ts";
+import {
+    detectPermissionGrantSource,
+    updatePermissionState,
+    isPermissionGranted,
+} from "../state.ts";
 
 const TEST_STATE_PATH = "/tmp/permission-enforcer-test-state.json";
 
@@ -24,32 +28,32 @@ describe("State Management", () => {
     });
 
     it("should grant permission when /go is present at start", () => {
-        updatePermissionState("/go my friend");
+        expect(updatePermissionState("/go my friend")).toBe(true);
         expect(isPermissionGranted()).toBe(true);
     });
 
     it("should grant permission when /go is present with whitespace", () => {
-        updatePermissionState("please /go ahead");
+        expect(updatePermissionState("please /go ahead")).toBe(true);
         expect(isPermissionGranted()).toBe(true);
     });
-    
+
     it("should grant permission when /go is alone", () => {
-        updatePermissionState("/go");
+        expect(updatePermissionState("/go")).toBe(true);
         expect(isPermissionGranted()).toBe(true);
     });
 
     it("should grant permission when /go is formatted as a skill XML tag (Pi expanded)", () => {
-        updatePermissionState('<skill name="go">...content...</skill>');
+        expect(updatePermissionState('<skill name="go">...content...</skill>')).toBe(true);
         expect(isPermissionGranted()).toBe(true);
     });
 
     it("should grant permission when /go is formatted as a skill XML tag with single quotes", () => {
-        updatePermissionState("<skill name='go'>...content...</skill>");
+        expect(updatePermissionState("<skill name='go'>...content...</skill>")).toBe(true);
         expect(isPermissionGranted()).toBe(true);
     });
 
     it("should not grant permission if /go is part of a word like /google", () => {
-        updatePermissionState("search on /google");
+        expect(updatePermissionState("search on /google")).toBe(false);
         expect(isPermissionGranted()).toBe(false);
     });
 
@@ -59,5 +63,11 @@ describe("State Management", () => {
 
         updatePermissionState("thanks");
         expect(isPermissionGranted()).toBe(false);
+    });
+
+    it("should report the matched grant source", () => {
+        expect(detectPermissionGrantSource("please /go ahead")).toBe("slash");
+        expect(detectPermissionGrantSource('<skill name="go">content</skill>')).toBe("skill-tag");
+        expect(detectPermissionGrantSource("please continue")).toBe("none");
     });
 });
