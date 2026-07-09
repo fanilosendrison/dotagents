@@ -41,7 +41,7 @@ When you need to document a new enforcer, look here first to understand what's a
 
 
 ### 5. Permission Enforcer
-- **Date** : 2026-07-08 · **Simplifié** : 2026-07-08
+- **Date** : 2026-07-08 · **Pi wiring** : 2026-07-09
 - **Doc** : [`permission-enforcer.md`](permission-enforcer.md)
-- **Wiring** : Bibliothèque d'état partagée — consommée par command-validator (tool-validator.ts)
-- **Trigger** : Tentative d'écriture → vérification isPermissionGranted() ; /go → skill
+- **Wiring** : Shared state library + Pi `before_agent_start` extension + command-validator consumer
+- **Trigger** : Prompt `/go` updates state; modifying tools call `isPermissionGranted()`

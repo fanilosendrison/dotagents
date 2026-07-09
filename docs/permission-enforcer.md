@@ -1,73 +1,116 @@
 # Permission Enforcer
 
-Gère le cycle d'autorisation globale de modification de code via le mot-clé sémantique `/go`.
+Manages turn-scoped permission for code-modifying tools through the `/go`
+authorization marker.
 
-L'enforcer a été simplifié en **bibliothèque d'état partagée** — il ne possède plus de hooks runtime indépendants.
-La logique de blocage des outils (ex-`checker.ts`) a été fusionnée dans le **ToolPermissionValidator** de `command-validator`.
+The enforcer is split into two responsibilities:
 
-**Deux mécanismes distincts :**
-1. **Directive AGENTS.md** — règle comportementale : « Do not implement anything without asking the user for explicit permission first. »
-2. **Skill `/go`** — quand l'utilisateur tape `/go`, le skill charge `operational-rules/implementation.md` pour déverrouiller l'implémentation.
+- `permission-enforcer` owns the prompt lifecycle and writes the shared state.
+- `command-validator` consumes that shared state when restricted tools are used.
 
-Le fichier `state.ts` fournit `isPermissionGranted()` (consommé par `command-validator`) et `updatePermissionState()` (disponible pour un futur câblage runtime).
+## 1. Wiring - 2 interception points
 
-## 1. Wiring — 1 point de consommation
+| Number | Mechanism | Runtime | File |
+|------|---------|-------|----|
+| 1 | Pi extension, `before_agent_start` | Pi | `~/.pi/agent/extensions/permission-enforcer.ts` |
+| 2 | Direct import, `isPermissionGranted()` | Shared command validator core | `~/.agents/agent-enforcers/command-validator/src/core/tool-validator.ts` |
 
-| # | Mechanism | Consommateur | Fichier |
-|---|-----------|-------------|---------|
-| 1 | **Import direct** · `isPermissionGranted()` | Command Validator | `~/.agents/agent-enforcers/command-validator/src/core/tool-validator.ts` |
-
-**Aucun hook runtime dédié.** Le permission-enforcer n'a pas de Pi extension, de hook Claude ni de hook Codex propres.
-La mise à jour de l'état (`updatePermissionState`) est disponible dans `state.ts` mais n'est pas encore câblée à un runtime.
+The shared state logic lives in
+`~/.agents/agent-enforcers/permission-enforcer/src/core/state.ts`.
 
 ## 2. Trigger flow
 
-```
-Agent tente d'utiliser un outil d'écriture (Write, Edit, write_to_file...)
-        │
-        ▼
-┌───────────────────────────────────────────┐
-│  ToolPermissionValidator.validate()        │
-│  (dans command-validator)                  │
-│                                             │
-│  isPermissionGranted() ?                    │
-│    ├── true  → ✅ allow                     │
-│    └── false → ❌ deny                      │
-│                "Permission denied.          │
-│                 Ask user to type /go"       │
-└───────────────────────────────────────────┘
-        │
-        ▼ (si deny)
-  L'utilisateur tape /go dans son prochain message
-        │
-        ▼
-  Le skill /go est activé
-  → L'agent lit operational-rules/implementation.md
-  → L'autorisation d'implémenter est déverrouillée
+```text
+User prompt
+    |
+    v
+Pi permission-enforcer extension
+    |
+    v
+updatePermissionState(prompt)
+    |
+    v
+~/.agents/agent-enforcers/permission-enforcer/.state/config.json
+    |
+    v
+CommandValidator -> ToolPermissionValidator -> isPermissionGranted()
+    |
+    +-- true  -> allow restricted tool
+    |
+    +-- false -> deny restricted tool with the /go authorization message
 ```
 
 ## 3. How it works
 
-L'enforcer maintient le statut d'autorisation dans un fichier JSON partagé : `~/.agents/agent-enforcers/permission-enforcer/.state/config.json`.
+`updatePermissionState(promptText)` detects two authorization forms:
 
-1. `isPermissionGranted()` lit le fichier d'état. S'il n'existe pas ou contient `{"allowed": false}`, retourne `false`.
-2. `updatePermissionState(promptText)` détecte `/go` via la regex `/(^|\s)\/go(\s|$)/` et écrit l'état dans le fichier.
-3. **Actuellement**, `updatePermissionState` n'est pas appelé par les hooks runtime — le blocage s'appuie principalement sur la directive AGENTS.md et le skill `/go`.
+- Literal slash command: `/go`
+- Expanded skill marker: `<skill name="go">`
+
+If either marker is present, it writes `{"allowed": true}`. Otherwise it writes
+`{"allowed": false}`. The function returns the boolean it wrote so runtime
+integrations can log the exact state transition without duplicating detection
+logic.
+
+`detectPermissionGrantSource(promptText)` returns one of these values:
+
+- `slash`
+- `skill-tag`
+- `none`
+
+`isPermissionGranted()` reads the same state file. Missing, invalid, or false
+state is treated as denied.
 
 ## 4. File tree
 
-```
+```text
 permission-enforcer/
 └── src/
     └── core/
-        ├── state.ts                   ← isPermissionGranted() & updatePermissionState()
+        ├── state.ts
         └── __tests__/
-            └── state.test.ts          ← Tests de validation de la Regex d'état
+            └── state.test.ts
+```
+
+Pi runtime wiring:
+
+```text
+~/.pi/agent/extensions/
+├── permission-enforcer.ts
+└── __tests__/
+    ├── permission-enforcer.test.ts
+    ├── permission-enforcer.integration.test.ts
+    ├── permission-enforcer.contract.test.ts
+    └── permission-enforcer.e2e.test.ts
 ```
 
 ## 5. Behavior by runtime
 
-Le comportement est identique quel que soit le runtime, car le blocage s'effectue via le core partagé de `command-validator` :
+### Pi
 
-- **Outil d'écriture sans `/go`** → ❌ Bloqué par `ToolPermissionValidator` avec message « Permission denied. Ask user to type /go. »
-- **L'utilisateur tape `/go`** → Le skill `/go` s'active, l'agent lit les règles d'implémentation, l'autorisation est accordée pour ce tour.
+| Situation | Behavior |
+|---------|--------|
+| Prompt contains `/go` | State is set to `allowed: true`; restricted tools are allowed for that turn. |
+| Prompt contains `<skill name="go">` | State is set to `allowed: true`; restricted tools are allowed for that turn. |
+| Prompt has no authorization marker | State is set to `allowed: false`; restricted tools are denied. |
+| Restricted tool is called | `command-validator` reads `isPermissionGranted()` and allows or denies. |
+
+Telemetry is written to
+`~/neelopedia/stats/pi/permission-enforcer/events.jsonl` with event type
+`permission_state_change`.
+
+The event intentionally records `promptLength` and `matchSource`, not prompt
+content.
+
+### Codex, Claude Code, and Antigravity
+
+This change does not add or modify runtime hooks for Codex, Claude Code, or
+Antigravity. They can still consume the shared permission state through
+`command-validator` when their runtime wiring calls it, but this implementation
+only adds Pi-side prompt lifecycle wiring.
+
+## 6. Agent mitigation when blocked
+
+1. Do not bypass the restriction with another write path.
+2. Ask the user to authorize implementation with `/go`.
+3. Retry the modifying tool only after the next prompt updates permission state.
