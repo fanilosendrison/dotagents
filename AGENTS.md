@@ -5,8 +5,7 @@ This file is your map to `~/.agents/` — your core brain and governance center.
 ## General Guidelines
 - Do not implement anything without asking the user for explicit permission first, unless they have explicitly invoked `/go` (visible as `<skill name="go">` in the formatted prompt) in their message. Before using any file-modifying tool (Write, Edit, etc.), verify that `/go` or `<skill name="go">` is present in the user's message. If neither is present, you do NOT have authorization to implement — you may only read and analyze. Never self-trigger the `/go` skill.
 - When making technical decisions, do not give much weight to development cost. Instead, prefer quality, simplicity, robustness, scalability, and long term maintainability.
-- When doing bug fixes, always start with reproducing the bug in an E2E setting as closely aligned with how an end use. This makes sure you find the real problem so your fix will actually solve it.
-- Apply high standard to engineering excellence. If you see a test failure or test flakiness, even if it is not caused by what you are working on right now, still get it fixed.
+- Apply high standard to engineering excellence. If you see a test failure or test flakiness, even if it is not caused by what you are working on right now, you must still get it fixed.
 
 
 ---
