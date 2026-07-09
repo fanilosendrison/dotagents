@@ -49,9 +49,6 @@ Before ANY implementation task:
 - You must prefer readable code over clever code. If a trick is necessary, comment why you used it.
 - You must report inconsistencies you find (between specs, between specs and existing code).
 - You must propose improvements when you see a problem, even if I did not ask.
-- **Bug Reproduction**: When doing bug fixes, always start with reproducing the bug in an E2E setting as closely aligned with how an end use. This makes sure you find the real problem so your fix will actually solve it.
-- **Bug Fix Testing**: When you resolve a bug, you must systematically write the test that would have detected this bug.
-- **Test Integrity**: When you write a test, you must systematically verify that it doesn't "cheat" (i.e., it truly tests the actual behavior end-to-end and doesn't just mock the boundaries artificially).
 
 
 ---
