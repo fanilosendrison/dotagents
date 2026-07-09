@@ -10,7 +10,7 @@ export function getInternalStatePath(): string {
 }
 
 export function updatePermissionState(promptText: string): void {
-    const isAllowed = /(^|\s)\/go(\s|$)/.test(promptText);
+    const isAllowed = /(^|\s)\/go(\s|$)/.test(promptText) || /<skill\s+name=["']go["']/.test(promptText);
     const statePath = getInternalStatePath();
     const dir = dirname(statePath);
     if (!existsSync(dir)) {

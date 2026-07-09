@@ -38,6 +38,16 @@ describe("State Management", () => {
         expect(isPermissionGranted()).toBe(true);
     });
 
+    it("should grant permission when /go is formatted as a skill XML tag (Pi expanded)", () => {
+        updatePermissionState('<skill name="go">...content...</skill>');
+        expect(isPermissionGranted()).toBe(true);
+    });
+
+    it("should grant permission when /go is formatted as a skill XML tag with single quotes", () => {
+        updatePermissionState("<skill name='go'>...content...</skill>");
+        expect(isPermissionGranted()).toBe(true);
+    });
+
     it("should not grant permission if /go is part of a word like /google", () => {
         updatePermissionState("search on /google");
         expect(isPermissionGranted()).toBe(false);
