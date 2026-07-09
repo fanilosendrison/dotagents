@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	checkBashCommand,
 	checkPath,
 	extractBashPaths,
 	rewriteBashCommand,
@@ -31,6 +32,16 @@ describe("path-guard Core Unit Tests", () => {
 		expect(paths).toContain("/tmp/out.txt");
 	});
 
+	test("extracts quoted absolute paths from command arguments", () => {
+		const paths = extractBashPaths('cat "/tmp/test file.txt"');
+		expect(paths).toContain("/tmp/test file.txt");
+	});
+
+	test("extracts quoted redirect targets", () => {
+		const paths = extractBashPaths('echo "hello" > "/tmp/out file.txt"');
+		expect(paths).toContain("/tmp/out file.txt");
+	});
+
 	// ── rewriteBashCommand ──────────────────────────────────────────────────
 	test("returns unmodified safe bash commands", () => {
 		const cmd = "ls -la /tmp";
@@ -42,6 +53,22 @@ describe("path-guard Core Unit Tests", () => {
 	test("rewrites redirect to dotpi/", () => {
 		const HOME = process.env.HOME || "/Users/famillesendrison";
 		const cmd = `echo 'hello' > ${HOME}/Developper/Projects/dotpi/settings.json`;
+		const result = rewriteBashCommand(cmd);
+		expect(result.rewritten).toBe(true);
+		expect(result.newCommand).toContain(`${HOME}/.pi/agent/settings.json`);
+	});
+
+	test("blocks quoted dot repo paths", () => {
+		const HOME = process.env.HOME || "/Users/famillesendrison";
+		const cmd = `cat "${HOME}/Developper/Projects/dotagents/AGENTS.md"`;
+		const result = checkBashCommand(cmd);
+		expect(result.allowed).toBe(false);
+		expect(result.rewrittenPath).toBe(`${HOME}/.agents/AGENTS.md`);
+	});
+
+	test("rewrites quoted redirect targets", () => {
+		const HOME = process.env.HOME || "/Users/famillesendrison";
+		const cmd = `echo 'hello' > "${HOME}/Developper/Projects/dotpi/settings.json"`;
 		const result = rewriteBashCommand(cmd);
 		expect(result.rewritten).toBe(true);
 		expect(result.newCommand).toContain(`${HOME}/.pi/agent/settings.json`);

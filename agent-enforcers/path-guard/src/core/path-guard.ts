@@ -128,6 +128,71 @@ function unwrapCommand(command: string): string {
   return cmd;
 }
 
+function tokenizeCommand(command: string): string[] {
+  const tokens: string[] = [];
+  let current = "";
+  let quote: "'" | "\"" | null = null;
+
+  const pushCurrent = () => {
+    if (current.length > 0) {
+      tokens.push(current);
+      current = "";
+    }
+  };
+
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i];
+
+    if (quote !== "'" && char === "\\") {
+      const next = command[i + 1];
+      if (next !== undefined) {
+        current += next;
+        i++;
+      }
+      continue;
+    }
+
+    if (quote) {
+      if (char === quote) {
+        quote = null;
+      } else {
+        current += char;
+      }
+      continue;
+    }
+
+    if (char === "'" || char === "\"") {
+      quote = char;
+      continue;
+    }
+
+    if (/\s/.test(char)) {
+      pushCurrent();
+      continue;
+    }
+
+    current += char;
+  }
+
+  pushCurrent();
+  return tokens;
+}
+
+function normalizePathCandidate(token: string): string | null {
+  const clean = token.replace(/[),;]+$/g, "");
+  if (!clean) return null;
+
+  if (
+    clean.startsWith("/") ||
+    clean.startsWith("~/") ||
+    (clean.includes("/") && !clean.startsWith("-"))
+  ) {
+    return clean;
+  }
+
+  return null;
+}
+
 /**
  * Extract candidate file paths from a bash command string.
  *
@@ -141,38 +206,42 @@ export function extractBashPaths(command: string): string[] {
   // This prevents bypassing path-guard by wrapping the real command.
   const unwrapped = unwrapCommand(command);
 
-  // Strip single-quoted and double-quoted strings to avoid false positives
-  // from redirect operators inside quotes.
-  const stripped = unwrapped
-    .replace(/'[^']*'/g, " ")
-    .replace(/"[^"]*"/g, " ")
-    .replace(/\\"/g, ""); // escaped quotes
+  const tokens = tokenizeCommand(unwrapped);
 
-  // Match redirect targets: >path, >>path, 2>path, &>path, 1>path
-  // (with optional space after operator)
-  const redirectRe = /(?:[12&]?>>?)\s*(\S+)/g;
-  let m: RegExpExecArray | null;
-  while ((m = redirectRe.exec(stripped)) !== null) {
-    paths.add(m[1].replace(/["']/g, ""));
-  }
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (!token) continue;
 
-  // Match tee targets
-  const teeRe = /tee\s+(?:-a\s+)?(\S+)/g;
-  while ((m = teeRe.exec(stripped)) !== null) {
-    paths.add(m[1].replace(/["']/g, ""));
-  }
+    const redirectWithTarget = token.match(/^(?:[12&]?>>?|<<?)(.+)$/);
+    if (redirectWithTarget) {
+      const path = normalizePathCandidate(redirectWithTarget[1]);
+      if (path) paths.add(path);
+      continue;
+    }
 
-  // Extract all space-separated tokens that look like file paths.
-  // Includes absolute (/...), tilde (~/...), and relative paths
-  // (contain / and not a flag like --verbose).
-  for (const token of stripped.split(/\s+/)) {
-    const clean = token.replace(/^["']|["']$/g, "");
-    if (
-      clean.startsWith("/") ||
-      clean.startsWith("~/") ||
-      (clean.includes("/") && !clean.startsWith("-"))
-    ) {
-      paths.add(clean);
+    if (/^(?:[12&]?>>?|<<?)$/.test(token)) {
+      const next = tokens[i + 1];
+      if (next) {
+        const path = normalizePathCandidate(next);
+        if (path) paths.add(path);
+      }
+      continue;
+    }
+
+    if (token === "tee") {
+      for (let j = i + 1; j < tokens.length; j++) {
+        const candidate = tokens[j];
+        if (!candidate || candidate === "|" || candidate === "&&" || candidate === ";") break;
+        if (candidate.startsWith("-")) continue;
+        const path = normalizePathCandidate(candidate);
+        if (path) paths.add(path);
+      }
+      continue;
+    }
+
+    const path = normalizePathCandidate(token);
+    if (path) {
+      paths.add(path);
     }
   }
 
