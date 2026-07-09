@@ -6,58 +6,48 @@
 When editing files through a symlinked gateway (e.g., `~/.codex/`, `~/.agents/`, `~/.pi/`), you will often see IDE TypeScript errors saying:
 `Cannot find module '../../[project-name]/...' or its corresponding type declarations.`
 
-This happens because:
-1. The IDE's TypeScript language server resolves paths **logically** based on the symlink path (e.g., `../../` from `~/.codex/hooks` lands in `~/`).
-2. The target workspace (e.g., `~/telemetry-tools` or `~/dotagents`) does not physically exist in your home directory `~/`.
-3. However, tools like `bun` execute perfectly fine because they resolve the symlink to its physical path (`~/Developper/Projects/dotcodex/hooks/`) before applying the relative traversal.
+This happens because the IDE's TypeScript language server resolves relative paths based on the gateway symlink path, which points to physical repos that aren't located where the IDE thinks they are. For example, `../../` from `~/.codex/hooks` logically resolves to `~/` instead of `~/Developper/Projects/`.
 
 **Generic Fix:**
-Do **NOT** attempt to fix this by modifying `tsconfig.json` or by creating new symlinks in `~/`.
+Do **NOT** attempt to fix this by using hardcoded absolute physical paths or dynamic `require()`.
 
-The established and robust fix is to convert the cross-workspace relative imports into **absolute physical paths**.
+The established and cleanest fix is to preserve pure static relative ESM imports in the code, and use the `paths` compiler option in the gateway's `tsconfig.json` to map the logical paths back to their physical locations.
 
-Whenever an import crosses the boundary of its physical repository, rewrite it to use the absolute path to `/Users/famillesendrison/Developper/Projects/...` and explicitly append `.ts` (or `.js`).
-
-*Incorrect (Causes IDE Errors):*
-```typescript
-import { createEventSink } from "../../telemetry-tools/event-sink/src/index";
-import { CommandValidator } from "../../dotagents/agent-enforcers/command-validator/src/core/validator";
-```
-
-*Correct (Works for both IDE and Bun):*
+*Incorrect (Causes Portability Issues):*
 ```typescript
 import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
-import { CommandValidator } from "/Users/famillesendrison/Developper/Projects/dotagents/agent-enforcers/command-validator/src/core/validator.ts";
+```
+
+*Correct (Clean and Portable):*
+```typescript
+// In the source file:
+import { createEventSink } from "../../telemetry-tools/event-sink/src/index.ts";
+```
+```json
+// In ~/.codex/tsconfig.json:
+{
+  "compilerOptions": {
+    "paths": {
+      "../../telemetry-tools/*": ["../Developper/Projects/telemetry-tools/*"],
+      "../../dotagents/*": ["../Developper/Projects/dotagents/*"]
+    }
+  }
+}
 ```
 
 ## Missing Global Types (Node/Bun) in Standalone Scripts
 
 **Description:**
-When writing standalone hook scripts (e.g., in `~/.codex/hooks/` or `~/.pi/agent/extensions/`), you may see IDE TypeScript errors for global execution objects like `process` or `import.meta.main`. 
+When writing standalone hook scripts (e.g., in `~/.codex/hooks/` or `~/.pi/agent/extensions/`), you may see IDE TypeScript errors for global execution objects like `process`, `Buffer`, or `import.meta.main`. 
 
-Examples of errors:
-- `Cannot find name 'process'.`
-- `Property 'main' does not exist on type 'ImportMeta'.`
-
-This happens because the IDE's TypeScript language server evaluates these standalone files without the full Node or Bun global type definitions loaded. However, the runtime (`bun`) executes them perfectly fine.
+This happens because the IDE's TypeScript language server evaluates these standalone files without the full Node or Bun global type definitions loaded.
 
 **Generic Fix:**
-For standalone hook scripts, do **NOT** attempt to fix this by modifying `tsconfig.json` or creating global type augmentations.
+Do **NOT** attempt to mask these errors by sprinkling `// @ts-expect-error` or `// @ts-ignore` throughout the code.
 
-The established and cleanest fix is to suppress the error using `// @ts-expect-error` with a clear explanation right above the usage.
+The established and robust fix is to ensure `bun-types` is installed at the root of the physical repository and explicitly included in the `tsconfig.json`. This provides true type-safety.
 
-*Incorrect (Causes IDE Errors):*
-```typescript
-if (import.meta.main) {
-	process.exit(2);
-}
-```
-
-*Correct (Works for both IDE and Bun):*
-```typescript
-// @ts-expect-error: Bun specific property missing from default types.
-if (import.meta.main) {
-	// @ts-expect-error: Missing Node global types in standalone hook script.
-	process.exit(2);
-}
-```
+*Correct Implementation:*
+1. Add `bun-types` to the root `package.json` (`devDependencies`) of the physical repo.
+2. Add `"types": ["bun-types"]` to the `compilerOptions` of the root `tsconfig.json`.
+3. If the IDE opens the project via a gateway (e.g., `~/.codex/`), ensure `node_modules` and `package.json` are symlinked from the physical repo into the gateway, and that `~/.codex/tsconfig.json` explicitly lists `"types": ["bun-types"]`.
