@@ -15,6 +15,32 @@ The established and cleanest fix is to preserve pure static relative ESM imports
 
 This is required because standard TypeScript intentionally ignores the `paths` compiler option for relative module imports (imports starting with `.` or `..`). The `rootDirs` option is the correct and only way to resolve relative paths across disparate directory structures.
 
+### Runtime (jiti / Pi Extensions)
+
+**Description:**
+Pi loads TypeScript extensions via **jiti** (ESM `import()`), which — like the IDE language server — preserves symlink paths when resolving relative imports. This causes the same resolution failure at runtime:
+
+```
+~/.pi/agent/extensions/extension.ts
+  → import { ... } from "../../dotagents/..."
+  → jiti résout depuis le symlink : ~/.pi/dotagents/...  ❌
+```
+
+**Runtime Fix:**
+`rootDirs` ne résout que les erreurs IDE. Pour le runtime, ajuster l'import relatif pour naviguer dans la structure des gateways symlink plutôt que dans la structure physique des repos :
+
+```typescript
+// Avant (runtime error avec jiti) :
+import { CommandValidator } from "../../dotagents/agent-enforcers/...";
+
+// Après (fonctionne runtime + IDE) :
+import { CommandValidator } from "../../../.agents/agent-enforcers/...";
+```
+
+Le chemin `../../../.agents/` depuis `~/.pi/agent/extensions/` atteint correctement `~/.agents/` (le gateway vers `~/Developper/Projects/dotagents/`).
+
+Les deux fixes sont complémentaires : garder `rootDirs` dans `tsconfig.json` pour l'IDE, et ajuster les imports pour le runtime.
+
 *Incorrect (Causes Portability Issues):*
 ```typescript
 import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
