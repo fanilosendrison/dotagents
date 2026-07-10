@@ -1,7 +1,9 @@
 # Docs — Agent Enforcers & Shared Logic
 
-This folder documents all agnostic agent-enforcer rules (security, validators, linters).
-These rules intercept agent tools across Pi, Claude, and Codex.
+This folder documents all agnostic agent-enforcer rules (security, validators,
+linters). These rules are shared by Pi, Codex, and Antigravity where adapters
+exist; Claude Code is documented only for enforcers that still have Claude
+hooks.
 
 When you need to document a new enforcer, look here first to understand what's already been done, then document any new changes using the `document-agent-enforcement` skill.
 
@@ -22,15 +24,15 @@ When you need to document a new enforcer, look here first to understand what's a
 - **Trigger** : Bash command → CRITICAL/HIGH pattern matching ; Outil d'écriture → vérification permission /go
 
 ### 2. Git Commits Push Enforcer
-- **Date** : 2026-06-29 · **Rewritten** : 2026-07-04
+- **Date** : 2026-06-29 · **Updated** : 2026-07-10
 - **Doc** : [`git-commits-push-enforcer.md`](git-commits-push-enforcer.md)
-- **Wiring** : Pi extension + pre-tool-use hook + Antigravity wrapper (Zsh trap)
-- **Trigger** : `git commit` without Conventional Commits or without `&& git push`
+- **Wiring** : Pi extension + Codex pre-tool-use hook + Antigravity PATH shim + Git pre-commit hook
+- **Trigger** : Raw `git commit`, `git commit-tree`, or `git push` must flow through `/git-commits-push`
 
 ### 3. Path Guard
-- **Date** : 2026-06-29 · **Rewritten** : 2026-07-04
+- **Date** : 2026-06-29 · **Updated** : 2026-07-10
 - **Doc** : [`path-guard.md`](path-guard.md)
-- **Wiring** : Pi extension (rewrite) + pre-tool-use hook (block)
+- **Wiring** : Pi extension (rewrite) + Codex pre-tool-use hook (deny with rewrite hint)
 - **Trigger** : Write/Edit/Bash targeting `~/Developper/Projects/dot*`
 
 ### 4. Post-Write Linter
@@ -41,7 +43,7 @@ When you need to document a new enforcer, look here first to understand what's a
 
 
 ### 5. Permission Enforcer
-- **Date** : 2026-07-08 · **Pi wiring** : 2026-07-09
+- **Date** : 2026-07-08 · **Updated** : 2026-07-10
 - **Doc** : [`permission-enforcer.md`](permission-enforcer.md)
-- **Wiring** : Shared state library + Pi `before_agent_start` extension + command-validator consumer
-- **Trigger** : Prompt `/go` updates state; modifying tools call `isPermissionGranted()`
+- **Wiring** : Shared state library + Pi `before_agent_start` extension + Codex `UserPromptSubmit` hook + command-validator consumer
+- **Trigger** : Prompt `/go` or `<skill name="go">` updates state; modifying tools call `isPermissionGranted()`

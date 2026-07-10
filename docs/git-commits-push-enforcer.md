@@ -9,8 +9,8 @@ Trust tokens are managed by:
 
 ## 1. Wiring — 4 interception points
 
-| # | Mechanism | Runtime | File |
-|---|-----------|---------|------|
+| Number | Mechanism | Runtime | File |
+| ------ | --------- | ------- | ---- |
 | 1 | **Pi Extension** · `pi.on("tool_call")` | **Pi** | `~/.pi/agent/extensions/git-commits-push-enforcer.ts` |
 | 2 | **Pre-tool-use hook** · reads stdin JSON | **Codex** | `~/.codex/hooks/git-commits-push-enforcer.ts` |
 | 3 | **PATH shim** · intercepts `git` binary | **Antigravity** | `~/.gravity/wrappers/git-commits-push-enforcer/git-shim.sh` |
@@ -41,21 +41,21 @@ The `/git-commits-push` skill creates short-lived, one-shot trust tokens from it
 
 ## 4. Behavior by runtime
 
-| Scenario | Pi | Codex | Gravity |
-|----------|-----|-------|---------|
+| Scenario | Pi runtime | Codex runtime | Gravity runtime |
+| -------- | ---------- | ------------- | --------------- |
 | `git commit -m "fix: bar"` | ❌ Block | ❌ Deny | ❌ Block |
 | `git push origin main` | ❌ Block | ❌ Deny | ❌ Block |
 | `BYPASS_GIT_ENFORCER=1 git commit` | ⚠️ Skip (legacy) | ⚠️ Skip (legacy) | ❌ Block |
 | `/git-commits-push` | ✅ Allow + log | ✅ Allow + log | ✅ Allow |
-| Skill internal git with helper-issued token | ✅ Allow | ✅ Allow | ✅ Allow + log |
-| Marker without token | — | — | ❌ Block (forged) |
+| Skill internal git with helper-issued token | Not observed by parent hook | Not observed by parent hook | ✅ Allow + log |
+| Trusted marker leaks into parent hook without validation | ❌ Block (forged) | ❌ Deny (forged) | ❌ Block (forged) |
 
 ## 5. Telemetry
 
 Events use the same names across all harnesses: `enforcer_triggered`, `blocked`, `skipped`.
 
 | Harness | Stats path | Extra fields |
-|---------|-----------|--------------|
+| ------- | ---------- | ------------ |
 | Pi | `~/neelopedia/stats/pi/git-commits-push-enforcer/` | `toolCallId`, `parentModel`, `thinkingLevel` |
 | Codex | `~/neelopedia/stats/codex/git-commits-push-enforcer/` | `toolCallId`, `parentModel`, `thinkingLevel` |
 | Gravity | `~/neelopedia/stats/antigravity/git-commits-push-enforcer/` | `parentModel`, `thinkingLevel`, `trajectoryId` |
@@ -66,7 +66,13 @@ Non-commit-intent commands (e.g. `echo ok`, `rg -n 'git commit'`) produce **zero
 
 The skill bypasses enforcement only through its internal Git helpers, which create a trust token via `createTrustToken()` before each git subprocess. The Gravity shim validates the token through `hook.ts`, logs `enforcer_triggered`, then delegates to the real git binary with `--no-verify`.
 
-**Trust tokens are subprocess-level only.** Pi and Codex are agent-level interceptors — they see the Bash tool command (e.g. `/git-commits-push`), not the skill's internal git subprocesses. They pass `trustedSkillMarkerSet` to the shared core for consistency but intentionally omit `trustToken` / `validateToken`. If the marker leaks into a Pi/Codex parent process, the core fails closed (blocks as forged). Real trust tokens are never set in these contexts.
+**Trust tokens are subprocess-level only.** Pi and Codex are agent-level
+interceptors: they see the Bash tool command (for example `/git-commits-push`),
+not the skill's internal git subprocesses. They pass `trustedSkillMarkerSet` to
+the shared core for consistency but intentionally omit `trustToken` and
+`validateToken`. If the marker leaks into a Pi or Codex parent process, the core
+fails closed and blocks it as forged. Gravity is the only adapter that validates
+and consumes helper-issued trust tokens.
 
 ## 7. Relevant Files
 

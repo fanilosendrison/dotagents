@@ -8,12 +8,13 @@ The enforcer is split into two responsibilities:
 - `permission-enforcer` owns the prompt lifecycle and writes the shared state.
 - `command-validator` consumes that shared state when restricted tools are used.
 
-## 1. Wiring - 2 interception points
+## 1. Wiring - 3 interception points
 
 | Number | Mechanism | Runtime | File |
-|------|---------|-------|----|
+| ------ | --------- | ------- | ---- |
 | 1 | Pi extension, `before_agent_start` | Pi | `~/.pi/agent/extensions/permission-enforcer.ts` |
-| 2 | Direct import, `isPermissionGranted()` | Shared command validator core | `~/.agents/agent-enforcers/command-validator/src/core/tool-validator.ts` |
+| 2 | Codex hook, `UserPromptSubmit` | Codex | `~/.codex/hooks/user-prompt-submit.ts` |
+| 3 | Direct import, `isPermissionGranted()` | Shared command validator core | `~/.agents/agent-enforcers/command-validator/src/core/tool-validator.ts` |
 
 The shared state logic lives in
 `~/.agents/agent-enforcers/permission-enforcer/src/core/state.ts`.
@@ -24,7 +25,7 @@ The shared state logic lives in
 User prompt
     |
     v
-Pi permission-enforcer extension
+Pi before_agent_start or Codex UserPromptSubmit
     |
     v
 updatePermissionState(prompt)
@@ -72,16 +73,11 @@ permission-enforcer/
             └── state.test.ts
 ```
 
-Pi runtime wiring:
+Runtime wiring:
 
 ```text
-~/.pi/agent/extensions/
-├── permission-enforcer.ts
-└── __tests__/
-    ├── permission-enforcer.test.ts
-    ├── permission-enforcer.integration.test.ts
-    ├── permission-enforcer.contract.test.ts
-    └── permission-enforcer.e2e.test.ts
+~/.pi/agent/extensions/permission-enforcer.ts
+~/.codex/hooks/user-prompt-submit.ts
 ```
 
 ## 5. Behavior by runtime
@@ -89,7 +85,7 @@ Pi runtime wiring:
 ### Pi
 
 | Situation | Behavior |
-|---------|--------|
+| --------- | -------- |
 | Prompt contains `/go` | State is set to `allowed: true`; restricted tools are allowed for that turn. |
 | Prompt contains `<skill name="go">` | State is set to `allowed: true`; restricted tools are allowed for that turn. |
 | Prompt has no authorization marker | State is set to `allowed: false`; restricted tools are denied. |
@@ -102,12 +98,19 @@ Telemetry is written to
 The event intentionally records `promptLength` and `matchSource`, not prompt
 content.
 
-### Codex, Claude Code, and Antigravity
+### Codex
 
-This change does not add or modify runtime hooks for Codex, Claude Code, or
-Antigravity. They can still consume the shared permission state through
-`command-validator` when their runtime wiring calls it, but this implementation
-only adds Pi-side prompt lifecycle wiring.
+Codex runs `~/.codex/hooks/user-prompt-submit.ts` for each prompt. The hook
+calls `updatePermissionState(promptText)` before handling any
+`allow-command <token>` command-validator override. Codex does not write a
+separate permission-enforcer telemetry event today; the enforcement result is
+visible when `command-validator` allows or denies restricted tools.
+
+### Claude Code and Antigravity
+
+No current prompt-lifecycle adapter was found for Claude Code or Antigravity.
+They can only consume the shared permission state if their runtime wiring calls
+`command-validator`.
 
 ## 6. Agent mitigation when blocked
 

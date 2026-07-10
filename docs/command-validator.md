@@ -8,8 +8,8 @@ The validator has been refactored into two specialized validators:
 
 ## 1. Wiring — 3 interception points
 
-| # | Mechanism | Runtime | File |
-|---|-----------|---------|------|
+| Number | Mechanism | Runtime | File |
+| ------ | --------- | ------- | ---- |
 | 1 | **Pi Extension** · `pi.on("tool_call")` | **Pi** | `~/.pi/agent/extensions/command-validator.ts` |
 | 2 | **Pre-tool-use hook** · reads stdin JSON | **Claude Code** | `~/.claude/hooks/command-validator.ts` |
 | 3 | **Pre-tool-use hook** · reads stdin JSON | **Codex** | `~/.codex/hooks/command-validator.ts` |
@@ -49,7 +49,7 @@ Tool invoked by agent
 Irreversible destructive patterns (non-exhaustive):
 
 | Pattern | Example | Regex |
-|---------|---------|-------|
+| ------- | ------- | ----- |
 | **rm -rf /** | `rm -rf /` | `rm .*-rf\s*/\s*$` |
 | **rm -rf /etc** | `sudo rm -rf /etc` | `rm .*-rf\s*/etc` |
 | **dd to /dev/** | `dd if=/dev/urandom of=/dev/sda` | `dd\s+.*of=\/dev\/` |
@@ -65,7 +65,7 @@ Irreversible destructive patterns (non-exhaustive):
 Potentially dangerous but sometimes legitimate commands:
 
 | Command | Risk |
-|---------|------|
+| ------- | ---- |
 | `sudo ...` | Privilege escalation |
 | `su ...` | User switching |
 | `passwd` | Password modification |
@@ -96,7 +96,7 @@ The Pi extension does not add its own patterns — it imports the shared core va
 ### Pi (Extension)
 
 | Situation | Behavior |
-|-----------|----------|
+| --------- | -------- |
 | `rm -rf /` | ❌ Block: "Destructive command blocked" + violation list |
 | `sudo apt update` | ⚠️ **UI Dialog**: `ctx.ui.confirm("Dangerous command", ...)` → if refused, block |
 | `ls -la` | ✅ Passes |
@@ -106,7 +106,7 @@ The Pi extension does not add its own patterns — it imports the shared core va
 ### Claude Code (Pre-tool-use hook)
 
 | Situation | Behavior |
-|-----------|----------|
+| --------- | -------- |
 | CRITICAL | ❌ Deny (`permissionDecision: "deny"`) + message with command, reason, severity |
 | HIGH | ⚠️ **Ask** (`permissionDecision: "ask"`) — Claude Code prompts the user to confirm or deny |
 | allow | ✅ Passes |
@@ -116,7 +116,7 @@ The Pi extension does not add its own patterns — it imports the shared core va
 ### Codex (Pre-tool-use hook)
 
 | Situation | Behavior |
-|-----------|----------|
+| --------- | -------- |
 | CRITICAL | ❌ Deny — process exits immediately |
 | HIGH (no token) | ❌ Deny + approval token generated — user sees `allow-command <token>` to approve |
 | HIGH + approved token | ✅ Allow via `consumeOverride()` — token is consumed (one-shot), telemetry action is `override_approved` |
@@ -136,11 +136,10 @@ tools. The final approval mechanism is still runtime-specific: Pi can ask throug
 `ctx.ui.confirm`, while Codex uses a one-shot `allow-command <token>` retry flow.
 
 | Runtime | Log path | Format |
-|---------|----------|--------|
+| ------- | -------- | ------ |
 | **Pi** (extension) | `~/neelopedia/stats/pi/command-validator/` | `rawCommand`, `action`, `parentModel`, `thinkingLevel`, `toolName`, `reason` |
 | **Claude Code** (hook) | `~/neelopedia/stats/claude-code/command-validator/events.jsonl` | `timestamp`, `source`, `command`, `action`, `violations`, `severity` |
 | **Codex** (hook) | `~/neelopedia/stats/codex/command-validator/` | `rawCommand`, `action`, `parentModel`, `thinkingLevel`, `toolName`, `reason`, `severity`, `override`, `userResponse` |
-| **Antigravity** (git hook) | `~/neelopedia/stats/antigravity/events.jsonl` | Via telemetry |
 
 ## 6. File tree
 
