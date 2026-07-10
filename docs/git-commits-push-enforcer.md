@@ -35,7 +35,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
 ```
 
 ### Trusted skill execution (internal-only)
-The `/git-commits-push` skill creates short-lived, one-shot trust tokens via the trust-store module before spawning internal git subprocesses. The token is passed via `GIT_COMMITS_PUSH_ENFORCER_TOKEN` alongside `GIT_COMMITS_PUSH_ENFORCER_SOURCE=skill`. This path is **not publicly forgeable** — a marker without a valid token is blocked.
+The `/git-commits-push` skill creates short-lived, one-shot trust tokens from its internal Git helper call sites before spawning internal git subprocesses. The token is passed via `GIT_COMMITS_PUSH_ENFORCER_TOKEN` alongside `GIT_COMMITS_PUSH_ENFORCER_SOURCE=skill`. Direct `createTrustToken()` callers outside the skill Git helpers are rejected, and a marker without a valid helper-issued token is blocked.
 
 ## 4. Behavior by runtime
 
@@ -45,7 +45,7 @@ The `/git-commits-push` skill creates short-lived, one-shot trust tokens via the
 | `git push origin main` | ❌ Block | ❌ Deny | ❌ Block |
 | `BYPASS_GIT_ENFORCER=1 git commit` | ⚠️ Skip (legacy) | ⚠️ Skip (legacy) | ❌ Block |
 | `/git-commits-push` | ✅ Allow + log | ✅ Allow + log | ✅ Allow |
-| Skill internal git with token | ✅ Allow | ✅ Allow | ✅ Allow + log |
+| Skill internal git with helper-issued token | ✅ Allow | ✅ Allow | ✅ Allow + log |
 | Marker without token | — | — | ❌ Block (forged) |
 
 ## 5. Telemetry
@@ -62,7 +62,7 @@ Non-commit-intent commands (e.g. `echo ok`, `rg -n 'git commit'`) produce **zero
 
 ## 6. Interaction with the `/git-commits-push` skill
 
-The skill bypasses enforcement by creating a trust token via `createTrustToken()` before each git subprocess. The Gravity shim validates the token through `hook.ts`, logs `enforcer_triggered`, then delegates to the real git binary with `--no-verify`.
+The skill bypasses enforcement only through its internal Git helpers, which create a trust token via `createTrustToken()` before each git subprocess. The Gravity shim validates the token through `hook.ts`, logs `enforcer_triggered`, then delegates to the real git binary with `--no-verify`.
 
 ## 7. Relevant Files
 
