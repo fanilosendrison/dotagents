@@ -5,6 +5,8 @@
  * of truth. The robust shell-command parser handles obfuscation techniques
  * like env prefixes, sudo wrappers, and shell -c indirection.
  *
+ * Trust tokens are managed by the sibling trust-store.ts module.
+ *
  * Exports:
  *   - detectRawGitMutation(command)      — does the command mutate via raw git?
  *   - isGitCommitsPushSkillCommand(cmd)  — is it a /git-commits-push skill invocation?
@@ -30,6 +32,10 @@ export interface EnforcementInput {
 	legacyBypassSet: boolean;
 	/** Whether the trusted GIT_COMMITS_PUSH_ENFORCER_SOURCE=skill marker is present. */
 	trustedSkillMarkerSet: boolean;
+	/** The capability trust token (GIT_COMMITS_PUSH_ENFORCER_TOKEN). Only valid when trustedSkillMarkerSet is true. */
+	trustToken?: string;
+	/** Function to validate the trust token. Passed in so this module stays pure. */
+	validateToken?: (token: string | undefined) => boolean;
 	/**
 	 * When true, legacy BYPASS_GIT_ENFORCER=1 is treated as a valid skip
 	 * (transitional compatibility for Pi/Codex hooks).
@@ -80,9 +86,12 @@ const GIT_OPTIONS_WITH_EQUALS_VALUE = [
 ];
 const SHELL_COMMANDS = new Set(["bash", "sh", "zsh", "dash", "ksh"]);
 
-/** Env var set by the /git-commits-push skill on its internal git subprocesses. */
-export const TRUSTED_MARKER_ENV = "GIT_COMMITS_PUSH_ENFORCER_SOURCE";
-export const TRUSTED_MARKER_VALUE = "skill";
+/** Env var names used across processes (re-exported from trust-store). */
+export {
+	TRUSTED_MARKER_ENV,
+	TRUSTED_MARKER_VALUE,
+	TRUSTED_TOKEN_ENV,
+} from "./trust-store";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Public API — primary exports
@@ -132,13 +141,28 @@ export function evaluateEnforcement(
 	const { command, legacyBypassSet, trustedSkillMarkerSet, allowLegacyBypass } =
 		input;
 
-	// A trusted skill execution always passes.
+	// A trusted skill execution must carry a valid one-shot token.
+	// Marker without valid token → forged attempt → block.
 	if (trustedSkillMarkerSet) {
+		const tokenValid = input.validateToken
+			? input.validateToken(input.trustToken)
+			: false;
+		if (tokenValid) {
+			return {
+				action: "allow",
+				detectedBy: "git-commits-push",
+				mutation: null,
+				eventType: "enforcer_triggered",
+			};
+		}
 		return {
-			action: "allow",
-			detectedBy: "git-commits-push",
+			action: "block",
+			deniedReason:
+				"Forged trusted marker detected (missing or invalid trust token). " +
+				"Only the /git-commits-push skill can perform git mutations.",
+			detectedBy: "git-commit",
 			mutation: null,
-			eventType: "enforcer_triggered",
+			eventType: "blocked",
 		};
 	}
 

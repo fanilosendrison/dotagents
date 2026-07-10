@@ -287,16 +287,42 @@ describe("detectCommitIntent", () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe("evaluateEnforcement", () => {
-	// Trusted skill marker
+	// Trusted skill marker (with valid token)
 	test("allows when trusted skill marker is set", () => {
 		const result = evaluateEnforcement({
 			command: "git commit -m 'x'",
 			legacyBypassSet: false,
 			trustedSkillMarkerSet: true,
+			trustToken: "valid-token",
+			validateToken: () => true,
 		});
 		expect(result.action).toBe("allow");
 		expect(result.eventType).toBe("enforcer_triggered");
 		expect(result.detectedBy).toBe("git-commits-push");
+	});
+
+	// Forged marker (no valid token)
+	test("blocks when trusted marker is set but no validateToken provided", () => {
+		const result = evaluateEnforcement({
+			command: "git commit -m 'x'",
+			legacyBypassSet: false,
+			trustedSkillMarkerSet: true,
+		});
+		expect(result.action).toBe("block");
+		expect(result.eventType).toBe("blocked");
+		expect(result.deniedReason).toContain("Forged trusted marker");
+	});
+
+	test("blocks when trusted marker is set but token is invalid", () => {
+		const result = evaluateEnforcement({
+			command: "git commit -m 'x'",
+			legacyBypassSet: false,
+			trustedSkillMarkerSet: true,
+			trustToken: "bad-token",
+			validateToken: () => false,
+		});
+		expect(result.action).toBe("block");
+		expect(result.deniedReason).toContain("Forged trusted marker");
 	});
 
 	// Skill invocations
@@ -385,12 +411,14 @@ describe("evaluateEnforcement", () => {
 		expect(result.detectedBy).toBe("git-commit");
 	});
 
-	// Trusted marker overrides everything
+	// Trusted marker overrides everything (with valid token)
 	test("trusted marker overrides legacy bypass block", () => {
 		const result = evaluateEnforcement({
 			command: "git commit -m 'x'",
 			legacyBypassSet: true,
 			trustedSkillMarkerSet: true,
+			trustToken: "tok",
+			validateToken: () => true,
 		});
 		expect(result.action).toBe("allow");
 	});
