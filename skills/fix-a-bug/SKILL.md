@@ -6,7 +6,7 @@ description: Use this skill whenever you are asked to fix something, understand 
 # Fix a Bug
 
 Before taking any action to fix or understand a bug, you must first read the known bugs registry:
-`/Users/famillesendrison/.agents/memory/bug-fixes.md`
+`/Users/famillesendrison/.agents/memory/known-bug-fixes.md`
 
 Then, you must follow this mandatory 3-step protocol:
 
