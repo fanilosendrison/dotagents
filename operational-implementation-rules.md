@@ -49,6 +49,10 @@ Before ANY implementation task:
 - You must prefer readable code over clever code. If a trick is necessary, comment why you used it.
 - You must report inconsistencies you find (between specs, between specs and existing code).
 - You must propose improvements when you see a problem, even if I did not ask.
+- **Symlink Gateways & Portability**: You must ensure compatibility with the symlinked gateway architecture (~/.agents/, ~/.codex/, ~/.pi/). 
+  1. Never use absolute local paths (e.g., `/Users/...`) in source imports; always use clean, relative paths.
+  2. Always verify that module resolution passes within the gateway context by running checks (e.g., `tsc --noEmit -p ~/.agents/tsconfig.json`) before finalizing your changes.
+  3. If new dependencies are added or type checking fails at the gateway root, verify that both `package.json` and `node_modules` are symlinked from the physical repo into the gateway.
 
 
 ---
