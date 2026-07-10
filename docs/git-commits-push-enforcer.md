@@ -17,6 +17,8 @@ Trust tokens are managed by:
 | 4 | **Git pre-commit hook** | **Git (any repo)** | `~/.gravity/git-hooks/pre-commit` |
 
 All share the **same enforcement core**: `validator.ts` from `.agents`.
+The Antigravity PATH shim keeps only a minimal Bash prefilter for `commit`,
+`commit-tree`, and `push` so it can decide when to invoke the TypeScript hook.
 
 ## 2. What is blocked
 
@@ -71,5 +73,5 @@ The skill bypasses enforcement only through its internal Git helpers, which crea
 - `~/.pi/agent/extensions/git-commits-push-enforcer.ts` — Pi adapter
 - `~/.codex/hooks/git-commits-push-enforcer.ts` — Codex adapter
 - `~/.gravity/wrappers/git-commits-push-enforcer/hook.ts` — Gravity adapter
-- `~/.gravity/wrappers/git-commits-push-enforcer/git-shim.sh` — PATH shim
+- `~/.gravity/wrappers/git-commits-push-enforcer/git-shim.sh` — PATH shim with minimal prefilter before `hook.ts`
 - `~/.agents/skills/git-commits-push/src/modules/git/git-exec.ts` — skill trust token generation
