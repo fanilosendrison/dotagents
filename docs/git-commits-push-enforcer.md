@@ -1,159 +1,75 @@
 # Git Commits Push Enforcer
 
-Prevents commits without a **Conventional Commits** message or a **chained push**.
+Blocks direct raw Git mutations and forces commits through the `/git-commits-push` skill. Detection and enforcement logic is centralized in the shared core:
 
-## 1. Wiring — 2 interception points
+`~/.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator.ts`
+
+Trust tokens are managed by:
+`~/.agents/agent-enforcers/git-commits-push-enforcer/src/core/trust-store.ts`
+
+## 1. Wiring — 4 interception points
 
 | # | Mechanism | Runtime | File |
 |---|-----------|---------|------|
 | 1 | **Pi Extension** · `pi.on("tool_call")` | **Pi** | `~/.pi/agent/extensions/git-commits-push-enforcer.ts` |
-| 2 | **Antigravity wrapper** · git `pre-commit` hook + Zsh trap (`_RAW_GIT_CMD`) | **Git (any repo)** | `~/.gravity/wrappers/git-commits-push-enforcer/hook.ts` |
+| 2 | **Pre-tool-use hook** · reads stdin JSON | **Codex** | `~/.codex/hooks/git-commits-push-enforcer.ts` |
+| 3 | **PATH shim** · intercepts `git` binary | **Antigravity** | `~/.gravity/wrappers/git-commits-push-enforcer/git-shim.sh` |
+| 4 | **Git pre-commit hook** | **Git (any repo)** | `~/.gravity/git-hooks/pre-commit` |
 
-All share the **same validator** : `validator.ts`.
+All share the **same enforcement core**: `validator.ts` from `.agents`.
 
-## 2. Trigger flow
+## 2. What is blocked
 
-```
-Agent runs a bash command
-        │
-        ▼
-┌──────────────────────────────────────┐
-│  Contains "git commit" ?             │
-└──────────────┬───────────────────────┘
-         No    │   Yes
-         ▼     ▼
-      Passes ┌────────────────────────────────────────┐
-             │  Is there an inline message (-m "...")? │
-             └──────────────┬─────────────────────────┘
-           No (editor)      │   Yes
-           (no -m)          ▼
-           ▼       ┌──────────────────────────────────┐
-        Passes     │  extractMessage(command)          │
-                   │  → extracts message from -m       │
-                   │    or a heredoc <<'EOF'           │
-                   └──────────────┬───────────────────┘
-                                 ▼
-                   ┌──────────────────────────────────┐
-                   │  isValidCC(message) ?             │
-                   │  Regex : ^[a-z]+(\([^)]+\))?!?:\s\S
-                   └──────────────┬───────────────────┘
-                   Invalid        │   Valid
-                   ▼              ▼
-             ❌ Block/Deny    ┌──────────────────────────────┐
-                             │  hasPush(command) ?           │
-                             │  Regex : /git\s+push/        │
-                             └──────────────┬───────────────┘
-                            No              │   Yes
-                            ▼               ▼
-                      ❌ Block/Deny     ✅ Allow/Pass
+- `git commit`
+- `git commit-tree`
+- `git push`
+
+Obfuscation techniques are detected and blocked: env prefixes, sudo, bash -c, env -S, nohup, command chaining.
+
+## 3. Allowed paths
+
+### Skill invocation (shell-level)
+```bash
+/git-commits-push
+cd ~/.agents/skills/git-commits-push && bun run start
 ```
 
-## 3. Validation rules
+### Trusted skill execution (internal-only)
+The `/git-commits-push` skill creates short-lived, one-shot trust tokens via the trust-store module before spawning internal git subprocesses. The token is passed via `GIT_COMMITS_PUSH_ENFORCER_TOKEN` alongside `GIT_COMMITS_PUSH_ENFORCER_SOURCE=skill`. This path is **not publicly forgeable** — a marker without a valid token is blocked.
 
-### Conventional Commits format (`isValidCC`)
+## 4. Behavior by runtime
 
-```typescript
-const CC_REGEX = /^[a-z]+(\([^)]+\))?!?:\s\S/;
-```
+| Scenario | Pi | Codex | Gravity |
+|----------|-----|-------|---------|
+| `git commit -m "fix: bar"` | ❌ Block | ❌ Deny | ❌ Block |
+| `git push origin main` | ❌ Block | ❌ Deny | ❌ Block |
+| `BYPASS_GIT_ENFORCER=1 git commit` | ⚠️ Skip (legacy) | ⚠️ Skip (legacy) | ❌ Block |
+| `/git-commits-push` | ✅ Allow + log | ✅ Allow + log | ✅ Allow |
+| Skill internal git with token | ✅ Allow | ✅ Allow | ✅ Allow + log |
+| Marker without token | — | — | ❌ Block (forged) |
 
-| Message | Valid? | Reason |
-|---------|--------|--------|
-| `fix(auth): handle null token` | ✅ | type + scope + description |
-| `feat!: breaking change` | ✅ | type + `!` + description |
-| `feat(api)!: add v2 endpoint` | ✅ | type + scope + `!` + description |
-| `Fixed bug` | ❌ | No type, uppercase |
-| `fix: Bug` | ❌ | Uppercase after `:` |
-| `fix: bug.` | ✅ * | Regex does not block trailing period |
+## 5. Telemetry
 
-**Note :** this regex is **permissive** — it only validates the minimal structure. Semantic validation (valid types, past tense, etc.) is done by the `/git-commits-push` skill itself, which has its own built-in validator.
+Events use the same names across all harnesses: `enforcer_triggered`, `blocked`, `skipped`.
 
-### Chained push (`hasPush`)
+| Harness | Stats path | Extra fields |
+|---------|-----------|--------------|
+| Pi | `~/neelopedia/stats/pi/git-commits-push-enforcer/` | `toolCallId`, `parentModel`, `thinkingLevel` |
+| Codex | `~/neelopedia/stats/codex/git-commits-push-enforcer/` | `toolCallId`, `parentModel`, `thinkingLevel` |
+| Gravity | `~/neelopedia/stats/antigravity/git-commits-push-enforcer/` | `parentModel`, `thinkingLevel`, `trajectoryId` |
 
-```typescript
-export function hasPush(command: string): boolean {
-    return /git\s+push/.test(command);
-}
-```
+Non-commit-intent commands (e.g. `echo ok`, `rg -n 'git commit'`) produce **zero telemetry** events.
 
-Requires `git push` to be present **in the same command** (typically chained with `&&`).
+## 6. Interaction with the `/git-commits-push` skill
 
-## 4. Message extraction (`extractMessage`)
+The skill bypasses enforcement by creating a trust token via `createTrustToken()` before each git subprocess. The Gravity shim validates the token through `hook.ts`, logs `enforcer_triggered`, then delegates to the real git binary with `--no-verify`.
 
-```typescript
-export function extractMessage(command: string): string | null {
-    // 1. Heredoc : git commit -m <<'EOF'...EOF
-    // 2. Double quotes : git commit -m "message"
-    // 3. Single quotes : git commit -m 'message'
-    // Returns null if no -m (interactive editor)
-}
-```
+## 7. Relevant Files
 
-| Command | Extracted message |
-|---------|-------------------|
-| `git commit -m "fix: bug" && git push` | `fix: bug` |
-| `git commit -m 'feat: add x'` | `feat: add x` |
-| `git commit` | `null` → ignored, no block |
-| `git commit -m <<'EOF'\nfix: bug\nEOF` | `fix: bug` |
-
-## 5. File tree
-
-```
-git-commits-push-enforcer/
-└── src/
-    └── core/
-        ├── validator.ts               ← isGitCommit, extractMessage, isValidCC, hasPush
-        └── __tests__/validator.test.ts
-```
-
-## 6. Behavior by runtime
-
-| Scenario | Pi (Extension) | Claude/Codex (Pre-tool-use) | Antigravity — Git `pre-commit` hook |
-|----------|---------------|---------------------------|-------------------------------------|
-| `git commit -m "fix: bar" && git push` | ✅ Passes | ✅ allow | ✅ exit 0 — commit proceeds |
-| `git commit -m "fix: bar"` (no push) | ❌ Block | ❌ deny | ❌ exit 1 + `[ENFORCER_API_RESPONSE]` — commit aborted |
-| `git commit -m "WIP: stuff" && git push` | ❌ Block | ❌ deny | ❌ exit 1 — commit aborted |
-| `git commit` (editor, no `-m`) | ✅ Passes (ignored) | ✅ Passes (ignored) | ✅ exit 0 — skipped (no message) |
-| Non-shell command / VS Code / script | N/A | N/A | ✅ exit 0 — skipped, best-effort |
-
-**Antigravity trigger :** Git `pre-commit` hook — fires on `git commit` in any repo with the hook installed. The raw git command is captured by a **Zsh trap** and passed via `process.env._RAW_GIT_CMD`.
-
-**Entrypoint :** `~/.gravity/wrappers/git-commits-push-enforcer/hook.ts`
-
-**Flow :**
-
-```
-User runs: git commit -m "fix: stuff"
-        │
-        ▼  (Zsh trap captures _RAW_GIT_CMD)
-┌──────────────────────────────────────────┐
-│  pre-commit hook                         │
-│  → runs push-enforcer wrapper            │
-│  → if fails → exit 1 (commit aborted)   │
-└──────────────┬───────────────────────────┘
-               ▼
-┌──────────────────────────────────────────┐
-│  Wrapper: reads _RAW_GIT_CMD             │
-│  isGitCommit() → extractMessage()       │
-│  isValidCC() → hasPush()                │
-│  → logs telemetry                       │
-│  → prints [ENFORCER_API_RESPONSE]       │
-└──────────────┬───────────────────────────┘
-     CC+Push   │  Invalid or missing push
-     exit 0    ▼  exit 1 → commit aborted
-```
-
-**Telemetry :** Logs to `~/.gravity/logs/events.jsonl` via `telemetry/logger.ts` with status and failed check details.
-
-**Special note :** Runs alongside `secret-scanner` in the same `pre-commit` hook — both wrappers are called sequentially; if either fails, the commit is aborted.
-
-## 7. Interaction with the `/git-commits-push` skill
-
-The skill **bypasses** this enforcer because it uses `execSync("git commit ...")` directly (Node.js), not Pi's `bash` tool. Conventional Commits validation is done **by the skill itself** via its built-in `commit-message-validator.ts` module.
-
-## 8. Agent mitigation (when blocked)
-
-1. **Do not bypass** — no `--no-verify`, no retry with a different message
-2. **Use the skill** : `/git-commits-push` handles both constraints automatically
-3. **Manually** :
-   - Append `&& git push` to your command
-   - Format the message in Conventional Commits : `<type>(<scope>): <description>`
+- `~/.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator.ts` — shared detection + enforcement
+- `~/.agents/agent-enforcers/git-commits-push-enforcer/src/core/trust-store.ts` — capability trust tokens
+- `~/.pi/agent/extensions/git-commits-push-enforcer.ts` — Pi adapter
+- `~/.codex/hooks/git-commits-push-enforcer.ts` — Codex adapter
+- `~/.gravity/wrappers/git-commits-push-enforcer/hook.ts` — Gravity adapter
+- `~/.gravity/wrappers/git-commits-push-enforcer/git-shim.sh` — PATH shim
+- `~/.agents/skills/git-commits-push/src/modules/git/git-exec.ts` — skill trust token generation
