@@ -318,7 +318,7 @@ export function rewriteBashCommand(command: string): { rewritten: boolean; newCo
     const result = checkPath(p);
     if (!result.allowed && result.rewrittenPath) {
       newCommand = newCommand.split(p).join(result.rewrittenPath);
-      logs.push(`[Path-Guard] 🔄 Redirection silencieuse vers ${result.gateway}`);
+      logs.push(`[Path-Guard] 🔄 Silent redirection to ${result.gateway}`);
       rewritten = true;
     }
   }
