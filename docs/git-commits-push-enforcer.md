@@ -66,6 +66,8 @@ Non-commit-intent commands (e.g. `echo ok`, `rg -n 'git commit'`) produce **zero
 
 The skill bypasses enforcement only through its internal Git helpers, which create a trust token via `createTrustToken()` before each git subprocess. The Gravity shim validates the token through `hook.ts`, logs `enforcer_triggered`, then delegates to the real git binary with `--no-verify`.
 
+**Trust tokens are subprocess-level only.** Pi and Codex are agent-level interceptors — they see the Bash tool command (e.g. `/git-commits-push`), not the skill's internal git subprocesses. They pass `trustedSkillMarkerSet` to the shared core for consistency but intentionally omit `trustToken` / `validateToken`. If the marker leaks into a Pi/Codex parent process, the core fails closed (blocks as forged). Real trust tokens are never set in these contexts.
+
 ## 7. Relevant Files
 
 - `~/.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator.ts` — shared detection + enforcement
