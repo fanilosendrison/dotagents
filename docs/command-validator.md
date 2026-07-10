@@ -15,6 +15,8 @@ The validator has been refactored into two specialized validators:
 | 3 | **Pre-tool-use hook** · reads stdin JSON | **Codex** | `~/.codex/hooks/command-validator.ts` |
 
 All share the **same core logic**: `~/.agents/agent-enforcers/command-validator/`.
+Codex and Pi also share the runtime-facing normalization helpers in
+`~/.agents/agent-enforcers/command-validator/src/core/runtime-contract.ts`.
 
 **Note:** the Claude hook only validates bash commands (`tool_name === "Bash"`). The Codex hook validates both bash commands AND restricted tools (write, edit) — the tool-validator is fully wired. In Pi, tool-validator is also wired via the extension. Blocking modification tools additionally relies on the AGENTS.md directive and the `/go` skill.
 
@@ -117,7 +119,7 @@ The Pi extension does not add its own patterns — it imports the shared core va
 |-----------|----------|
 | CRITICAL | ❌ Deny — process exits immediately |
 | HIGH (no token) | ❌ Deny + approval token generated — user sees `allow-command <token>` to approve |
-| HIGH + approved token | ✅ Allow via `consumeOverride()` — token is consumed (one-shot) |
+| HIGH + approved token | ✅ Allow via `consumeOverride()` — token is consumed (one-shot), telemetry action is `override_approved` |
 | allow | ✅ Passes |
 | Restricted tool (Write/Edit) without `/go` | ❌ Deny: "Permission denied" |
 
@@ -126,6 +128,12 @@ The Pi extension does not add its own patterns — it imports the shared core va
 ## 5. Logging
 
 Each runtime logs validation events to its own path:
+
+The Codex hook and Pi extension build telemetry details through the same runtime
+contract helper. That helper owns command truncation, reason joining, severity
+inclusion, approval metadata, and target detection for bash versus restricted
+tools. The final approval mechanism is still runtime-specific: Pi can ask through
+`ctx.ui.confirm`, while Codex uses a one-shot `allow-command <token>` retry flow.
 
 | Runtime | Log path | Format |
 |---------|----------|--------|
