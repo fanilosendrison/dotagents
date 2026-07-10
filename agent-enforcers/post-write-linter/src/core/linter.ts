@@ -16,7 +16,7 @@ export function checkFile(file: string): LintResult {
 	}
 
 	try {
-		execSync(`"${process.execPath}" x @biomejs/biome format --write "${file}"`, {
+		execSync(`npx @biomejs/biome format --write "${file}"`, {
 			encoding: "utf-8",
 			stdio: "pipe",
 		});
