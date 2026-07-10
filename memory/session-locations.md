@@ -1,6 +1,6 @@
-# Session Locations for Antigravity, Codex, and Pi
+# Session Locations for Antigravity, Codex, Pi, and Claude Code
 
-This file documents the exact locations and structure of local session/conversation history for the three agent harnesses.
+This file documents the exact locations and structure of local session/conversation history for the four agent harnesses.
 
 ## 1. Antigravity Sessions
 * **Logs & Transcripts**: `/Users/famillesendrison/.gemini/antigravity-ide/brain/<conversation-id>/.system_generated/logs/transcript.jsonl`
@@ -17,3 +17,8 @@ This file documents the exact locations and structure of local session/conversat
 
 ## 3. Pi Sessions
 * **Logs & Transcripts**: `/Users/famillesendrison/.pi/agent/sessions/--Users-famillesendrison--/<Timestamp>_<SessionID>.jsonl` (or the corresponding sanitized workspace directory)
+
+## 4. Claude Code Sessions
+* **Logs & Transcripts**: `/Users/famillesendrison/.claude/history.jsonl` (Contains all queries, executed commands, and timestamps mapped by `sessionId`)
+* **Journal (Daily Summaries)**: `/Users/famillesendrison/.claude/journal/`
+* **Sessions Directory**: `/Users/famillesendrison/.claude/sessions/`
