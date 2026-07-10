@@ -11,7 +11,9 @@ This happens because the IDE's TypeScript language server resolves relative path
 **Generic Fix:**
 Do **NOT** attempt to fix this by using hardcoded absolute physical paths or dynamic `require()`.
 
-The established and cleanest fix is to preserve pure static relative ESM imports in the code, and use the `paths` compiler option in the gateway's `tsconfig.json` to map the logical paths back to their physical locations.
+The established and cleanest fix is to preserve pure static relative ESM imports in the code, and use the `rootDirs` compiler option in the gateway's `tsconfig.json` to merge the gateway's parent directory with the physical Projects directory.
+
+This is required because standard TypeScript intentionally ignores the `paths` compiler option for relative module imports (imports starting with `.` or `..`). The `rootDirs` option is the correct and only way to resolve relative paths across disparate directory structures.
 
 *Incorrect (Causes Portability Issues):*
 ```typescript
@@ -27,10 +29,8 @@ import { createEventSink } from "../../telemetry-tools/event-sink/src/index.ts";
 // In ~/.codex/tsconfig.json:
 {
   "compilerOptions": {
-    "paths": {
-      "../../telemetry-tools/*": ["../Developper/Projects/telemetry-tools/*"],
-      "../../dotagents/*": ["../Developper/Projects/dotagents/*"]
-    }
+    // Merges ~ with ~/Developper/Projects/ so that ../../ resolves correctly
+    "rootDirs": ["../", "../Developper/Projects"]
   }
 }
 ```
@@ -51,3 +51,4 @@ The established and robust fix is to ensure `bun-types` is installed at the root
 1. Add `bun-types` to the root `package.json` (`devDependencies`) of the physical repo.
 2. Add `"types": ["bun-types"]` to the `compilerOptions` of the root `tsconfig.json`.
 3. If the IDE opens the project via a gateway (e.g., `~/.codex/`), ensure `node_modules` and `package.json` are symlinked from the physical repo into the gateway, and that `~/.codex/tsconfig.json` explicitly lists `"types": ["bun-types"]`.
+4. **CRITICAL:** The gateway's `tsconfig.json` MUST explicitly override the `"include"` array (e.g., `"include": ["hooks/**/*.ts"]`). Because TypeScript resolves inherited `include` paths relative to the base configuration directory, relying on the physical repo's `include` will cause the IDE to treat the gateway's files as isolated scripts, dropping the global typings and causing missing type errors (e.g., `Cannot find module 'node:fs'`).
