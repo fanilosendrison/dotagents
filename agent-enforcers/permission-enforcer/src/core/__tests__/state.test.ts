@@ -89,6 +89,17 @@ describe("State Management", () => {
         expect(isPermissionGrantedForScope(sessionA)).toBe(true);
     });
 
+    it("should isolate scoped permission by agent even with the same session id", () => {
+        const codexSession = { agent: "codex", sessionId: "same-session" };
+        const piSession = { agent: "pi", sessionId: "same-session" };
+
+        expect(updatePermissionStateForScope("/go do this", codexSession)).toBe(true);
+        expect(updatePermissionStateForScope("continue without edits", piSession)).toBe(false);
+
+        expect(isPermissionGrantedForScope(codexSession)).toBe(true);
+        expect(isPermissionGrantedForScope(piSession)).toBe(false);
+    });
+
     it("should report the matched grant source", () => {
         expect(detectPermissionGrantSource("please /go ahead")).toBe("slash");
         expect(detectPermissionGrantSource('<skill name="go">content</skill>')).toBe("skill-tag");
