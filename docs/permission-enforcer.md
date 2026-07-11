@@ -45,7 +45,7 @@ CommandValidator -> ToolPermissionValidator -> isPermissionGranted()
 
 `updatePermissionState(promptText)` detects two authorization forms:
 
-- Literal slash command: `/go`
+- Literal slash marker as a standalone token: `/go`
 - Expanded skill marker: `<skill name="go">`
 
 If either marker is present, it writes `{"allowed": true}`. Otherwise it writes
@@ -61,6 +61,16 @@ logic.
 
 `isPermissionGranted()` reads the same state file. Missing, invalid, or false
 state is treated as denied.
+
+The `/go` marker has two coupled effects:
+
+- The prompt lifecycle adapter records shared permission state for modifying
+  tools.
+- The `/go` skill loads `operational-rules/implementation.md`, which tells the
+  agent how to proceed once implementation is authorized.
+
+Agents must never self-trigger `/go`; the marker must appear in the user's
+message as `/go` or as the expanded skill tag.
 
 ## 4. File tree
 
@@ -105,6 +115,9 @@ calls `updatePermissionState(promptText)` before handling any
 `allow-command <token>` command-validator override. Codex does not write a
 separate permission-enforcer telemetry event today; the enforcement result is
 visible when `command-validator` allows or denies restricted tools.
+
+Codex currently wires this through `UserPromptSubmit` only. There is no Codex
+`PostToolUse` linter hook in the active hook configuration.
 
 ### Claude Code and Antigravity
 
