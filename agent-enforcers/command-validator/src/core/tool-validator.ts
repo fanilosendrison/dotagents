@@ -29,7 +29,7 @@ export class ToolPermissionValidator {
 			result.isValid = false;
 			result.severity = "CRITICAL";
 			result.violations.push(
-				"❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation."
+				"❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation. Never attempt to bypass this restriction."
 			);
 			result.action = "deny";
 		}
