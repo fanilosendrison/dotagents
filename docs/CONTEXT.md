@@ -36,7 +36,7 @@ When you need to document a new enforcer, look here first to understand what's a
 - **Trigger** : Write/Edit/Bash targeting `~/Developper/Projects/dot*`
 
 ### 4. Permission Enforcer
-- **Date** : 2026-07-08 · **Updated** : 2026-07-10
+- **Date** : 2026-07-08 · **Updated** : 2026-07-11
 - **Doc** : [`permission-enforcer.md`](permission-enforcer.md)
 - **Wiring** : Shared state library + Pi `before_agent_start` extension + Codex `UserPromptSubmit` hook + command-validator consumer
-- **Trigger** : Prompt `/go` or `<skill name="go">` updates state; modifying tools call `isPermissionGranted()`
+- **Trigger** : Prompt `/go` or `<skill name="go">` updates legacy or scoped state; modifying tools call the matching permission checker

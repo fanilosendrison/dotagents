@@ -3,9 +3,19 @@ import { ToolPermissionValidator } from "./tool-validator";
 import { BashValidator } from "./bash-validator";
 import type { ValidationResult } from "./types";
 
+export interface CommandValidatorOptions {
+	isPermissionGranted?: () => boolean;
+}
+
 export class CommandValidator {
-	private toolValidator = new ToolPermissionValidator();
+	private toolValidator: ToolPermissionValidator;
 	private bashValidator = new BashValidator();
+
+	constructor(options: CommandValidatorOptions = {}) {
+		this.toolValidator = new ToolPermissionValidator({
+			isPermissionGranted: options.isPermissionGranted,
+		});
+	}
 
 	validate(command: unknown, toolName = "Unknown"): ValidationResult {
 		if (RESTRICTED_TOOLS.includes(toolName)) {

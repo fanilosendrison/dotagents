@@ -3,7 +3,9 @@ import { existsSync, rmSync } from "fs";
 import {
     detectPermissionGrantSource,
     updatePermissionState,
+    updatePermissionStateForScope,
     isPermissionGranted,
+    isPermissionGrantedForScope,
 } from "../state.ts";
 
 const TEST_STATE_PATH = "/tmp/permission-enforcer-test-state.json";
@@ -63,6 +65,28 @@ describe("State Management", () => {
 
         updatePermissionState("thanks");
         expect(isPermissionGranted()).toBe(false);
+    });
+
+    it("should isolate scoped permission by agent session", () => {
+        const sessionA = { agent: "codex", sessionId: "session-a" };
+        const sessionB = { agent: "codex", sessionId: "session-b" };
+
+        expect(updatePermissionStateForScope("/go do this", sessionA)).toBe(true);
+        expect(isPermissionGrantedForScope(sessionA)).toBe(true);
+
+        expect(updatePermissionStateForScope("continue without edits", sessionB)).toBe(false);
+        expect(isPermissionGrantedForScope(sessionB)).toBe(false);
+        expect(isPermissionGrantedForScope(sessionA)).toBe(true);
+    });
+
+    it("should preserve scoped permissions when legacy state is updated", () => {
+        const sessionA = { agent: "codex", sessionId: "session-a" };
+
+        updatePermissionStateForScope("/go do this", sessionA);
+        updatePermissionState("plain legacy prompt");
+
+        expect(isPermissionGranted()).toBe(false);
+        expect(isPermissionGrantedForScope(sessionA)).toBe(true);
     });
 
     it("should report the matched grant source", () => {

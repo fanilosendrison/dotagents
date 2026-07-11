@@ -160,5 +160,21 @@ describe("CommandValidator Core Unit Tests", () => {
 			const result = validator.validate("ls", "Bash");
 			expect(result.action).toBe("allow");
 		});
+
+		test("supports an injected permission checker for scoped runtimes", () => {
+			const allowedValidator = new CommandValidator({
+				isPermissionGranted: () => true,
+			});
+			expect(allowedValidator.validate("content", "write_to_file").action).toBe(
+				"allow",
+			);
+
+			const deniedValidator = new CommandValidator({
+				isPermissionGranted: () => false,
+			});
+			expect(deniedValidator.validate("content", "write_to_file").action).toBe(
+				"deny",
+			);
+		});
 	});
 });
