@@ -35,14 +35,7 @@ When you need to document a new enforcer, look here first to understand what's a
 - **Wiring** : Pi extension (rewrite) + Codex pre-tool-use hook (deny with rewrite hint)
 - **Trigger** : Write/Edit/Bash targeting `~/Developper/Projects/dot*`
 
-### 4. Post-Write Linter
-- **Date** : 2026-07-01 · **Rewritten** : 2026-07-04
-- **Doc** : [`post-write-linter.md`](post-write-linter.md)
-- **Wiring** : Pi extension `tool_result` + post-tool-use hook
-- **Trigger** : After every `Write`/`Edit`/`apply_patch` → biome check
-
-
-### 5. Permission Enforcer
+### 4. Permission Enforcer
 - **Date** : 2026-07-08 · **Updated** : 2026-07-10
 - **Doc** : [`permission-enforcer.md`](permission-enforcer.md)
 - **Wiring** : Shared state library + Pi `before_agent_start` extension + Codex `UserPromptSubmit` hook + command-validator consumer
