@@ -1,5 +1,6 @@
 import { describe, expect, test, spyOn, beforeEach, afterEach } from "bun:test";
 import { CommandValidator } from "../validator.ts";
+import { BashValidator } from "../bash-validator.ts";
 import * as state from "../../../../permission-enforcer/src/core/state.ts";
 
 const validator = new CommandValidator();
@@ -175,6 +176,73 @@ describe("CommandValidator Core Unit Tests", () => {
 			expect(deniedValidator.validate("content", "write_to_file").action).toBe(
 				"deny",
 			);
+		});
+	});
+
+	describe("Protected path write blocking", () => {
+		const bashValidator = new BashValidator();
+
+		test("denies writeFileSync to protected path", () => {
+			const result = bashValidator.validate(
+				'node -e "writeFileSync(\'/Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/.state/config.json\', ...)"',
+			);
+			expect(result.action).toBe("deny");
+			expect(result.violations[0]).toContain(
+				"Writing to protected paths is strictly forbidden",
+			);
+		});
+
+		test("denies write to protected path with tilde", () => {
+			const result = bashValidator.validate(
+				'echo test > ~/.agents/agent-enforcers/permission-enforcer/.state/config.json',
+			);
+			expect(result.action).toBe("deny");
+		});
+
+		test("denies write to protected path with $HOME", () => {
+			const result = bashValidator.validate(
+				'echo test > $HOME/.agents/agent-enforcers/permission-enforcer/.state/config.json',
+			);
+			expect(result.action).toBe("deny");
+		});
+
+		test("denies write to protected path with ${HOME}", () => {
+			const result = bashValidator.validate(
+				'echo test > ${HOME}/.agents/agent-enforcers/permission-enforcer/.state/config.json',
+			);
+			expect(result.action).toBe("deny");
+		});
+
+		test("denies P=~ tee variant", () => {
+			const result = bashValidator.validate(
+				'P=~/.agents/agent-enforcers/permission-enforcer/.state/config.json && echo ok | tee "$P"',
+			);
+			expect(result.action).toBe("deny");
+		});
+
+		test("allows tilde to non-protected path", () => {
+			expect(
+				bashValidator.validate("echo test > ~/Desktop/test.txt").action,
+			).toBe("allow");
+		});
+
+		test("allows $HOME to non-protected path", () => {
+			expect(
+				bashValidator.validate("echo test > $HOME/Documents/notes.txt").action,
+			).toBe("allow");
+		});
+
+		test("allows read-only access to protected path (cat, ls)", () => {
+			expect(
+				bashValidator.validate(
+					"cat ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
+				).action,
+			).toBe("allow");
+			expect(
+				bashValidator.validate(
+					"ls ~/.agents/agent-enforcers/permission-enforcer/.state/",
+				).action,
+			).toBe("allow");
 		});
 	});
 });

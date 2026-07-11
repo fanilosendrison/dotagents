@@ -1,5 +1,6 @@
 import { SECURITY_RULES } from "./security-rules";
 import type { ValidationResult } from "./types";
+import { homedir } from "node:os";
 
 const DANGEROUS_COMMANDS: readonly string[] = [
 	...SECURITY_RULES.CRITICAL_COMMANDS,
@@ -33,6 +34,18 @@ export class BashValidator {
 			result.isValid = false;
 			result.severity = "CRITICAL";
 			result.violations.push("❌ rm -rf is forbidden - use trash instead");
+			result.action = "deny";
+			return result;
+		}
+
+		// Block writes to protected paths (permission-enforcer state, etc.)
+		const writeToProtected = this.containsWriteToProtectedPath(command);
+		if (writeToProtected) {
+			result.isValid = false;
+			result.severity = "CRITICAL";
+			result.violations.push(
+				`❌ Writing to protected paths is strictly forbidden. Never attempt to bypass this restriction. (path: ${writeToProtected})`,
+			);
 			result.action = "deny";
 			return result;
 		}
@@ -73,6 +86,35 @@ export class BashValidator {
 		}
 
 		return false;
+	}
+
+	containsWriteToProtectedPath(command: string): string | null {
+		const WRITE_PATTERNS = [
+			/>\s*\S/.source,
+			/>>\s*\S/.source,
+			/writeFileSync\s*\(/.source,
+			/writeFile\s*\(/.source,
+			/tee\s/.source,
+			/cp\s+.*\s+/.source,
+			/mv\s+.*\s+/.source,
+		];
+		const writeRegex = new RegExp(WRITE_PATTERNS.join("|"), "i");
+		if (!writeRegex.test(command)) return null;
+
+		const home = homedir();
+		for (const p of SECURITY_RULES.PROTECTED_PATHS) {
+			// Exact match
+			if (command.includes(p)) return p;
+
+			// Variantes avec ~ et $HOME (bash ne les expanse pas dans la commande brute)
+			if (p.startsWith(home)) {
+				const relative = p.slice(home.length); // ex: "/.agents/agent-enforcers/..."
+				if (command.includes(`~${relative}`)) return p;
+				if (command.includes(`$HOME${relative}`)) return p;
+				if (command.includes(`$\{HOME\}${relative}`)) return p;
+			}
+		}
+		return null;
 	}
 
 	containsDangerousCommand(command: string): string | null {

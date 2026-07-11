@@ -109,6 +109,7 @@ export const SECURITY_RULES: Readonly<SecurityRules> = Object.freeze({
 	],
 
 	PROTECTED_PATHS: [
+		join(homedir(), ".agents/agent-enforcers/permission-enforcer/.state/"),
 		"/etc/",
 		"/usr/",
 		"/sbin/",
