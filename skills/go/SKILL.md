@@ -1,10 +1,10 @@
 ---
 name: go
-description: Grants the agent temporary clearance to use file-modifying tools. NEVER autoload this skill — it must be invoked only when the user explicitly types /go or <skill name="go">.
+description: Grants the agent temporary clearance to use file-modifying tools. NEVER autoload this skill — it must be invoked only when the user explicitly types /go or invokes the go skill by name.
 ---
 
 Immediately read the following file:
-[implementation.md](file:///Users/famillesendrison/.agents/operational-rules/implementation.md)
+[implementation.md](../../operational-rules/implementation.md)
 
 This skill is an authorization marker and an instruction loader. It does not
 choose the task by itself: after reading `implementation.md`, continue with the
