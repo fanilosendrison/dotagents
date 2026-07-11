@@ -67,6 +67,11 @@ Runtimes that can provide a stable session id should use scoped state instead:
 ```json
 {
   "scopes": {
+    "pi:<session-id>": {
+      "allowed": true,
+      "matchSource": "slash",
+      "updatedAt": "<iso-timestamp>"
+    },
     "codex:<session-id>": {
       "allowed": true,
       "matchSource": "slash",
@@ -119,19 +124,23 @@ Runtime wiring:
 
 ### Pi
 
+Pi runs `~/.pi/agent/extensions/permission-enforcer.ts` on
+`before_agent_start`. The extension scopes state by the real Pi session id from
+`ctx.sessionManager.getSessionId()`, using keys like `pi:<session-id>`.
+
 | Situation | Behavior |
 | --------- | -------- |
-| Prompt contains `/go` | State is set to `allowed: true`; restricted tools are allowed for that turn. |
-| Prompt contains `<skill name="go">` | State is set to `allowed: true`; restricted tools are allowed for that turn. |
-| Prompt has no authorization marker | State is set to `allowed: false`; restricted tools are denied. |
-| Restricted tool is called | `command-validator` reads `isPermissionGranted()` and allows or denies. |
+| Prompt contains `/go` | The current Pi session scope is set to `allowed: true`; restricted tools are allowed for that session. |
+| Prompt contains `<skill name="go">` | The current Pi session scope is set to `allowed: true`; restricted tools are allowed for that session. |
+| Prompt has no authorization marker | The current Pi session scope is set to `allowed: false`; restricted tools are denied for that session. |
+| Restricted tool is called | `command-validator` reads `isPermissionGrantedForScope({ agent: "pi", sessionId })` and allows or denies. |
 
 Telemetry is written to
 `~/neelopedia/stats/pi/permission-enforcer/events.jsonl` with event type
 `permission_state_change`.
 
-The event intentionally records `promptLength` and `matchSource`, not prompt
-content.
+The event intentionally records `promptLength`, `matchSource`, and
+`permissionScope`, not prompt content.
 
 ### Codex
 

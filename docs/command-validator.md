@@ -1,10 +1,12 @@
 # Command & Tool Validator
 
-Prevents execution of **destructive or dangerous bash commands** and blocks usage of **modification tools** without prior authorization (`/go`).
+Prevents execution of **destructive or dangerous bash commands** and blocks
+usage of **modification tools** unless the runtime's permission checker says
+the current session is authorized.
 
 The validator has been refactored into two specialized validators:
 - **BashValidator** — validates bash commands against security rules
-- **ToolPermissionValidator** — blocks write/edit tools if `/go` has not been granted (consumes `permission-enforcer`)
+- **ToolPermissionValidator** — blocks write/edit tools if the injected or legacy permission checker is not granted
 
 ## 1. Wiring — 3 interception points
 
@@ -18,7 +20,7 @@ All share the **same core logic**: `~/.agents/agent-enforcers/command-validator/
 Codex and Pi also share the runtime-facing normalization helpers in
 `~/.agents/agent-enforcers/command-validator/src/core/runtime-contract.ts`.
 
-**Note:** the Claude hook only validates bash commands (`tool_name === "Bash"`). The Codex hook validates both bash commands AND restricted tools (write, edit) — the tool-validator is fully wired. In Pi, tool-validator is also wired via the extension. Blocking modification tools additionally relies on the AGENTS.md directive and the `/go` skill.
+**Note:** the Claude hook only validates bash commands (`tool_name === "Bash"`). The Codex hook validates both bash commands AND restricted tools (write, edit) — the tool-validator is fully wired. In Pi, tool-validator is also wired via the extension. `/go` prompt detection is owned by `permission-enforcer`; `command-validator` only consumes the resulting state when a restricted tool is requested.
 
 ## 2. Trigger flow
 
@@ -31,7 +33,7 @@ Tool invoked by agent
 │                                                 │
 │  RESTRICTED_TOOLS.includes(toolName) ?          │
 │    ├── Yes → ToolPermissionValidator.validate() │
-│    │          └─ isPermissionGranted() ?         │
+│    │          └─ permission checker granted ?    │
 │    │               ├─ true  → ✅ allow           │
 │    │               └─ false → ❌ deny (/go required)│
 │    │                                             │
@@ -101,7 +103,7 @@ The Pi extension does not add its own patterns — it imports the shared core va
 | `sudo apt update` | ⚠️ **UI Dialog**: `ctx.ui.confirm("Dangerous command", ...)` → if refused, block |
 | `ls -la` | ✅ Passes |
 | `chmod +x script.sh` | ✅ Passes (whitelisted) |
-| Restricted tool (Write/Edit) without `/go` | ❌ Block: "Permission denied" |
+| Restricted tool (Write/Edit) without permission in the same Pi session | ❌ Block: "Permission denied" |
 
 ### Claude Code (Pre-tool-use hook)
 
