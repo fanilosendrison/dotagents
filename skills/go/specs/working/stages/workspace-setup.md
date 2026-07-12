@@ -64,7 +64,7 @@ pas.
 
 ### 5.2 Artefacts hors worktree
 
-Les artefacts du harness et du pipeline ne doivent pas rendre le worktree dirty.
+Les artefacts du harness et du workflow ne doivent pas rendre le worktree dirty.
 
 ### 5.3 Base figée
 
@@ -110,4 +110,4 @@ persist-stage-output
 
 ---
 
-VegaCorp - `/go` Pipeline - "Reliability precedes intelligence."
+VegaCorp - `/go` Workflow - "Reliability precedes intelligence."

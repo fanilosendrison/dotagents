@@ -65,11 +65,11 @@ invoque `runStage`, et écrit `StageDraftOutput` sur stdout.
 stage → input de la suivante, `previousStageOutputs`, `attemptNumber`) n'existe
 pas.
 
-**Raison** : Le chaînage est une responsabilité d'orchestration (le pipeline
+**Raison** : Le chaînage est une responsabilité d'orchestration (le workflow
 `/go`), pas du harness. Le harness doit rester une brique pure : un stage, un
-run, un `output.json`. Le pipeline assemble les briques.
+run, un `output.json`. Le workflow assemble les briques.
 
-**Trajectoire** : v2 — le pipeline `/go` passe `previousStageOutputs` et
+**Trajectoire** : v2 — le workflow `/go` passe `previousStageOutputs` et
 `attemptNumber` dans `StageInput.config` ou dans un type enrichi, sans changer
 le harness.
 

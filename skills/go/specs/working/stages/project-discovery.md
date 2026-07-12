@@ -72,4 +72,4 @@ persist-stage-output
 
 ---
 
-VegaCorp - `/go` Pipeline - "Reliability precedes intelligence."
+VegaCorp - `/go` Workflow - "Reliability precedes intelligence."

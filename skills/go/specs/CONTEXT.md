@@ -1,6 +1,6 @@
 # `/go` Pipeline - Specs
 
-Ce dossier contient les specs du pipeline `/go`.
+Ce dossier contient les specs du workflow `/go`.
 
 Les documents actifs distinguent maintenant :
 
@@ -11,7 +11,7 @@ Les documents actifs distinguent maintenant :
 - **artefact métier typé** : payload JSON durable validé avant projection dans
   `PipelineState`.
 
-Voir [`working/pipeline/canonical-vocabulary.md`](./working/pipeline/canonical-vocabulary.md).
+Voir [`working/workflow/canonical-vocabulary.md`](./working/workflow/canonical-vocabulary.md).
 
 ---
 
@@ -45,21 +45,21 @@ Ces documents sont normatifs pour construction RED/GREEN.
 Ces documents sont les specs de conception en cours. Ils seront promus en NIB
 quand leur niveau de détail sera suffisant pour construction.
 
-### Pipeline
+### Workflow
 
-- [`canonical-vocabulary.md`](./working/pipeline/canonical-vocabulary.md)
+- [`canonical-vocabulary.md`](./working/workflow/canonical-vocabulary.md)
   - Vocabulaire canonique.
-- [`go-pipeline-contract.md`](./working/pipeline/go-pipeline-contract.md)
-  - Contrat central du pipeline.
-- [`software-design-workflow.md`](./working/pipeline/software-design-workflow.md)
+- [`go-workflow-contract.md`](./working/workflow/go-workflow-contract.md)
+  - Contrat central du workflow.
+- [`software-design-workflow.md`](./working/workflow/software-design-workflow.md)
   - Cycle complet `/go`.
-- [`multi-agent-concurrency.md`](./working/pipeline/multi-agent-concurrency.md)
+- [`multi-agent-concurrency.md`](./working/workflow/multi-agent-concurrency.md)
   - Concurrence multi-run et worktrees physiques.
 
 ### Artefacts
 
-- [`pipeline-artifacts.md`](./working/artifacts/pipeline-artifacts.md)
-  - Types JSON partagés du pipeline, dont artefacts métier typés.
+- [`workflow-artifacts.md`](./working/artifacts/workflow-artifacts.md)
+  - Types JSON partagés du workflow, dont artefacts métier typés.
 
 ### Stages
 
@@ -96,4 +96,4 @@ quand leur niveau de détail sera suffisant pour construction.
 
 ---
 
-VegaCorp - `/go` Pipeline - "Reliability precedes intelligence."
+VegaCorp - `/go` Workflow - "Reliability precedes intelligence."

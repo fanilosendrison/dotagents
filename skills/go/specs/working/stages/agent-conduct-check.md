@@ -14,7 +14,7 @@ Ce stage est une gate de sécurité du processus agentique.
 
 ---
 
-## 2. Position dans le pipeline
+## 2. Position dans le workflow
 
 `conduct-settled` s'exécute après :
 
@@ -140,4 +140,4 @@ Un échec d'inspection produit `errored`.
 
 ---
 
-VegaCorp - `/go` Pipeline - "Reliability precedes intelligence."
+VegaCorp - `/go` Workflow - "Reliability precedes intelligence."

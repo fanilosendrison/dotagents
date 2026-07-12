@@ -13,11 +13,11 @@ stages plus petites :
 
 ## 1. Principe
 
-Le pipeline valide d'abord le changement global final. Ensuite seulement il le
+Le workflow valide d'abord le changement global final. Ensuite seulement il le
 découpe en PRs.
 
 Ce choix est volontaire : l'agent implémente un résultat cohérent avant que le
-pipeline impose une forme Git reviewable.
+workflow impose une forme Git reviewable.
 
 La contrepartie est obligatoire : le split doit être vérifié avant publication.
 
@@ -68,7 +68,7 @@ Prouver que le découpage est publiable.
 
 ### Failure behavior
 
-Si la reconstruction ne matche pas, le pipeline retourne à `package-plan`.
+Si la reconstruction ne matche pas, le workflow retourne à `package-plan`.
 
 Si un paquet ne compile pas seul alors qu'il est marqué indépendant, le plan est
 invalide.
@@ -183,4 +183,4 @@ publish-pr:
 
 ---
 
-VegaCorp - `/go` Pipeline - "Reliability precedes intelligence."
+VegaCorp - `/go` Workflow - "Reliability precedes intelligence."

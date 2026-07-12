@@ -16,7 +16,7 @@ VegaCorp - July 2026
 
 ## 1. System objective
 
-Implement a Turnlock-free harness that runs one `/go` pipeline stage as an async
+Implement a Turnlock-free harness that runs one `/go` workflow stage as an async
 function, validates its draft output, computes canonical repository state,
 validates evidence, and writes a canonical `StageOutput`.
 

@@ -2,7 +2,7 @@
 id: ARD-GO-STAGES-VS-TURNLOCK-PHASES
 type: ard
 version: "1.0.0"
-scope: go-pipeline
+scope: go-workflow
 status: active
 supersedes: []
 superseded_by: []
@@ -31,7 +31,7 @@ deux étaient listées au même niveau.
 
 ## Décision
 
-Le pipeline `/go` adopte quatre termes canoniques :
+Le workflow `/go` adopte quatre termes canoniques :
 
 - **stage** : étape métier du workflow ;
 - **phase Turnlock** : unité atomique, persistée, reprenable ;
@@ -46,7 +46,7 @@ pas validée.
 
 ## Conséquences
 
-- Les docs pipeline parlent de stages.
+- Les docs workflow parlent de stages.
 - Les futurs wrappers Turnlock spécifient les phases internes.
 - Les stages agentiques comme `implementation` restent valides, mais leur coeur
   est explicitement une délégation.
@@ -69,4 +69,4 @@ ont besoin de stages stables.
 
 ---
 
-VegaCorp - `/go` Pipeline - "Reliability precedes intelligence."
+VegaCorp - `/go` Workflow - "Reliability precedes intelligence."

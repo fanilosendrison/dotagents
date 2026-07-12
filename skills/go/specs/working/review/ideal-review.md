@@ -97,7 +97,7 @@ review s'est correctement exécutée et que l'artefact est valide, le
 `StageOutput.status` peut être `passed` même quand l'artefact contient des
 findings `Critical` ou `Major` bloquants.
 
-Les transitions de pipeline lisent les findings après validation et projection
+Les transitions du workflow lisent les findings après validation et projection
 dans `PipelineState.findings`.
 
 ---
@@ -116,7 +116,7 @@ review
   -> review
 ```
 
-Le pipeline sort de la boucle quand il n'y a plus de `Critical` ouvert ni de
+Le workflow sort de la boucle quand il n'y a plus de `Critical` ouvert ni de
 `Major` bloquant ouvert.
 
 ---
@@ -133,4 +133,4 @@ Ces trois niveaux ne se remplacent pas. Ils protègent des risques différents.
 
 ---
 
-VegaCorp - `/go` Pipeline - "Reliability precedes intelligence."
+VegaCorp - `/go` Workflow - "Reliability precedes intelligence."

@@ -2,7 +2,7 @@
 id: ARD-GO-REVIEW-BEFORE-PACKAGING-WITH-PACKAGE-VERIFY
 type: ard
 version: "1.0.0"
-scope: go-pipeline/review-packaging
+scope: go-workflow/review-packaging
 status: active
 supersedes: []
 superseded_by: []
@@ -21,7 +21,7 @@ Deux ordres étaient possibles :
 1. découper le diff en paquets, puis reviewer les paquets ;
 2. reviewer le changement global, puis découper le diff validé.
 
-Le pipeline `/go` est conçu pour laisser l'agent produire d'abord un résultat
+Le workflow `/go` est conçu pour laisser l'agent produire d'abord un résultat
 cohérent à partir de la demande et des specs. Forcer le packaging trop tôt
 risque de déplacer l'attention vers la forme Git avant d'avoir validé le fond.
 
@@ -33,7 +33,7 @@ déclarent mal leurs dépendances.
 
 ## Décision
 
-Le pipeline adopte l'ordre suivant :
+Le workflow adopte l'ordre suivant :
 
 ```text
 implementation
@@ -77,4 +77,4 @@ stacked PRs sont valides.
 
 ---
 
-VegaCorp - `/go` Pipeline - "Reliability precedes intelligence."
+VegaCorp - `/go` Workflow - "Reliability precedes intelligence."

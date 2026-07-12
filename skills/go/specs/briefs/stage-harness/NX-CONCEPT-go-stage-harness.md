@@ -1,8 +1,8 @@
-# Stage Contract — Shared harness for `/go` pipeline stages
+# Stage Contract — Shared harness for `/go` workflow stages
 
 ## Goal
 
-Every stage in the `/go` pipeline (workspace-setup, lint, typecheck, tests,
+Every stage in the `/go` workflow (workspace-setup, lint, typecheck, tests,
 review, commit-push-pr, etc.) must conform to a single shared contract so they
 can be chained, verified, and eventually orchestrated by a Turnlock FSM.
 

@@ -2,7 +2,7 @@
 id: ARD-GO-PHYSICAL-WORKTREE-ISOLATION
 type: ard
 version: "1.0.0"
-scope: go-pipeline/workspace
+scope: go-workflow/workspace
 status: active
 supersedes: []
 superseded_by: []
@@ -56,7 +56,7 @@ Les artefacts du run doivent être hors du worktree.
 
 ### Branche seule dans le checkout courant
 
-Rejetée pour la cible du pipeline : elle n'isole pas le filesystem.
+Rejetée pour la cible du workflow : elle n'isole pas le filesystem.
 
 Acceptable seulement pour une expérimentation mono-session non concurrente, pas
 pour le contrat canonique.
@@ -68,4 +68,4 @@ réconcilier avec les branches PR.
 
 ---
 
-VegaCorp - `/go` Pipeline - "Reliability precedes intelligence."
+VegaCorp - `/go` Workflow - "Reliability precedes intelligence."

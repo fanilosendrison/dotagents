@@ -82,8 +82,8 @@ decide-mergeability
 - Finding bloquant : `failed`.
 - Base drift non traité : `needs-rebase`.
 - Provider inaccessible : `errored`.
-- PR fermée hors pipeline : HumanGate ou abort selon policy.
+- PR fermée hors workflow : HumanGate ou abort selon policy.
 
 ---
 
-VegaCorp - `/go` Pipeline - "Reliability precedes intelligence."
+VegaCorp - `/go` Workflow - "Reliability precedes intelligence."

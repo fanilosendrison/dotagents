@@ -2,7 +2,7 @@
 id: ARD-GO-STAGE-OUTPUT-ENVELOPE-AND-TYPED-BUSINESS-ARTIFACTS
 type: ard
 version: "1.0.0"
-scope: go-pipeline/artifacts
+scope: go-workflow/artifacts
 status: active
 supersedes: []
 superseded_by: []
@@ -109,4 +109,4 @@ harness simple et déplacent la validation métier dans Turnlock.
 
 ---
 
-VegaCorp - `/go` Pipeline - "Reliability precedes intelligence."
+VegaCorp - `/go` Workflow - "Reliability precedes intelligence."
