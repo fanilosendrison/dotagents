@@ -103,6 +103,13 @@ export class BashValidator {
 
 		const home = homedir();
 		for (const p of SECURITY_RULES.PROTECTED_PATHS) {
+			// /dev/null is a harmless data sink — allow writes to it (e.g. 2>/dev/null)
+			if (p === "/dev/") {
+				const devRefs = command.match(/\/dev\/\S+/g) || [];
+				if (devRefs.length > 0 && devRefs.every(r => r === "/dev/null" || r.startsWith("/dev/null"))) {
+					continue;
+				}
+			}
 			// Exact match
 			if (command.includes(p)) return p;
 

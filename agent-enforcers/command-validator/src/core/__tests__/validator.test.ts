@@ -232,6 +232,24 @@ describe("CommandValidator Core Unit Tests", () => {
 			).toBe("allow");
 		});
 
+		test("allows writes to /dev/null (harmless data sink)", () => {
+			expect(
+				bashValidator.validate("grep -i 'ideal-review' session_index.jsonl 2>/dev/null").action,
+			).toBe("allow");
+			expect(
+				bashValidator.validate("find /tmp -name '*.log' -type f 2>/dev/null | head -50").action,
+			).toBe("allow");
+			expect(
+				bashValidator.validate("npm install 2>/dev/null").action,
+			).toBe("allow");
+		});
+
+		test("still denies writes to /dev/sda (not /dev/null)", () => {
+			expect(
+				bashValidator.validate("echo bad > /dev/sda").action,
+			).toBe("deny");
+		});
+
 		test("allows read-only access to protected path (cat, ls)", () => {
 			expect(
 				bashValidator.validate(
