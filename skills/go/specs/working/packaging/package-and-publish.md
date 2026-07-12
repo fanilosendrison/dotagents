@@ -25,22 +25,22 @@ La contrepartie est obligatoire : le split doit être vérifié avant publicatio
 
 ## 2. `package-plan`
 
-### Objectif
+### Objectif de package-plan
 
 Découper le diff final en paquets logiques.
 
-### Input
+### Input de package-plan
 
 - `final-change-snapshot`
 - `baseHeadSha`
 - diff final validé
 - findings résolus ou acceptés
 
-### Output
+### Output de package-plan
 
 `PackagePlan`
 
-### Règles
+### Règles de package-plan
 
 - Chaque fichier modifié est assigné à au moins un paquet.
 - Les chevauchements sont explicites et justifiés.
@@ -52,11 +52,19 @@ Découper le diff final en paquets logiques.
 
 ## 3. `package-verify`
 
-### Objectif
+### Objectif de package-verify
 
 Prouver que le découpage est publiable.
 
-### Checks requis
+`package-verify` reste une preuve locale. Il verifie que les paquets
+reconstruisent le diff final et que leurs etats intermediaires sont valides
+selon le scope declare.
+
+Il ne voit pas encore la PR publiee, la CI provider, le drift de base distante,
+les conflits de merge, ni le diff affiche par le provider. Ces risques
+appartiennent a `pr-ci-review`.
+
+### Checks requis de package-verify
 
 - Reconstruction du diff final à partir des paquets.
 - Hash reconstruit identique au hash original.
@@ -66,7 +74,7 @@ Prouver que le découpage est publiable.
 - Les checks mécaniques requis passent pour chaque branche ou stack selon le
   scope.
 
-### Failure behavior
+### Failure behavior de package-verify
 
 Si la reconstruction ne matche pas, le workflow retourne à `package-plan`.
 
@@ -82,11 +90,11 @@ cet artefact.
 
 ## 4. `branch-materialize`
 
-### Objectif
+### Objectif de branch-materialize
 
 Créer les branches PR depuis leurs bases déclarées et appliquer les paquets.
 
-### Règles
+### Règles de branch-materialize
 
 - Créer uniquement des branches `pr/<run-id>/<slug>`.
 - Ne jamais partir de `work/<run-id>` directement.
@@ -97,28 +105,28 @@ Créer les branches PR depuis leurs bases déclarées et appliquer les paquets.
 
 ## 5. `commit-package`
 
-### Objectif
+### Objectif de commit-package
 
 Créer les commits atomiques de chaque paquet.
 
-### Règles
+### Règles de commit-package
 
 - Utiliser Conventional Commits.
 - Passer par le chemin Git de confiance.
 - Ne jamais lancer `git commit` brut depuis l'agent.
 - Ne jamais utiliser `BYPASS_GIT_ENFORCER=1`.
 
-Ce stage est la seule stage `/go` autorisée à créer des commits.
+Ce stage est le seul stage `/go` autorisé à créer des commits.
 
 ---
 
 ## 6. `publish-pr`
 
-### Objectif
+### Objectif de publish-pr
 
 Push les branches PR et ouvrir les pull requests.
 
-### Règles
+### Règles de publish-pr
 
 - Push uniquement `pr/<run-id>/<slug>`.
 - Ne pas push `work/<run-id>` dans le flux nominal.
@@ -129,6 +137,10 @@ Push les branches PR et ouvrir les pull requests.
   - gates passées ;
   - findings résolus, dismissés ou différés ;
   - HumanGates appliquées.
+
+`publish-pr` ne rend pas une PR mergeable. Il materialise la proposition chez
+le provider. La premiere gate autoritative sur cette realite publiee est
+`pr-ci-review`.
 
 ---
 
