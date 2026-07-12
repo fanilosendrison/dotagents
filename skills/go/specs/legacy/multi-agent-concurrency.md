@@ -83,7 +83,7 @@ accidentel, pas de dirty state partagé.
 
 Chaque pipeline a une orchestration Turnlock indépendante avec son propre
 `state.json`. Les phases restent des fonctions standalone conformes à
-[`phase-harness/NIB-S-go-phase-harness.md`](./phase-harness/NIB-S-go-phase-harness.md), puis sont enveloppées par cette orchestration. Les sessions
+`phase-contract.md`, puis sont enveloppées par cette orchestration. Les sessions
 ne communiquent pas entre elles. Le pipeline ne dépend pas de l'état d'une autre
 session — il ne dépend que du `state.json` de sa propre run et des
 `PhaseOutput` de ses propres phases.
@@ -214,6 +214,6 @@ qui est inédit.
 
 - `software-design-workflow.md` — architecture générale du pipeline `/go`
 - `go-pipeline-contract.md` — contrat central, phases, artefacts JSON
-- [`commit-push-pr.md`](./commit-push-pr.md) — découpage Git, branches, stacked PRs
+- `commit-push-pr-workflow.md` — découpage Git, branches, stacked PRs
 - `ideal-review.md` — les 13 dimensions de la review
-- [`agent-conduct-check.md`](./agent-conduct-check.md) — règles de conduite de l'agent
+- `agent-conduct.md` — règles de conduite de l'agent

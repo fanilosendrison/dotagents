@@ -244,7 +244,7 @@ Quelle que soit l'étape, le pattern est identique :
 | Fallback model | Si l'agent principal échoue, escalade vers un modèle plus capable |
 | Loop detection | Même résultat après correction → abandon |
 | Statut de phase canonique | `PhaseOutput.status` : `passed`, `failed`, `skipped`, ou `errored` |
-| Artefact JSON | `artefactDir/output.json` validé par `phase-harness/NIB-S-go-phase-harness.md`; `state.json` n'en garde qu'une référence ou une projection |
+| Artefact JSON | `artefactDir/output.json` validé par `phase-contract.md`; `state.json` n'en garde qu'une référence ou une projection |
 | Si FAIL → notifier l'humain | Jamais d'abandon silencieux |
 
 ---
@@ -266,7 +266,7 @@ Quelle que soit l'étape, le pattern est identique :
 ## Infrastructure commune
 
 Toutes les étapes partagent la même infrastructure décrite dans
-[`phase-harness/NIB-S-go-phase-harness.md`](./phase-harness/NIB-S-go-phase-harness.md) : une fonction de phase standalone, exécutée par `runPhase`,
+`phase-contract.md` : une fonction de phase standalone, exécutée par `runPhase`,
 qui produit un `PhaseOutput` canonique. Turnlock n'est qu'un wrapper
 d'orchestration autour de cette fonction.
 
