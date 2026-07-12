@@ -13,7 +13,7 @@ Chaque run possède :
 - un worktree Git physique privé ;
 - une branche `work/<run-id>` ;
 - un `artefactDir` privé ;
-- un `PipelineState` privé ;
+- un `WorkflowState` privé ;
 - des branches PR namespacées.
 
 Le partage se fait uniquement au niveau du repository Git et du provider distant,

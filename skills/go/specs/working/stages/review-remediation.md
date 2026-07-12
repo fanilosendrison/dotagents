@@ -26,7 +26,7 @@ La HumanGate décide. Une délégation séparée applique les corrections approu
 
 ## 3. Inputs
 
-- `PipelineState.findings` projeté depuis des `ReviewFindingsArtifact` validés
+- `WorkflowState.findings` projeté depuis des `ReviewFindingsArtifact` validés
 - dernier `ChangeSnapshot`
 - policy de remediation
 - décisions humaines précédentes

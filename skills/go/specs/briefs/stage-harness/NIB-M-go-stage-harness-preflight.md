@@ -34,8 +34,8 @@ type RunInputPreflightInput = {
 ```
 
 The `input` object has already passed the structural `stageInputSchema` from
-`NIB-M-GO-STAGE-HARNESS-SCHEMAS`, or this module must perform that parse as its first
-operation.
+`NIB-M-GO-STAGE-HARNESS-SCHEMAS`, or this module must perform that parse as its
+first operation.
 
 Dependency contracts:
 

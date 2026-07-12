@@ -1,7 +1,7 @@
 {
   "name": "go-stage-harness",
   "version": "0.1.0",
-  "description": "Standalone Turnlock-free stage harness for the /go pipeline.",
+  "description": "Standalone Turnlock-free stage harness for the /go workflow.",
   "type": "module",
   "private": true,
   "scripts": {

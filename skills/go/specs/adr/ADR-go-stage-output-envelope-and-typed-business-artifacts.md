@@ -47,7 +47,7 @@ Les payloads métier durables sont des artefacts métier typés :
 - JSON validé par schéma ;
 - référencé depuis le record de stage ;
 - validé par Turnlock ;
-- projeté dans `PipelineState`.
+- projeté dans `WorkflowState`.
 
 `ReviewFinding` ne dérive pas de `StageError`.
 
@@ -77,14 +77,14 @@ Le mapping entre les deux existe seulement quand un diagnostic de stage doit
 
 - Une review qui s'exécute correctement peut produire `StageOutput.status:
   "passed"` même si son artefact contient des findings `Critical`.
-- Les transitions de pipeline lisent les findings depuis `PipelineState.findings`
+- Les transitions de workflow lisent les findings depuis `WorkflowState.findings`
   après validation du `ReviewFindingsArtifact`.
 - `StageOutput.errors` reste réservé aux diagnostics d'exécution, de contrat, de
   validation, ou de persistance du stage.
 - Les stages qui produisent des payloads riches doivent déclarer leur artefact
   métier typé.
 - Turnlock devient responsable de valider ces artefacts avant mutation de
-  `PipelineState`.
+  `WorkflowState`.
 
 ---
 

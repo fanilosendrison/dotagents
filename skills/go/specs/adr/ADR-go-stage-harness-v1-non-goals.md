@@ -17,11 +17,11 @@ Le [NIB-S du stage harness](../briefs/stage-harness/NIB-S-go-stage-harness.md)
 en v1. Cet ARD documente la raison de chaque exclusion et la trajectoire prévue.
 
 La philosophie directrice est celle de l'IFE : *"Reliability precedes
-intelligence."* La v1 valide le noyau minimal — un pipeline M1→M7 fiable et
-vérifiable — avant toute généralisation. Chaque non-goal est soit une couche
-supérieure (Turnlock, chaining), soit une variante d'interface (CLI), soit un
-edge case de robustesse (timeout, fsync, sparse checkout) qui diluerait le focus
-de la v1.
+intelligence."* La v1 valide le noyau minimal — une execution chain M1→M7
+fiable et vérifiable — avant toute généralisation. Chaque non-goal est soit une
+couche supérieure (Turnlock, chaining), soit une variante d'interface (CLI),
+soit un edge case de robustesse (timeout, fsync, sparse checkout) qui diluerait
+le focus de la v1.
 
 ---
 
@@ -81,10 +81,10 @@ le harness.
 harness attend indéfiniment que le stage retourne ou throw.
 
 **Raison** : Le timeout est un mécanisme de robustesse opérationnelle qui
-touche M3 (invocation). L'ajouter avant d'avoir un pipeline stable introduirait
-de la complexité — que faire d'un stage interrompue ? Le `StageOutput` est-il
-valide ? L'`artefactDir` est-il dans un état cohérent ? — sans bénéfice immédiat
-pour valider le flux nominal.
+touche M3 (invocation). L'ajouter avant d'avoir une execution chain stable
+introduirait de la complexité — que faire d'un stage interrompue ? Le
+`StageOutput` est-il valide ? L'`artefactDir` est-il dans un état cohérent ? —
+sans bénéfice immédiat pour valider le flux nominal.
 
 **Trajectoire** : v2 — `timeoutMs` dans `StageInput` et `AbortSignal` pour
 l'annulation coopérative. Un stage timeouté → `errored`.
@@ -134,11 +134,14 @@ fichiers non trackés via `git status --porcelain`.
 **Nature** : Ces trois features Git modifient la relation entre l'index et le
 working tree, cassant les invariants simples du harness.
 
-| Feature | Effet | Impact harness |
-|---------|-------|---------------|
-| **Sparse checkout** | Certains fichiers trackés sont absents du disque | `trackedWorktreeHash` ne peut pas les lire |
-| **Skip-worktree** | Git ignore les modifications locales de fichiers spécifiques | `worktreeClean` peut dire "clean" alors que le disque a changé |
-| **Assume-unchanged** | Git promet de ne pas vérifier certains fichiers | Même problème que skip-worktree |
+Features concernees :
+
+- **Sparse checkout** : des fichiers trackés sont absents du disque, donc le
+  hash serait incomplet.
+- **Skip-worktree** : Git ignore des modifications locales, donc
+  `worktreeClean` peut mentir.
+- **Assume-unchanged** : Git évite de vérifier certains fichiers, avec le même
+  risque que `skip-worktree`.
 
 **Raison** : Le harness repose sur l'équivalence *ce que Git voit = ce qui est
 sur le disque*. Ces trois features cassent cette équivalence. Les gérer

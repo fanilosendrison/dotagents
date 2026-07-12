@@ -144,11 +144,11 @@ type AssembledOutputInput = {
 
 ---
 
-## 4. Pipeline architecture
+## 4. Execution chain architecture
 
-The harness is a linear pipeline. Each module consumes the previous module's
-output and either continues with normalized data or terminates according to the
-preflight and fatal-write rules.
+The harness is a linear execution chain. Each module consumes the previous
+module's output and either continues with normalized data or terminates
+according to the preflight and fatal-write rules.
 
 ```text
 StageInput + Stage function
