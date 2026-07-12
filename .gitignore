@@ -1,1 +1,3 @@
 node_modules/
+agent-enforcers/permission-enforcer/.state/
+skills/git-commits-push/tests/.DS_Store
