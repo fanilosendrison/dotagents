@@ -26,7 +26,9 @@ export class BashValidator {
 			return result;
 		}
 
-		if (/^chmod\s+\+x\s+/.test(command.trim())) {
+		// Allow chmod +x only when it is a single simple command (no chaining).
+		// The \S+$ ensures no ; && || | follow the filename.
+		if (/^chmod\s+\+x\s+\S+$/.test(command.trim())) {
 			return result;
 		}
 
@@ -73,19 +75,45 @@ export class BashValidator {
 	}
 
 	containsRmRf(command: string): boolean {
-		const rmRfPatterns = [
-			/\brm\s+(-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*|-[a-zA-Z]*f[a-zA-Z]*r[a-zA-Z]*)\s/i,
-			/\brm\s+-r\s+-f\s/i,
-			/\brm\s+-f\s+-r\s/i,
-		];
+		// Extract everything after "rm " to check for recursive + force flags.
+		// Covers short (-rf, -fr, -r -f, -Rf) and long (--recursive --force)
+		// and mixed forms (-r --force, --recursive -f).
+		const rmMatch = command.match(/\brm\s+(.*)/i);
+		if (!rmMatch) return false;
+		const afterRm = rmMatch[1];
 
-		for (const pattern of rmRfPatterns) {
-			if (pattern.test(command)) {
-				return true;
+		const hasRecursive =
+			/(?:^|\s)-(?:[a-zA-Z]*r[a-zA-Z]*|-[a-zA-Z]*r\b)|--recursive\b/i.test(afterRm);
+		const hasForce =
+			/(?:^|\s)-(?:[a-zA-Z]*f[a-zA-Z]*|-[a-zA-Z]*f\b)|--force\b/i.test(afterRm);
+
+		return hasRecursive && hasForce;
+	}
+
+	/**
+	 * Check whether a candidate string contains any PROTECTED_PATH.
+	 * Returns the matched path or null.
+	 */
+	private pathContainsProtected(candidate: string): string | null {
+		const home = homedir();
+		for (const p of SECURITY_RULES.PROTECTED_PATHS) {
+			// /dev/null is a harmless data sink — allow writes to it
+			if (p === "/dev/") {
+				const devRefs = candidate.match(/\/dev\/\S+/g) || [];
+				if (devRefs.length > 0 && devRefs.every(r => r === "/dev/null" || r.startsWith("/dev/null"))) {
+					continue;
+				}
+			}
+			if (candidate.includes(p)) return p;
+
+			if (p.startsWith(home)) {
+				const relative = p.slice(home.length);
+				if (candidate.includes(`~${relative}`)) return p;
+				if (candidate.includes(`$HOME${relative}`)) return p;
+				if (candidate.includes(`$\{HOME\}${relative}`)) return p;
 			}
 		}
-
-		return false;
+		return null;
 	}
 
 	containsWriteToProtectedPath(command: string): string | null {
@@ -97,11 +125,14 @@ export class BashValidator {
 			/tee\s/.source,
 			/cp\s+.*\s+/.source,
 			/mv\s+.*\s+/.source,
+			/\btouch\s/.source,
+			/\btruncate\s/.source,
+			/\bsed\s+.*-i/.source,
+			/\binstall\s/.source,
+			/\brsync\s/.source,
 		];
 		const writeRegex = new RegExp(WRITE_PATTERNS.join("|"), "i");
 		if (!writeRegex.test(command)) return null;
-
-		const home = homedir();
 
 		// Split command into logical segments (separated by ;, &&, ||).
 		// Each segment is checked independently so that a read-only access
@@ -111,35 +142,33 @@ export class BashValidator {
 		const segments = command.split(/\s*(?:;|&&|\|\|)\s*/);
 
 		for (const segment of segments) {
-			// Skip segments without write operations
 			if (!writeRegex.test(segment)) continue;
 
 			// If this segment writes to a shell variable (e.g. tee "$P", > $OUT),
-			// fall back to searching the whole command — the variable may have been
-			// assigned to a protected path earlier in the command.
+			// fall back to searching the whole command — the variable may have
+			// been assigned to a protected path earlier in the command.
 			const writesToVariable =
 				/(?:>|>>|2>)\s*["']?\$|tee(?:\s+-[a-zA-Z]+)*\s+["']?\$/.test(segment);
-			const searchIn = writesToVariable ? command : segment;
 
-			for (const p of SECURITY_RULES.PROTECTED_PATHS) {
-				// /dev/null is a harmless data sink — allow writes to it (e.g. 2>/dev/null)
-				if (p === "/dev/") {
-					const devRefs = searchIn.match(/\/dev\/\S+/g) || [];
-					if (devRefs.length > 0 && devRefs.every(r => r === "/dev/null" || r.startsWith("/dev/null"))) {
-						continue;
-					}
+			// cp / mv : only the last non-flag argument is the destination.
+			// Sources (even if in /usr/, /etc/, etc.) should not trigger a block.
+			const isCpMv = /\b(?:cp|mv)\s/.test(segment);
+			if (isCpMv && !writesToVariable) {
+				const tokens = segment.split(/\s+/);
+				const args = tokens.filter(
+					(t) => t !== "cp" && t !== "mv" && !t.startsWith("-"),
+				);
+				const dest = args[args.length - 1];
+				if (dest) {
+					const blocked = this.pathContainsProtected(dest);
+					if (blocked) return blocked;
 				}
-				// Exact match
-				if (searchIn.includes(p)) return p;
-
-				// Variantes avec ~ et $HOME (bash ne les expanse pas dans la commande brute)
-				if (p.startsWith(home)) {
-					const relative = p.slice(home.length); // ex: "/.agents/agent-enforcers/..."
-					if (searchIn.includes(`~${relative}`)) return p;
-					if (searchIn.includes(`$HOME${relative}`)) return p;
-					if (searchIn.includes(`$\{HOME\}${relative}`)) return p;
-				}
+				continue;
 			}
+
+			const searchIn = writesToVariable ? command : segment;
+			const blocked = this.pathContainsProtected(searchIn);
+			if (blocked) return blocked;
 		}
 		return null;
 	}

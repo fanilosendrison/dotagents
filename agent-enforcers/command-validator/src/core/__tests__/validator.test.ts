@@ -22,9 +22,25 @@ describe("CommandValidator Core Unit Tests", () => {
 		}
 	});
 
-	test("allows chmod +x", () => {
-		expect(validator.validate("chmod +x script.sh").action).toBe("allow");
-		expect(validator.validate("chmod +x ./bin/tool").action).toBe("allow");
+	test("allows chmod +x (single command only, no chaining)", () => {
+		const allowed = [
+			"chmod +x script.sh",
+			"chmod +x ./bin/tool",
+		];
+		for (const cmd of allowed) {
+			expect(validator.validate(cmd).action).toBe("allow");
+		}
+
+		// Chained commands must NOT be allowed — the early return must not skip
+		// later checks (e.g. rm -rf after a chmod +x).
+		const chained = [
+			"chmod +x script.sh; rm -rf /",
+			"chmod +x script.sh && echo ok",
+		];
+		for (const cmd of chained) {
+			const result = validator.validate(cmd);
+			expect(result.action).not.toBe("allow");
+		}
 	});
 
 	test("allows invalid/non-string input", () => {
@@ -51,8 +67,19 @@ describe("CommandValidator Core Unit Tests", () => {
 		}
 	});
 
-	test("long flags like --recursive --force are NOT caught by containsRmRf", () => {
-		expect(validator.containsRmRf("rm --recursive --force /tmp/x")).toBe(false);
+	test("catches rm --recursive --force (long and mixed flags)", () => {
+		expect(validator.containsRmRf("rm --recursive --force /tmp/x")).toBe(true);
+		expect(validator.containsRmRf("rm --force --recursive /tmp/x")).toBe(true);
+		expect(validator.containsRmRf("rm -r --force /tmp/x")).toBe(true);
+		expect(validator.containsRmRf("rm --recursive -f /tmp/x")).toBe(true);
+	});
+
+	test("rm --recursive alone is NOT caught (no force)", () => {
+		expect(validator.containsRmRf("rm --recursive /tmp/x")).toBe(false);
+	});
+
+	test("rm --force alone is NOT caught (no recursive)", () => {
+		expect(validator.containsRmRf("rm --force /tmp/x")).toBe(false);
 	});
 
 	test("denies command with rm -rf verified by validate", () => {
@@ -299,6 +326,52 @@ describe("CommandValidator Core Unit Tests", () => {
 					"echo ok | tee /tmp/log.txt; ls ~/.agents/agent-enforcers/permission-enforcer/.state/",
 				).action,
 			).toBe("allow");
+		});
+
+		test("blocks new write patterns on protected path (touch, truncate, sed -i, install, rsync)", () => {
+			const blocked = [
+				"touch ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
+				"truncate -s 0 ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
+				"sed -i 's/old/new/' ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
+				"install /tmp/src ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
+				"rsync /tmp/src ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
+			];
+			for (const cmd of blocked) {
+				expect(bashValidator.validate(cmd).action).toBe("deny");
+			}
+		});
+
+		test("allows new write patterns on safe path", () => {
+			expect(bashValidator.validate("touch /tmp/safe.txt").action).toBe("allow");
+			expect(bashValidator.validate("sed -i 's/a/b/' /tmp/safe.txt").action).toBe("allow");
+		});
+
+		test("cp from protected source to safe destination is allowed (source not flagged)", () => {
+			expect(
+				bashValidator.validate("cp /usr/bin/foo /tmp/foo").action,
+			).toBe("allow");
+		});
+
+		test("cp to protected destination is denied", () => {
+			expect(
+				bashValidator.validate(
+					"cp /tmp/src ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
+				).action,
+			).toBe("deny");
+		});
+
+		test("mv from protected source to safe destination is allowed", () => {
+			expect(
+				bashValidator.validate("mv /etc/hosts.old /tmp/hosts.old").action,
+			).toBe("allow");
+		});
+
+		test("mv to protected destination is denied", () => {
+			expect(
+				bashValidator.validate(
+					"mv /tmp/src ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
+				).action,
+			).toBe("deny");
 		});
 	});
 });
