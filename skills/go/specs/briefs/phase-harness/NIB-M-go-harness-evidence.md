@@ -40,6 +40,12 @@ type ValidateReservedHarnessFilesInput = {
 
 The `draft` value is the raw value returned by M3.
 
+Dependency contracts:
+
+- `DC-ZOD` for `PhaseDraftOutput` validation.
+- `DC-NODE-RUNTIME-FS-PATH-CRYPTO` for path joining, realpath containment,
+  regular-file checks, and reserved root-file detection.
+
 ---
 
 ## 3. Outputs

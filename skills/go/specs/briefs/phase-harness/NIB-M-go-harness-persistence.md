@@ -43,6 +43,13 @@ type WriteCanonicalOutputInput = {
 };
 ```
 
+Dependency contracts:
+
+- `DC-ZOD` for final pre-write `PhaseOutput` validation.
+- `DC-NODE-RUNTIME-FS-PATH-CRYPTO` for non-recursive `mkdir`, deterministic JSON
+  serialization, exclusive temp-file creation, atomic rename, process ID usage,
+  and best-effort cleanup.
+
 ---
 
 ## 3. Outputs

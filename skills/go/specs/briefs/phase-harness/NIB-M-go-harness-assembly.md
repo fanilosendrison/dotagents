@@ -40,6 +40,10 @@ type AssembledOutputInput = {
 phase-throw handling still supplies a validation result for reserved-file
 checks.
 
+Dependency contract:
+
+- `DC-ZOD` for final `PhaseOutput` validation and normalization checks.
+
 ---
 
 ## 3. Outputs

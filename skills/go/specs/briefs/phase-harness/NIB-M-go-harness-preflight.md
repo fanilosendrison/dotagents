@@ -37,6 +37,14 @@ The `input` object has already passed the structural `phaseInputSchema` from
 `NIB-M-GO-HARNESS-SCHEMAS`, or this module must perform that parse as its first
 operation.
 
+Dependency contracts:
+
+- `DC-ZOD` for input and config validation.
+- `DC-GIT-CLI` for repository root, base commit, sparse-checkout, and index-bit
+  checks.
+- `DC-NODE-RUNTIME-FS-PATH-CRYPTO` for path absoluteness, `realpath`, basename,
+  dirname, and path resolution semantics.
+
 ---
 
 ## 3. Outputs

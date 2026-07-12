@@ -34,7 +34,8 @@ This module has no runtime input. It consumes the type contracts defined by
 
 Normative external dependency:
 
-- Zod, used only for runtime schema validation and refinements.
+- Zod `4.4.3`, used only for runtime schema validation and refinements. See
+  `DC-ZOD`.
 
 ---
 

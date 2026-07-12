@@ -35,6 +35,12 @@ type CollectCanonicalStateInput = {
 
 `input.workDir` is the resolved Git repository root produced by M1.
 
+Dependency contracts:
+
+- `DC-GIT-CLI` for `rev-parse`, `status`, and `ls-files` command semantics.
+- `DC-NODE-RUNTIME-FS-PATH-CRYPTO` for `lstat`, `readFile`, `readlink`, symlink
+  behavior, file-mode observation, and SHA-256 hashing.
+
 ---
 
 ## 3. Outputs

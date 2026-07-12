@@ -465,15 +465,17 @@ The system requires the following module briefs before implementation:
 
 ## 11. Dependency contracts
 
-The NIB-Ms may require dependency contracts for non-trivial external behavior:
+The NIB-Ms require these dependency contracts for non-trivial external behavior:
 
-- Git command semantics used by preflight and canonical state collection.
-- Zod schema validation and refinement behavior.
-- Filesystem path, realpath, symlink, and atomic rename semantics in the
-  selected runtime.
+- `DC-GIT-CLI`: Git command semantics used by preflight and canonical state
+  collection.
+- `DC-ZOD`: Zod schema validation and refinement behavior.
+- `DC-NODE-RUNTIME-FS-PATH-CRYPTO`: filesystem path, realpath, symlink, process,
+  hashing, JSON serialization, and atomic rename semantics in the selected
+  runtime.
 
-If dependency contracts are not authored separately, the corresponding NIB-M
-must inline the exact dependency constraints needed for implementation.
+The implementing agent must consult the relevant DC before implementing any
+module that consumes the corresponding dependency.
 
 ---
 

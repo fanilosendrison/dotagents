@@ -38,6 +38,11 @@ type InvokePhaseFunctionInput = {
 
 `input` is produced by M2 after successful artefact directory creation.
 
+Dependency contract:
+
+- `DC-NODE-RUNTIME-FS-PATH-CRYPTO` for JavaScript exception handling,
+  `JSON.stringify`, and process-global stdout/stderr non-guarantees.
+
 ---
 
 ## 3. Outputs
