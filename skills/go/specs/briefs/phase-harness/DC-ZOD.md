@@ -38,6 +38,7 @@ z.string();
 z.string().min(1);
 z.number().finite();
 z.number().int().positive();
+z.number().int();
 z.boolean();
 z.null();
 z.array(schema);
@@ -100,6 +101,10 @@ truthy value is not a boolean.
 - `skipped` requires `errors.length === 0`.
 - `failed` requires `errors.length > 0`.
 - `errored` is not a valid draft status.
+
+`phaseErrorSchema` shape validation accepts `line` as an integer. Positive-line
+semantics belong to M5 evidence validation so invalid metadata such as `line:
+0` can be sanitized while preserving the phase error.
 
 `phaseOutputSchema` refinements:
 

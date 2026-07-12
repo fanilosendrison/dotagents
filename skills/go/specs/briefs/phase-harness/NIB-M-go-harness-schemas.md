@@ -146,13 +146,15 @@ phaseErrorSchema = object({
   message: string,
   severity: enum("blocking", "major", "minor"),
   file: optional(string),
-  line: optional(number.integer().positive()),
+  line: optional(number.integer()),
   evidenceRef: optional(string),
 }).strict()
 ```
 
 Path containment, `..` segment rejection, NUL byte rejection, and file existence
-are not performed here. M5 evidence validation performs those checks.
+are not performed here. Line positivity is also not performed here: M5 evidence
+validation owns semantic error metadata validation so invalid values such as
+`line: 0` can be omitted while preserving the rest of the phase error.
 
 ### 4.4 Phase draft output schema
 
@@ -261,7 +263,8 @@ Expected behavior: validation fails because `failed` requires at least one
   semantics if the property is absent; reject if the property is present with a
   non-JSON value.
 - Non-finite numbers inside `config`: reject.
-- `PhaseError.line` equal to `0`: reject.
+- `PhaseError.line` equal to `0`: accept structurally, then M5 evidence
+  validation omits it and reports a blocking harness error.
 - `PhaseDraftOutput.status === "errored"`: reject.
 - `PhaseOutput.status === "errored"` with no blocking error: reject.
 - Non-errored `PhaseOutput` with any canonical field set to `null`: reject.
