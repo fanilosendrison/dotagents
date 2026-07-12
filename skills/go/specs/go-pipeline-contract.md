@@ -12,6 +12,13 @@ Le principe : **Turnlock porte l'état mécanique**, les outils déterministes
 produisent des preuves, les agents produisent des artefacts JSON validés, et
 l'humain arbitre uniquement les décisions sémantiques irréductibles.
 
+> **Note — Phase Contract**: L'exécution individuelle de chaque phase est
+> désormais régie par [`phase-contract.md`](./phase-contract.md), qui définit
+> les types canoniques `PhaseInput`, `PhaseDraftOutput`, `PhaseOutput`,
+> `PhaseError` et le runner `runPhase()`. Le `CheckRun` ci-dessous est en cours
+> d'alignement avec `PhaseOutput` ; les champs marqués `@deprecated` seront
+> remplacés lors de la refonte pipeline v2.
+
 ---
 
 ## Invariants globaux
@@ -193,14 +200,23 @@ type CheckRun = {
     | "license-scan"
     | "supply-chain-scan"
     | "api-compat";
+  // @deprecated — use trackedWorktreeHash (from PhaseOutput)
   command?: string;
   startedAt: string;
   endedAt: string;
+  // @deprecated — status now includes skipped and errored; exit code is
+  // an implementation detail captured by the harness, not a contract field
   exitCode: number;
-  status: "passed" | "failed";
+  status: "passed" | "failed" | "skipped" | "errored";
+  // @deprecated — PhaseOutput is the canonical output; outputRef will be
+  // replaced by artefactDir + output.json
   outputRef: string;
   evidenceRefs: string[];
+  // @deprecated — use trackedWorktreeHash from PhaseOutput
   diffHash: string;
+  // Added from PhaseOutput (phase-contract.md)
+  trackedWorktreeHash: string;
+  worktreeClean: boolean;
 };
 ```
 
@@ -380,7 +396,8 @@ Le pipeline peut avancer vers `commit-push-pr` seulement si :
 - aucun finding `Bloquant` n'est `open` ;
 - aucun finding `Majeur` avec `blocksPipeline: true` n'est `open` ;
 - tous les `HumanGate` requis ont une décision et une justification ;
-- le diff courant correspond au `diffHash` validé par les derniers checks.
+- le `trackedWorktreeHash` courant correspond à celui validé par les derniers
+  checks et le worktree est `worktreeClean` (voir `phase-contract.md`).
 
 Tout fix appliqué invalide les checks précédents et force un retour à
 `agent-conduct-check`.
