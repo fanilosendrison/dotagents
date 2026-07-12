@@ -93,12 +93,19 @@ Turnlock cree l'enveloppe runtime :
 
 - `runId` ;
 - `RepositoryLaunchContext` ;
+- `WorkflowPolicy` ;
+- hashes canoniques des inputs de lancement ;
 - reference vers le run Turnlock ;
 - `artefactRoot` ;
+- marqueur d'ownership de `run-init` ;
 - chemin de worktree reserve, sans checkout Git ;
 - etat initial minimal ;
 - schema/version de l'etat ;
 - startup task records initiaux.
+
+`run-init` est idempotent seulement dans le perimetre d'un meme `runId`
+Turnlock. Un retry doit reutiliser les refs deja prouvees par l'ownership
+marker, ou echouer ferme.
 
 Le startup n'est pas un stage.
 

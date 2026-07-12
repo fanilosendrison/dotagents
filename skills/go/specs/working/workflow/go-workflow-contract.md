@@ -85,17 +85,34 @@ des artefacts métier typés, validés par Turnlock avant projection dans
 Chaque run `/go` travaille dans un worktree Git physique privé. Une simple
 branche dans le checkout courant ne suffit pas pour la cible du workflow.
 
-### 2.5 Fail-closed
+### 2.5 Run-init idempotent par `runId`
+
+`run-init` peut etre rejoue par Turnlock pour le meme `runId`. Ce retry doit
+produire le meme `WorkflowState` initialise ou echouer ferme.
+
+Le retry ne doit jamais :
+
+- creer un second `runId` ;
+- changer `RepositoryLaunchContext` ;
+- changer `WorkflowPolicy` ;
+- reutiliser un `artefactRoot` sans ownership marker valide ;
+- transformer un `worktreeRootReservedPath` deja materialise en worktree
+  autoritatif.
+
+Deux invocations `/go` distinctes produisent deux runs distincts. L'idempotence
+de `run-init` ne s'applique pas entre ces runs.
+
+### 2.6 Fail-closed
 
 Absence d'artefact, JSON invalide, schéma invalide, finding bloquant ouvert,
 preuve de reconstruction absente, ou état Git ambigu arrêtent le workflow.
 
-### 2.6 JSON-only entre unites de workflow
+### 2.7 JSON-only entre unites de workflow
 
 Tout artefact échangé entre startup tasks, stages et reviews est du JSON
 validable ou une evidence ref pointant vers un fichier sous `artefactDir`.
 
-### 2.7 Typed business artifacts
+### 2.8 Typed business artifacts
 
 Un résultat métier structuré consommé par un stage suivant doit être porté par
 un artefact métier typé. `StageOutput.errors` ne doit pas devenir un canal
@@ -107,25 +124,25 @@ peut être `passed` même si cet artefact contient des findings `Critical` ou
 `Major` bloquants. La transition suivante lit les findings projetés dans
 `WorkflowState`, pas un échec d'exécution du stage.
 
-### 2.8 No hidden judgment
+### 2.9 No hidden judgment
 
 Une transition dépend d'un statut, d'un booléen, d'un hash, d'un compteur, d'une
 HumanGate, d'un artefact métier typé validé, ou d'un finding structuré. Elle ne
 dépend jamais d'une phrase libre.
 
-### 2.9 Toute mutation invalide les gates
+### 2.10 Toute mutation invalide les gates
 
 Après toute délégation qui modifie le worktree, les checks précédents ne sont
 plus autoritaires. Le workflow revient à `change-snapshot`, puis aux gates
 requises.
 
-### 2.10 Review globale avant packaging, vérification après packaging
+### 2.11 Review globale avant packaging, vérification après packaging
 
 Le workflow review le résultat global final avant de le découper. Le découpage
 ne peut toutefois pas être publié sans `package-verify`, car le split peut créer
 des états intermédiaires invalides.
 
-### 2.11 Startup branches sans ecriture concurrente d'etat
+### 2.12 Startup branches sans ecriture concurrente d'etat
 
 Le startup peut lancer des startup branches de demarrage, mais ces branches
 ne modifient pas directement `WorkflowState`.
@@ -135,7 +152,7 @@ Chaque branche produit des artefacts, evidence refs et un
 ensuite les artefacts valides dans `WorkflowState` via une transition
 deterministe.
 
-### 2.12 Capture mecanique, analyse semantique tardive
+### 2.13 Capture mecanique, analyse semantique tardive
 
 La capture du moment `/go` est mecanique. Elle fige des references, extraits et
 hashes.

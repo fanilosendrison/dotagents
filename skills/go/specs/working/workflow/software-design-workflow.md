@@ -82,13 +82,18 @@ l'enveloppe runtime : `StateFile<WorkflowState>`, `runId`, `runDir`, lock,
 logger, horloges et persistance atomique.
 
 `run-init` initialise ensuite le payload `/go` dans `StateFile.data` :
-`RepositoryLaunchContext`, `artefactRoot`, chemin de worktree reserve et
-startup task records initiaux.
+`RepositoryLaunchContext`, `WorkflowPolicy`, hashes canoniques des inputs,
+`artefactRoot`, marqueur d'ownership, chemin de worktree reserve et startup task
+records initiaux.
 
 `run-init` stocke le `RepositoryLaunchContext`, mais ne le decouvre pas et ne le
 verifie pas contre Git. Il ne cree pas non plus le checkout Git physique ni
 l'enveloppe runtime Turnlock. Il produit un `WorkflowState` complet ou il ne
 laisse aucune startup branch demarrer.
+
+Si Turnlock rejoue `run-init` pour le meme `runId`, le retry doit produire le
+meme payload initialise ou echouer ferme. Cette idempotence ne traverse jamais
+deux invocations `/go` distinctes.
 
 Ce n'est pas une analyse de la demande. C'est la condition de securite qui
 permet aux startup branches d'ecrire leurs preuves au bon endroit.

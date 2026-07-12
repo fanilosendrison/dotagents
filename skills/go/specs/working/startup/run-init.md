@@ -252,6 +252,7 @@ Disposition normative :
 
 ```text
 runDir/artefactRoot/
+├── run-init-ownership.json
 ├── run-capture/
 │   ├── output.json
 │   ├── prompt-at-go.txt
@@ -679,6 +680,7 @@ Turnlock runtime envelope
 ├─ WorkflowPolicy
 ├─ TurnlockRunRef
 ├─ artefactRootRef
+├─ ownershipMarkerRef
 ├─ worktreeRootReservedPath
 ├─ WorkflowState initial data
 └─ startupTasks initial records
