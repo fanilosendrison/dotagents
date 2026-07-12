@@ -11,62 +11,61 @@ resume. Just a standard way to invoke a phase, capture its result, and validate
 its output. Later, every phase that implements this contract can be wrapped into
 a Turnlock FSM without changing its internals.
 
+A phase is a **plain async function**: `Phase = (input: PhaseInput) => Promise<PhaseOutput>`.
+A CLI adapter (`bun run phases/lint.ts`) can be added later as a thin wrapper
+around the same function — the function API is canonical.
+
 ## Analogy
 
 `git-commits-push` is a Bun script that takes context, does work, and produces
 structured output. The phases of `/go` should work the same way: each phase is
-an independent process (or function) that receives standardised input and
-produces standardised output.
+an independent function that receives standardised input and produces
+standardised output. Unlike `git-commits-push`, phases are **not Turnlock-native
+from the start** — they are standalone functions that a Turnlock FSM can wrap
+later, mechanically, without changing the phase implementation.
 
 ## What the harness provides
 
 1. **Standard input** (`PhaseInput`): what every phase receives — run context,
-   work directory, phase-specific config.
+   work directory, artefact directory, phase-specific config.
 
-2. **Standard output** (`PhaseOutput`): what every phase must return —
-   artefact directory, diff hash, status, evidence references.
+2. **Standard output** (`PhaseOutput`): what every phase must return — status,
+   worktree diff hash, artefact directory, evidence references, errors.
 
-3. **Runner** (`runPhase`): invokes a phase, captures its artefacts, validates
-   the output schema, and writes results to a deterministic location under the
-   artefact directory.
+3. **Runner** (`runPhase`): invokes a phase, creates the artefact directory,
+   captures the raw stdout/stderr, validates the returned `PhaseOutput` against
+   its Zod schema, writes the canonical `output.json`, and validates that every
+   `evidenceRef` exists on disk.
 
 ## Artefact directory contract
 
-Every phase writes its evidence to `artefactDir/`:
+The harness creates `artefactDir/` before invoking the phase. The phase writes
+raw evidence into it. The harness writes the canonical `output.json` after the
+phase returns.
 
 ```
 artefactDir/
-├── output.json       # structured result (tool output, findings, stats)
-├── stdout.txt        # raw stdout capture
-├── stderr.txt        # raw stderr capture
-└── evidence/         # optional: files the phase wants to keep as proof
+├── output.json       # canonical, written by the harness after Zod validation
+├── stdout.txt        # raw stdout, captured by the harness
+├── stderr.txt        # raw stderr, captured by the harness
+└── evidence/         # raw evidence written by the phase
     ├── diff.patch
-    ├── screenshot.png
+    ├── lint.json
+    ├── test-results.txt
     └── ...
 ```
 
-The harness is responsible for creating `artefactDir/` before the phase runs.
-The phase writes into it. The harness reads `output.json` after the phase exits.
+**Who writes what:**
 
-## Phase output schema
+| File | Written by | When |
+|------|-----------|------|
+| `evidence/*` | The phase | During execution |
+| `stdout.txt` | The harness | Captured from the phase process |
+| `stderr.txt` | The harness | Captured from the phase process |
+| `output.json` | The harness | After Zod validation of `PhaseOutput` |
 
-```ts
-type PhaseOutput = {
-  status: "passed" | "failed";
-  diffHash: string;          // sha256 of the unified diff produced by this phase
-  artefactDir: string;       // absolute path, set by the harness
-  evidenceRefs: string[];    // relative paths inside artefactDir/
-  errors: PhaseError[];      // empty if passed
-};
-
-type PhaseError = {
-  message: string;
-  severity: "blocking" | "major" | "minor";
-  file?: string;
-  line?: number;
-  evidenceRef?: string;      // relative path inside artefactDir/
-};
-```
+The phase never writes `output.json` directly. It returns a `PhaseOutput` object
+(or throws). The harness validates it and persists the canonical copy.
 
 ## Phase input schema
 
@@ -74,36 +73,176 @@ type PhaseError = {
 type PhaseInput = {
   runId: string;
   workDir: string;           // the work/<run-id> checkout
-  artefactDir: string;       // where the phase must write its evidence
-  baseSha: string;           // HEAD before implementation
+  artefactDir: string;       // created by the harness, phase writes evidence here
+  baseSha: string;           // HEAD before any phase ran
   phase: string;             // canonical phase name (e.g. "lint", "typecheck")
   config?: Record<string, unknown>;  // phase-specific overrides
 };
 ```
 
-## Relationship to Turnlock
+## Phase output schema
 
-This harness is deliberately **Turnlock-free**. A phase that implements this
-contract is a plain async function:
+```ts
+type PhaseOutput = {
+  status: "passed" | "failed" | "skipped" | "errored";
+  headShaAfter: string;      // git rev-parse HEAD after the phase
+  worktreeDiffHash: string;  // deterministic fingerprint of the live worktree
+  worktreeClean: boolean;    // git status --porcelain is empty
+  artefactDir: string;       // set by the harness, echoed back
+  evidenceRefs: string[];    // relative paths under artefactDir/, no ".."
+  errors: PhaseError[];      // empty if passed or skipped
+};
+
+type PhaseError = {
+  message: string;
+  severity: "blocking" | "major" | "minor";
+  file?: string;
+  line?: number;
+  evidenceRef?: string;      // relative path under artefactDir/, no ".."
+};
+```
+
+### Status values
+
+| Status | Meaning |
+|--------|---------|
+| `passed` | Phase completed successfully. Errors is empty. |
+| `failed` | Phase completed but found issues. Errors contains findings. |
+| `skipped` | Phase decided not to run (e.g. no diff to lint, no tests to run). |
+| `errored` | Phase crashed, timed out, returned invalid output, or threw. Normalised by the harness. |
+
+A fatal harness bug (e.g. harness process killed by SIGKILL) is outside the
+`PhaseOutput` contract — it produces no output at all. The caller must detect
+this from the harness exit code or missing `output.json`.
+
+### `headShaAfter`
+
+`git rev-parse HEAD` after the phase completes. Cheap and deterministic.
+Captures what is committed. If no commit happened during the phase, this equals
+the previous `headShaAfter`.
+
+### `worktreeDiffHash`
+
+A deterministic fingerprint of the **live worktree** — staged and unstaged
+changes, not just what is committed. The harness computes it from the actual
+files on disk after the phase returns.
+
+`git diff baseSha...HEAD` is **not** sufficient: it only captures committed
+differences. A phase that applies `biome --fix` may leave unstaged changes that
+a commit-only diff would miss.
+
+The exact mechanism is left to the harness implementation (e.g. sha256 of
+`git diff baseSha` combined with a tree hash of tracked files), but the
+contract guarantees:
+- It changes if and only if any tracked file changed since `baseSha`.
+- It is deterministic: same files → same hash.
+- If the worktree is identical to `baseSha`: the hash of the empty string.
+
+### `worktreeClean`
+
+`true` when `git status --porcelain` produces no output. Phases that mutate
+files without committing leave the worktree dirty. This flag lets the next
+phase or the orchestrator decide whether to proceed, stash, reset, or abort.
+
+### `evidenceRefs`
+
+- Relative paths only, rooted at `artefactDir/`. No `..` segments.
+- Validated for existence by the harness after the phase returns.
+- Must point to files inside `artefactDir/`, typically under `evidence/`.
+
+## Runner behaviour
+
+```
+runPhase(phaseFn, input):
+  1. Create artefactDir/
+  2. Capture start time
+  3. Invoke phaseFn(input)
+  4. If phaseFn throws or times out:
+       → write output.json with status: "errored", empty evidenceRefs
+  5. Validate returned PhaseOutput against Zod schema
+  6. Compute headShaAfter = git rev-parse HEAD
+  7. Compute worktreeDiffHash from the live worktree (not just committed diff)
+  8. Compute worktreeClean = git status --porcelain is empty
+  9. Validate every evidenceRef exists on disk
+  10. Capture stdout/stderr into stdout.txt / stderr.txt
+  11. Write canonical output.json
+  12. Return PhaseOutput
+```
+
+## Phase implementation contract
+
+A phase is an async function. It does not import Turnlock. It does not know
+about state machines, resume, or delegation.
 
 ```ts
 type Phase = (input: PhaseInput) => Promise<PhaseOutput>;
 ```
 
-Later, wrapping it into a Turnlock FSM is a mechanical step:
+Example — a lint phase:
 
 ```ts
-const lintPhase = definePhase<GoState, void, PhaseOutput>(
+const lintPhase: Phase = async (input) => {
+  const evidenceDir = path.join(input.artefactDir, "evidence");
+  await fs.mkdir(evidenceDir, { recursive: true });
+
+  const result = await runBiomeLint(input.workDir);
+  const evidencePath = path.join(evidenceDir, "lint.json");
+  await fs.writeFile(evidencePath, JSON.stringify(result));
+
+  if (result.errors.length === 0) {
+    return {
+      status: "passed",
+      headShaAfter: "",       // harness fills this in
+      worktreeDiffHash: "",   // harness fills this in
+      worktreeClean: true,    // harness fills this in
+      artefactDir: input.artefactDir,
+      evidenceRefs: ["evidence/lint.json"],
+      errors: [],
+    };
+  }
+
+  return {
+    status: "failed",
+    headShaAfter: "",
+    worktreeDiffHash: "",
+    worktreeClean: false,
+    artefactDir: input.artefactDir,
+    evidenceRefs: ["evidence/lint.json"],
+    errors: result.errors.map(e => ({
+      message: e.message,
+      severity: "minor",
+      file: e.file,
+      line: e.line,
+    })),
+  };
+};
+```
+
+## Relationship to Turnlock
+
+This harness is deliberately **Turnlock-free**. Later, wrapping a phase into a
+Turnlock FSM is a mechanical step:
+
+```ts
+import { definePhase } from "turnlock";
+import { lintPhase, runPhase, buildPhaseInput } from "./harness";
+
+const turnlockLintPhase = definePhase<GoState, void, PhaseOutput>(
   async (state, io) => {
     const input = buildPhaseInput(state, "lint");
-    const output = await runPhase(lintPhaseImpl, input);
-    if (output.status === "failed") return io.fail(...);
-    return io.transition("typecheck", { ...state, checks: [...state.checks, output] });
+    const output = await runPhase(lintPhase, input);
+    if (output.status === "failed" || output.status === "errored") {
+      return io.fail(new Error(output.errors[0]?.message ?? "lint failed"));
+    }
+    return io.transition("typecheck", {
+      ...state,
+      checks: [...state.checks, output],
+    });
   }
 );
 ```
 
-The phase implementation (`lintPhaseImpl`) does not know about Turnlock. It only
+The phase implementation (`lintPhase`) does not know about Turnlock. It only
 knows about `PhaseInput → PhaseOutput`.
 
 ## What this unlocks
@@ -114,4 +253,14 @@ knows about `PhaseInput → PhaseOutput`.
 - The output is machine-verifiable: `PhaseOutput` is validated against its Zod
   schema before the harness returns.
 - The harness is the single place where artefact directory creation, output
-  validation, and error normalisation happen. Phases don't duplicate this logic.
+  validation, stdout/stderr capture, `worktreeDiffHash` computation, and error
+  normalisation happen. Phases don't duplicate this logic.
+
+## Future extensions (v2)
+
+These are deliberately out of scope for v1 but the contract leaves room:
+
+- **Chaining context**: `previousPhaseOutputs: PhaseOutput[]`, `attemptNumber`,
+  `timeoutMs`.
+- **CLI adapter**: a thin wrapper that reads `PhaseInput` from stdin/argv and
+  writes `PhaseOutput` to stdout, so phases can be invoked as subprocesses.
