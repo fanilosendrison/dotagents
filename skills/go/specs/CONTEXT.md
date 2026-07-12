@@ -50,6 +50,10 @@ quand leur niveau de détail sera suffisant pour construction.
 
 - [`canonical-vocabulary.md`](./working/workflow/canonical-vocabulary.md)
   - Vocabulaire canonique.
+- [`canonical-hashing.md`](./working/workflow/canonical-hashing.md)
+  - Profil RFC 8785 / JCS pour les hashes JSON metier.
+- [`external-primitives.md`](./working/workflow/external-primitives.md)
+  - Standards, formats et outils a reutiliser au lieu de primitives maison.
 - [`go-workflow-contract.md`](./working/workflow/go-workflow-contract.md)
   - Contrat central du workflow.
 - [`software-design-workflow.md`](./working/workflow/software-design-workflow.md)

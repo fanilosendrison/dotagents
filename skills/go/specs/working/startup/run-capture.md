@@ -15,7 +15,7 @@ Produire un `RunCaptureArtifact` mecanique contenant :
 - une reference stable vers la session source ;
 - un extrait minimal et gele de la session ;
 - le prompt exact associe au `/go` ;
-- les hashes du prompt et de l'extrait ;
+- les hashes de contenu du prompt et de l'extrait ;
 - les references des fichiers d'evidence ecrits sous l'`artefactRoot` du run.
 
 `run-capture` ne resout pas les specs, ne deduit pas les contraintes, ne cree
@@ -89,8 +89,14 @@ Evidence typiques :
 - event d'audit indiquant les hashes calcules.
 
 Les champs `promptAtGoRef` et `sessionExcerptRef` pointent vers des fichiers
-sous l'`artefactRoot`. Les hashes sont calcules sur les octets exacts de ces
-fichiers apres normalisation explicite du format d'ecriture.
+sous l'`artefactRoot`. Les hashes sont des hashes de contenu :
+`sha256:<lowercase-hex>` calcule sur les octets exacts des fichiers ecrits,
+apres normalisation explicite du format d'ecriture.
+
+Ces hashes ne sont pas des hashes JSON JCS. Ils prouvent l'identite des preuves
+textuelles gelees. Les hashes de payloads JSON metier sont definis separement
+par le profil JCS dans
+[`canonical-hashing.md`](../workflow/canonical-hashing.md).
 
 ---
 
@@ -98,7 +104,7 @@ fichiers apres normalisation explicite du format d'ecriture.
 
 - Ecrire le prompt `/go` exact dans un fichier d'evidence.
 - Ecrire l'extrait minimal de session dans un fichier d'evidence.
-- Calculer les hashes canoniques du prompt et de l'extrait.
+- Calculer les hashes de contenu du prompt et de l'extrait.
 - Produire un `RunCaptureArtifact` valide.
 - Produire un `WorkflowExecutionRecord` durable. Si cette branche est executee
   via le stage harness, ce record reference aussi le `StageOutput` canonique.

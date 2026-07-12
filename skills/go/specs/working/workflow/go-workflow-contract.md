@@ -7,6 +7,10 @@ harness**.
 Documents compagnons :
 
 - [`canonical-vocabulary.md`](./canonical-vocabulary.md) - vocabulaire normatif.
+- [`canonical-hashing.md`](./canonical-hashing.md) - profil `/go` de RFC 8785 /
+  JCS pour les hashes JSON metier.
+- [`external-primitives.md`](./external-primitives.md) - standards, formats et
+  outils a reutiliser au lieu de primitives maison.
 - [`software-design-workflow.md`](./software-design-workflow.md) - récit complet
   du cycle `/go`.
 - [`launch-context.md`](../startup/launch-context.md) - contexte parent resolu
@@ -64,7 +68,26 @@ La policy durable couvre notamment :
 - packaging et publication ;
 - retention des runs incomplets.
 
-### 2.3 WorkflowExecutionRecord-as-execution-envelope
+### 2.3 Primitives externes avant implementations maison
+
+Quand un format, protocole, outil ou standard maintenu existe pour un domaine,
+`/go` doit l'utiliser ou l'envelopper au lieu d'en definir une variante maison.
+Les primitives specifiques a `/go` sont limitees aux decisions metier du
+workflow.
+
+Les choix normatifs sont listes dans
+[`external-primitives.md`](./external-primitives.md).
+
+### 2.4 JCS pour les hashes JSON metier
+
+Les payloads JSON metier hashes par `/go` utilisent le profil JCS decrit dans
+[`canonical-hashing.md`](./canonical-hashing.md). `/go` ne definit pas une
+canonicalisation JSON maison.
+
+Les algorithmes non JSON, comme `trackedWorktreeHash`, hash de patch, hash de
+diff ou SHAs Git, restent des algorithmes metier explicites.
+
+### 2.5 WorkflowExecutionRecord-as-execution-envelope
 
 Chaque workflow unit qui produit un artefact durable produit aussi un
 `WorkflowExecutionRecord`.
@@ -80,12 +103,12 @@ Le payload métier durable d'une startup task ou d'un stage complexe vit dans
 des artefacts métier typés, validés par Turnlock avant projection dans
 `WorkflowState`.
 
-### 2.4 Workspace physique exclusif
+### 2.6 Workspace physique exclusif
 
 Chaque run `/go` travaille dans un worktree Git physique privé. Une simple
 branche dans le checkout courant ne suffit pas pour la cible du workflow.
 
-### 2.5 Run-init idempotent par `runId`
+### 2.7 Run-init idempotent par `runId`
 
 `run-init` peut etre rejoue par Turnlock pour le meme `runId`. Ce retry doit
 produire le meme `WorkflowState` initialise ou echouer ferme.
@@ -102,17 +125,17 @@ Le retry ne doit jamais :
 Deux invocations `/go` distinctes produisent deux runs distincts. L'idempotence
 de `run-init` ne s'applique pas entre ces runs.
 
-### 2.6 Fail-closed
+### 2.8 Fail-closed
 
 Absence d'artefact, JSON invalide, schéma invalide, finding bloquant ouvert,
 preuve de reconstruction absente, ou état Git ambigu arrêtent le workflow.
 
-### 2.7 JSON-only entre unites de workflow
+### 2.9 JSON-only entre unites de workflow
 
 Tout artefact échangé entre startup tasks, stages et reviews est du JSON
 validable ou une evidence ref pointant vers un fichier sous `artefactDir`.
 
-### 2.8 Typed business artifacts
+### 2.10 Typed business artifacts
 
 Un résultat métier structuré consommé par un stage suivant doit être porté par
 un artefact métier typé. `StageOutput.errors` ne doit pas devenir un canal
@@ -124,25 +147,25 @@ peut être `passed` même si cet artefact contient des findings `Critical` ou
 `Major` bloquants. La transition suivante lit les findings projetés dans
 `WorkflowState`, pas un échec d'exécution du stage.
 
-### 2.9 No hidden judgment
+### 2.11 No hidden judgment
 
 Une transition dépend d'un statut, d'un booléen, d'un hash, d'un compteur, d'une
 HumanGate, d'un artefact métier typé validé, ou d'un finding structuré. Elle ne
 dépend jamais d'une phrase libre.
 
-### 2.10 Toute mutation invalide les gates
+### 2.12 Toute mutation invalide les gates
 
 Après toute délégation qui modifie le worktree, les checks précédents ne sont
 plus autoritaires. Le workflow revient à `change-snapshot`, puis aux gates
 requises.
 
-### 2.11 Review globale avant packaging, vérification après packaging
+### 2.13 Review globale avant packaging, vérification après packaging
 
 Le workflow review le résultat global final avant de le découper. Le découpage
 ne peut toutefois pas être publié sans `package-verify`, car le split peut créer
 des états intermédiaires invalides.
 
-### 2.12 Startup branches sans ecriture concurrente d'etat
+### 2.14 Startup branches sans ecriture concurrente d'etat
 
 Le startup peut lancer des startup branches de demarrage, mais ces branches
 ne modifient pas directement `WorkflowState`.
@@ -152,7 +175,7 @@ Chaque branche produit des artefacts, evidence refs et un
 ensuite les artefacts valides dans `WorkflowState` via une transition
 deterministe.
 
-### 2.13 Capture mecanique, analyse semantique tardive
+### 2.15 Capture mecanique, analyse semantique tardive
 
 La capture du moment `/go` est mecanique. Elle fige des references, extraits et
 hashes.
@@ -269,7 +292,7 @@ Le stage est sémantique et encadré par Turnlock, mais son coeur est agentique.
 ### 4.3 `change-snapshot`
 
 Capture le diff courant, le périmètre des fichiers modifiés, `StageOutput`, et
-les hashes canoniques après une mutation.
+les empreintes d'etat apres une mutation.
 
 Ce stage rend le travail agentique vérifiable par les gates suivantes.
 

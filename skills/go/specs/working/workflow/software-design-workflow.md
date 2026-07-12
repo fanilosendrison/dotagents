@@ -82,7 +82,7 @@ l'enveloppe runtime : `StateFile<WorkflowState>`, `runId`, `runDir`, lock,
 logger, horloges et persistance atomique.
 
 `run-init` initialise ensuite le payload `/go` dans `StateFile.data` :
-`RepositoryLaunchContext`, `WorkflowPolicy`, hashes canoniques des inputs,
+`RepositoryLaunchContext`, `WorkflowPolicy`, hashes JCS des inputs JSON,
 `artefactRoot`, marqueur d'ownership, chemin de worktree reserve et startup task
 records initiaux.
 
@@ -107,7 +107,7 @@ Il capture :
 - une reference de session ;
 - un extrait minimal gele de session ;
 - le prompt exact du `/go` ;
-- les hashes du prompt et de l'extrait.
+- les hashes de contenu du prompt et de l'extrait.
 
 Il ne resout pas les specs, ne deduit pas les contraintes et ne produit pas
 d'artefact semantique precoce. Ces interpretations appartiennent aux reviews,

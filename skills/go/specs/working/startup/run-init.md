@@ -44,7 +44,7 @@ Turnlock a deja cree l'enveloppe runtime avant que `run-init` s'execute :
 - `runId` fourni par Turnlock ;
 - `RepositoryLaunchContext` fourni par le parent process ;
 - `WorkflowPolicy` fourni par le parent process ou la configuration `/go` ;
-- hashes canoniques du `RepositoryLaunchContext` et du `WorkflowPolicy` ;
+- hashes JCS du `RepositoryLaunchContext` et du `WorkflowPolicy` ;
 - reference vers l'enveloppe Turnlock ;
 - `artefactRoot` ou reference equivalente ;
 - chemin de worktree reserve, sans checkout Git ;
@@ -191,7 +191,7 @@ Responsabilites de `run-init` :
 
 - stocker le `RepositoryLaunchContext` parent ;
 - stocker le `WorkflowPolicy` du run ;
-- calculer et stocker les hashes canoniques de ces inputs ;
+- calculer et stocker les hashes JCS de ces inputs ;
 - enregistrer une reference vers le run Turnlock ;
 - creer l'unique `artefactRoot` du run ;
 - creer `workflowLogRoot` si le workflow a besoin de logs metier separes ;
@@ -502,12 +502,13 @@ Inputs stables :
 - refs runtime Turnlock ;
 - configuration de stockage du run.
 
-`run-init` doit calculer des hashes canoniques pour les inputs semantiques qu'il
-stocke :
+`run-init` doit calculer des hashes JCS pour les inputs semantiques qu'il
+stocke, selon le profil JCS `/go` defini dans
+[`canonical-hashing.md`](../workflow/canonical-hashing.md) :
 
 ```text
-launchContextHash = sha256(canonical-json(RepositoryLaunchContext))
-workflowPolicyHash = sha256(canonical-json(WorkflowPolicy))
+launchContextHash = canonicalHash(RepositoryLaunchContext)
+workflowPolicyHash = canonicalHash(WorkflowPolicy)
 ```
 
 Ces hashes sont stockes dans `RunInitRecord` et dans

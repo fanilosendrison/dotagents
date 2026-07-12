@@ -174,12 +174,20 @@ Dans le cas d'un rerun depuis le worktree, `ProjectDiscovery.source` vaut
 - Ne pas modifier le repo.
 - Ne pas executer les checks lourds ; seulement decouvrir.
 - Preferer les scripts du projet aux conventions generiques.
+- Preferer les CLIs et formats officiels du langage ou du package manager aux
+  parseurs maison : par exemple `cargo metadata`, `go list -json`, commandes du
+  package manager, scripts declares et parsers adaptes au format.
+- Ne pas reimplementer un resolver de dependances, un parser de lockfile
+  complexe ou un systeme de workspace quand l'outil du domaine peut le decrire.
 - Echouer ferme si aucun moyen fiable de verifier le projet n'existe et que
   `WorkflowPolicy.discovery.noReliableGateBehavior` ou `WorkflowPolicy.gates`
   l'exige.
 - Ne jamais rendre autoritatif un draft non prouve contre `WorkSession`.
 - Ne jamais utiliser le checkout source comme `workingDirectory` des gates
   finales.
+
+Les primitives externes attendues sont listees dans
+[`external-primitives.md`](../workflow/external-primitives.md).
 
 ---
 

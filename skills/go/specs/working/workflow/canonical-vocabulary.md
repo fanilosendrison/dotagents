@@ -94,7 +94,7 @@ Turnlock cree l'enveloppe runtime :
 - `runId` ;
 - `RepositoryLaunchContext` ;
 - `WorkflowPolicy` ;
-- hashes canoniques des inputs de lancement ;
+- hashes JCS des inputs JSON de lancement ;
 - reference vers le run Turnlock ;
 - `artefactRoot` ;
 - marqueur d'ownership de `run-init` ;

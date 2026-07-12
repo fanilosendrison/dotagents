@@ -21,6 +21,12 @@ workflow impose une forme Git reviewable.
 
 La contrepartie est obligatoire : le split doit être vérifié avant publication.
 
+`package-plan` et `package-verify` doivent utiliser les primitives Git
+standardisees decrites dans
+[`external-primitives.md`](../workflow/external-primitives.md). Le workflow peut
+decider quels paquets existent, mais il ne doit pas parser, appliquer ou
+comparer des patchs avec une implementation maison quand Git sait le faire.
+
 ---
 
 ## 2. `package-plan`
@@ -73,6 +79,12 @@ appartiennent a `pr-ci-review`.
 - Chaque paquet dépendant peut être appliqué sur sa base de stack.
 - Les checks mécaniques requis passent pour chaque branche ou stack selon le
   scope.
+
+La reconstruction doit etre prouvee avec des artefacts produits ou valides par
+Git, par exemple `git diff --binary --full-index`, `git apply --check`,
+`git apply`, `git patch-id --stable`, `git merge-tree` ou `git range-diff`
+selon le cas. Les hashes de patch portent sur la primitive Git choisie, pas sur
+un format de diff invente par `/go`.
 
 ### Failure behavior de package-verify
 

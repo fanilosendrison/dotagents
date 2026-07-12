@@ -13,6 +13,12 @@ publiées.
 `pr-ci-review` ne review pas le worktree local. Elle review la realite publiee :
 ce que le provider Git expose comme PR, head, base, diff et CI.
 
+Cette realite doit etre lue via les APIs ou CLIs provider structurees. Le stage
+ne doit pas scraper l'interface web du provider ni deduire l'etat CI depuis du
+texte libre quand les checks, statuses, diffs ou commits sont disponibles sous
+forme structuree. Voir
+[`external-primitives.md`](../workflow/external-primitives.md).
+
 ---
 
 ## 2. Inputs

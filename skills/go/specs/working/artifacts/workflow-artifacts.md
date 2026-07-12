@@ -324,6 +324,9 @@ type RunCaptureArtifact = {
 
 `RunCaptureArtifact` est mecanique. Il ne contient pas de resume,
 contraintes, criteres d'acceptation ou specs applicables deduits par LLM.
+`promptHash` et `excerptHash` sont des hashes de contenu
+`sha256:<lowercase-hex>` calcules sur les octets exacts des fichiers
+referencés, pas des hashes JSON JCS.
 
 ```ts
 type RepositoryDiscoveryDraft = {
@@ -355,6 +358,9 @@ type InspectedFileRef = {
   requiredForFinalization: boolean;
 };
 ```
+
+`InspectedFileRef.hash` est un hash de contenu de fichier
+`sha256:<lowercase-hex>`. Il ne passe pas par la canonicalisation JSON JCS.
 
 ```ts
 type CandidateMechanicalCommand = {

@@ -90,8 +90,11 @@ evidence refs, NUL bytes, and `..` path segments.
 
 `createHash("sha256")` returns lowercase hex SHA-256 digests.
 
-`JSON.stringify(output, null, 2) + "\n"` is the canonical serialized
-`output.json` payload.
+`JSON.stringify(output, null, 2) + "\n"` is the canonical persisted
+`output.json` payload for the stage harness. It is not a canonical JSON hashing
+primitive. JSON business-object hashes must use RFC 8785 / JCS through the
+workflow profile in
+[`canonical-hashing.md`](../../working/workflow/canonical-hashing.md).
 
 ## 3. Error Semantics
 

@@ -22,6 +22,12 @@ Les findings permettent une transition mécanique :
 Le rapport peut contenir une narration riche. Les transitions du workflow ne
 lisent que les findings structures, les statuts, les hashes et les preuves.
 
+`ReviewFinding` est une decision metier du workflow. Il ne remplace pas les
+formats standards de diagnostics code-level. Quand un outil fournit SARIF ou un
+format equivalent, la sortie standard doit etre conservee comme evidence et
+seulement projetee en finding apres validation. Voir
+[`external-primitives.md`](../workflow/external-primitives.md).
+
 ---
 
 ## 2. Dimensions

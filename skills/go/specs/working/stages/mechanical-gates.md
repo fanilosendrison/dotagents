@@ -55,10 +55,17 @@ n'a pas ete finalisee contre le worktree prive, le stage echoue ferme.
 - Chaque check produit un `CheckRun`.
 - Les commandes sont des argv, pas des chaînes shell concaténées.
 - Les sorties longues vont en evidence files.
+- Les formats standards disponibles doivent etre conserves comme evidence :
+  JUnit XML ou TAP pour tests, LCOV ou Cobertura pour coverage, SARIF pour
+  diagnostics lint, security ou static analysis.
 - Un check requis failed bloque le stage.
 - Un check optionnel failed produit finding ou warning selon
   `WorkflowPolicy.gates.allowOptionalGateFailure`.
 - Toute correction déléguée retourne à `change-snapshot`.
+
+`CheckRun` est l'enveloppe workflow du resultat. Il ne remplace pas les formats
+standard emis par les outils. Voir
+[`external-primitives.md`](../workflow/external-primitives.md).
 
 ---
 

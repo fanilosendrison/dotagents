@@ -394,8 +394,9 @@ Field semantics:
   `git status --porcelain=v1 -z --ignore-submodules=none` is empty after stage
   execution, or `null` only for explained `errored` outputs.
 
-`output.json` contains exactly the canonical serialized `StageOutput` produced
-by M6 and written by M7.
+`output.json` contains exactly the canonical persisted `StageOutput` produced
+by M6 and written by M7. This is the stage harness return artifact; it is not a
+general JSON canonicalization or hashing primitive.
 
 ---
 

@@ -109,6 +109,10 @@ const payload = JSON.stringify(output, null, 2) + "\n";
 ```
 
 The schema defines object shape, so no custom key sorting is required in v1.
+This serialization is the canonical persisted `StageOutput` artifact for the
+stage harness. It is not a general JSON canonicalization algorithm. Any
+cryptographic hash of a JSON business object must use the workflow JCS profile
+defined in [`canonical-hashing.md`](../../working/workflow/canonical-hashing.md).
 
 ### 4.3 Atomic write
 
