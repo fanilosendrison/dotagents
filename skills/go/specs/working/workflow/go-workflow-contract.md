@@ -9,6 +9,10 @@ Documents compagnons :
 - [`canonical-vocabulary.md`](./canonical-vocabulary.md) - vocabulaire normatif.
 - [`software-design-workflow.md`](./software-design-workflow.md) - récit complet
   du cycle `/go`.
+- [`launch-context.md`](../startup/launch-context.md) - contexte parent resolu
+  avant `run-init`.
+- [`run-init.md`](../startup/run-init.md) - startup du run, startup branches
+  et joins fail-closed.
 - [`multi-agent-concurrency.md`](./multi-agent-concurrency.md) - isolation et
   concurrence multi-run.
 - [`workflow-artifacts.md`](../artifacts/workflow-artifacts.md) - types JSON
@@ -36,8 +40,12 @@ Le workflow doit échouer fermé dès qu'il ne peut plus prouver l'état courant
 
 ### 2.1 State-authoritative
 
-`PipelineState` est la source de vérité de l'avancement. Les logs, messages
+`WorkflowState` est la source de vérité de l'avancement. Les logs, messages
 agentiques et commentaires PR sont dérivés.
+
+Turnlock persiste cet etat comme `StateFile<WorkflowState>`. Turnlock fournit
+l'enveloppe durable ; `/go` fournit le payload metier stocke dans
+`StateFile.data`.
 
 ### 2.2 StageOutput-as-execution-envelope
 
@@ -45,8 +53,12 @@ Chaque stage standalone produit un `StageOutput` canonique via le stage harness.
 Ce `StageOutput` est l'enveloppe d'exécution du stage : statut, evidence refs,
 erreurs de stage, champs Git canoniques et chemin de l'`output.json`.
 
-Le payload métier durable d'un stage complexe vit dans des artefacts métier
-typés, validés par Turnlock avant projection dans `PipelineState`.
+Une startup task peut aussi utiliser le stage harness pour produire la meme
+enveloppe d'execution. Cela ne la transforme pas en stage metier.
+
+Le payload métier durable d'une startup task ou d'un stage complexe vit dans
+des artefacts métier typés, validés par Turnlock avant projection dans
+`WorkflowState`.
 
 ### 2.3 Workspace physique exclusif
 
@@ -58,10 +70,10 @@ branche dans le checkout courant ne suffit pas pour la cible du workflow.
 Absence d'artefact, JSON invalide, schéma invalide, finding bloquant ouvert,
 preuve de reconstruction absente, ou état Git ambigu arrêtent le workflow.
 
-### 2.5 JSON-only entre stages
+### 2.5 JSON-only entre unites de workflow
 
-Tout artefact échangé entre stages est du JSON validable ou une evidence ref
-pointant vers un fichier sous `artefactDir`.
+Tout artefact échangé entre startup tasks, stages et reviews est du JSON
+validable ou une evidence ref pointant vers un fichier sous `artefactDir`.
 
 ### 2.6 Typed business artifacts
 
@@ -73,7 +85,7 @@ Cas normatif : `pre-package-review` et `pr-ci-review` produisent des
 `ReviewFinding[]` dans un `ReviewFindingsArtifact`. Le `StageOutput` de review
 peut être `passed` même si cet artefact contient des findings `Critical` ou
 `Major` bloquants. La transition suivante lit les findings projetés dans
-`PipelineState`, pas un échec d'exécution du stage.
+`WorkflowState`, pas un échec d'exécution du stage.
 
 ### 2.7 No hidden judgment
 
@@ -92,6 +104,23 @@ requises.
 Le workflow review le résultat global final avant de le découper. Le découpage
 ne peut toutefois pas être publié sans `package-verify`, car le split peut créer
 des états intermédiaires invalides.
+
+### 2.10 Startup branches sans ecriture concurrente d'etat
+
+Le startup peut lancer des startup branches de demarrage, mais ces branches
+ne modifient pas directement `WorkflowState`.
+
+Chaque branche produit des artefacts et evidence refs sous l'`artefactRoot` du
+run. Turnlock projette ensuite les artefacts valides dans `WorkflowState` via
+une transition deterministe.
+
+### 2.11 Capture mecanique, analyse semantique tardive
+
+La capture du moment `/go` est mecanique. Elle fige des references, extraits et
+hashes.
+
+L'analyse de l'intention utilisateur appartient aux stages de review, quand le
+diff reel, les gates, les specs et les snapshots sont disponibles.
 
 ---
 
@@ -122,82 +151,151 @@ contexte explicite.
 
 ---
 
-## 4. Stages canoniques
+## 4. Startup et stages canoniques
 
-### 4.1 `intake`
+### 4.1 `run-init`
 
-Fige la demande utilisateur, les specs applicables, les contraintes, les
-critères d'acceptation, et le mode d'autorisation.
+`run-init` n'est pas un stage metier. C'est le startup mecanique du run.
 
-Ce stage ne modifie pas le repo cible.
+Avant `run-init`, le parent process resout un `RepositoryLaunchContext` :
+repo Git cible, chemins actifs, sous-projet optionnel, symlinks et hints de
+provider ou branche cible. Si ce contexte est absent ou ambigu, `/go` echoue
+avant Turnlock.
 
-### 4.2 `workspace-setup`
+Turnlock cree `StateFile<WorkflowState>`, `runDir`, lock runtime, horloges,
+logger et ecritures atomiques. `run-init` initialise `state.data` :
+`WorkflowState.runInit`, `artefactRoot`, chemin de worktree reserve et
+`startupTasks` initiales.
+
+Il ne decouvre pas le repo, ne cree pas l'enveloppe runtime Turnlock, et ne
+cree pas le checkout Git physique. Ces responsabilites appartiennent
+respectivement au parent process, a Turnlock et a `workspace-setup`.
+
+```text
+run-init
+├─ run-capture
+├─ repo-discovery-draft
+└─ workspace-setup
+       ↓
+project-discovery-finalize
+       ↓
+implementation
+```
+
+Les sous-sections `4.1.x` ne sont pas des stages canoniques. Elles decrivent le
+startup du run.
+
+#### 4.1.1 `run-capture`
+
+Fige le prompt `/go`, une reference de session, un extrait minimal de session
+et leurs hashes.
+
+Cette startup branch ne modifie pas le repo cible, ne lit pas le worktree, et
+ne produit aucune interpretation semantique.
+
+#### 4.1.2 `workspace-setup`
 
 Crée le worktree Git physique privé du run, enregistre `WorkSession`, et fixe
 `baseHeadSha`.
 
-Ce stage est la frontière de départ de toutes les preuves de diff.
+Cette startup task est la frontière de départ de toutes les preuves de diff.
 
-### 4.3 `agent-onboarding`
+#### 4.1.3 `repo-discovery-draft`
+
+Inspecte le checkout source en lecture seule pour detecter manifestes,
+lockfiles, scripts, configs et capacites provider candidates.
+
+Cette startup branch produit un brouillon non autoritatif. Elle peut s'executer
+en parallele de `workspace-setup`.
+
+#### 4.1.4 `project-discovery-finalize`
 
 Détecte les commandes et capacités du repo : package manager, lint, typecheck,
 tests, build, scans disponibles, conventions Git et provider.
 
-Ce stage produit une matrice de gates mécaniques à exécuter.
+Ce startup join finalise le brouillon de discovery contre le worktree prive, ou
+relance la discovery depuis `worktreeRoot` si le brouillon ne peut pas etre
+prouve.
 
-### 4.4 `implementation`
+Ce join produit le `ProjectDiscovery` autoritatif et la matrice de gates
+mecaniques à executer.
 
-Délègue le travail de création ou modification à l'agent principal, à partir de
-la demande et des specs.
+### 4.2 `implementation`
 
-Le stage est sémantique et encadrée par Turnlock, mais son coeur est agentique.
+Délègue le travail de création ou modification à l'agent principal, à partir du
+contexte de session courant, du worktree prive, des specs disponibles et du
+`ProjectDiscovery`.
 
-### 4.5 `change-snapshot`
+Le stage est sémantique et encadré par Turnlock, mais son coeur est agentique.
+
+### 4.3 `change-snapshot`
 
 Capture le diff courant, le périmètre des fichiers modifiés, `StageOutput`, et
 les hashes canoniques après une mutation.
 
 Ce stage rend le travail agentique vérifiable par les gates suivantes.
 
-### 4.6 `conduct-settled`
+### 4.4 `conduct-settled`
 
 Vérifie les traces de processus après mutation : secrets, fichiers temporaires,
 permissions dangereuses, staging area, debug persistants.
 
-### 4.7 `mechanical-gates`
+### 4.5 `mechanical-gates`
 
 Exécute les checks mécaniques ordonnés pour le repo : format, lint, typecheck,
 tests, build, scans, generated drift, API compat si disponibles.
 
 Ce stage peut contenir plusieurs `CheckRun`.
 
-### 4.8 `pre-package-review`
+### 4.6 `pre-package-review`
 
-Review hybride du résultat global final avant découpage en paquets. Ce stage produit
-un `ReviewFindingsArtifact` contenant des `ReviewFinding[]` structurés.
+Review hybride du résultat global final avant découpage en paquets.
+
+Ce stage lit `RunCaptureArtifact`, l'extrait de session gele, les specs
+applicables, le diff final et les gates mecaniques. Il produit un
+`ReviewReportArtifact` detaille et un `ReviewFindingsArtifact` contenant des
+`ReviewFinding[]` structurés.
+
+Objet reviewé :
+
+- le worktree prive du run ;
+- le dernier `ChangeSnapshot` global ;
+- le diff complet entre `baseHeadSha` et l'etat final local ;
+- les gates mecaniques locales executees sur ce snapshot.
+
+Question autoritative :
+
+```text
+Le changement complet, avant decoupage Git, implemente-t-il l'intention
+utilisateur et respecte-t-il les specs ?
+```
+
+Ce stage ne prouve pas que les futures PRs publiees seront valides. Il ne voit
+pas encore les branches PR finales, la CI provider, le drift de base distante,
+les conflits de merge, ni les effets du split en paquets.
 
 Elle cherche zéro risque bloquant, pas zéro remarque.
 
-### 4.9 `review-remediation`
+### 4.7 `review-remediation`
 
 Résout les findings ouverts via HumanGate, dismissal justifié, defer autorisé,
 ou délégation de correction.
 
 Toute correction retourne à `change-snapshot`.
 
-### 4.10 `final-change-snapshot`
+### 4.8 `final-change-snapshot`
 
 Capture l'état final validé qui servira d'entrée au packaging.
 
 Le hash de cet état devient la référence contre laquelle le split doit prouver
 sa reconstruction.
 
-### 4.11 `package-plan`
+### 4.9 `package-plan`
 
 Découpe le diff final en paquets logiques de PR, avec dépendances, branches
 cibles, et preuve de reconstruction attendue.
 
-### 4.12 `package-verify`
+### 4.10 `package-verify`
 
 Vérifie que les paquets reconstruisent exactement le diff final et que chaque
 branche ou stack intermédiaire est mécaniquement valide selon son scope.
@@ -205,27 +303,50 @@ branche ou stack intermédiaire est mécaniquement valide selon son scope.
 Ce stage est obligatoire parce que la review globale ne prouve pas la
 validité des états partiels.
 
-### 4.13 `branch-materialize`
+### 4.11 `branch-materialize`
 
 Crée les branches `pr/<run-id>/<slug>` depuis leur base déclarée et applique les
 paquets vérifiés.
 
-### 4.14 `commit-package`
+### 4.12 `commit-package`
 
 Crée les commits atomiques pour chaque paquet via le chemin Git de confiance.
 
-Ce stage est la seule stage autorisée à produire des commits.
+Ce stage est le seul stage autorisé à produire des commits.
 
-### 4.15 `publish-pr`
+### 4.13 `publish-pr`
 
 Push les branches PR autorisées et ouvre les PRs avec les artefacts de preuve.
 
-### 4.16 `pr-ci-review`
+### 4.14 `pr-ci-review`
 
 Rejoue les gates mécaniques et la review structurée sur le diff réellement
-poussé. C'est la gate autoritative avant merge.
+poussé. Ce stage consomme aussi `RunCaptureArtifact` pour verifier que le diff
+publie reste conforme a l'intention gelee. C'est la gate autoritative avant
+merge.
 
-### 4.17 `post-merge-tracking`
+Objet reviewé :
+
+- la PR publiee chez le provider ;
+- la branche head distante ;
+- la branche base distante ;
+- le diff provider reel ;
+- les resultats CI et checks provider ;
+- les paquets materialises, commits et metadata de publication.
+
+Question autoritative :
+
+```text
+Ce qui est reellement sur le point d'etre merge correspond-il encore au
+changement valide, dans une PR saine et mergeable ?
+```
+
+Ce stage ne remplace pas `pre-package-review`. Il protege contre les risques
+introduits apres la review globale : split invalide, commit manquant, push
+incorrect, drift de base, CI distante differente, conflit de merge ou diff PR
+qui ne correspond plus aux artefacts locaux.
+
+### 4.15 `post-merge-tracking`
 
 Suit les merges, retarget/rebase les PRs dépendantes, enregistre les statuts, et
 nettoie les branches quand les preuves nécessaires sont conservées.
@@ -234,12 +355,26 @@ nettoie les branches quand les preuves nécessaires sont conservées.
 
 ## 5. Règles de transition
 
-Le chemin nominal est :
+`run-init` est une initialisation mecanique obligatoire, pas un stage metier. Il
+stocke le `RepositoryLaunchContext` fourni par le parent process dans
+`WorkflowState`, puis initialise les refs `/go` : `artefactRoot`, chemin de
+worktree reserve et startup task records. L'enveloppe runtime est fournie par
+Turnlock.
+
+Apres `run-init`, le demarrage nominal est parallele :
 
 ```text
-intake
--> workspace-setup
--> agent-onboarding
+run-init
+├─ run-capture
+├─ repo-discovery-draft
+└─ workspace-setup
+```
+
+Le startup joint ensuite les branches necessaires avant le premier stage
+metier :
+
+```text
+project-discovery-finalize
 -> implementation
 -> change-snapshot
 -> conduct-settled
@@ -256,6 +391,13 @@ intake
 -> post-merge-tracking
 ```
 
+`project-discovery-finalize` exige `WorkSession` et soit un `RepositoryDiscoveryDraft`
+valide, soit l'autorisation de relancer la discovery depuis `worktreeRoot`.
+
+`pre-package-review` exige un `RunCaptureArtifact` valide. `run-capture` peut
+donc s'executer en parallele des autres startup tasks, mais son absence bloque
+la review.
+
 `review-remediation` peut retourner à `change-snapshot`.
 
 `mechanical-gates` peut déléguer des corrections, mais toute correction retourne
@@ -271,10 +413,11 @@ intake
 
 Le workflow peut passer à `package-plan` seulement si :
 
+- `RunCaptureArtifact` est valide et ses hashes correspondent aux evidences ;
 - `conduct-settled` est `passed` ;
 - toutes les gates mécaniques requises sont `passed` ;
 - aucun finding `Critical` n'est `open` ;
-- aucun finding `Major` avec `blocksPipeline: true` n'est `open` ;
+- aucun finding `Major` avec `blocksWorkflow: true` n'est `open` ;
 - toutes les HumanGates requises ont une décision et une justification ;
 - le dernier `trackedWorktreeHash` correspond à l'état final reviewé ;
 - `worktreeClean` est compatible avec la policy de packaging.
@@ -309,8 +452,9 @@ Un finding sans preuve peut être `Minor` ou `Notable`, mais ne peut pas être
 
 Turnlock porte la mécanique :
 
-- états atomiques ;
-- persistance de `PipelineState`;
+- `StateFile<WorkflowState>` ;
+- etats atomiques ;
+- persistance de `state.json` ;
 - reprise ;
 - retry ;
 - fallback ;
@@ -320,7 +464,7 @@ Turnlock porte la mécanique :
 
 Le workflow `/go` porte la sémantique :
 
-- quelles stages existent ;
+- quelles startup tasks et quels stages existent ;
 - quelles preuves sont exigées ;
 - quelles transitions sont valides ;
 - quels artefacts sont produits ;

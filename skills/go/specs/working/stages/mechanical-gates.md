@@ -14,7 +14,7 @@ packaging.
 ## 2. Inputs
 
 - dernier `ChangeSnapshot`
-- `ProjectDiscovery`
+- `ProjectDiscovery` finalise
 - `WorkSession`
 - policy de gates
 
@@ -44,6 +44,9 @@ api-compat
 ```
 
 Les checks rapides et structurels précèdent les checks coûteux.
+
+`mechanical-gates` ne consomme jamais `RepositoryDiscoveryDraft`. Si la discovery
+n'a pas ete finalisee contre le worktree prive, le stage echoue ferme.
 
 ---
 

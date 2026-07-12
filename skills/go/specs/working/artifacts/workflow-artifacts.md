@@ -1,27 +1,34 @@
 # Artefacts JSON du workflow `/go`
 
-Ce document définit les artefacts JSON partagés entre stages. Les
-résultats individuels de stage restent des `StageOutput` produits par le stage
-harness. Les payloads métier durables sont des artefacts métier typés validés
-avant projection dans `PipelineState`.
+Ce document définit les artefacts JSON partagés entre startup tasks, stages et
+reviews. Les résultats individuels restent des `StageOutput` produits par le
+stage harness quand l'unite passe par ce harness. Les payloads métier durables
+sont des artefacts métier typés validés avant projection dans `WorkflowState`.
 
 ---
 
-## 1. `PipelineState`
+## 1. `WorkflowState`
 
-État global du run, porté par Turnlock.
+Payload metier `/go` stocke par Turnlock dans `StateFile<WorkflowState>`.
+
+Turnlock fournit le fichier d'etat durable (`StateFile<State>`). `/go` fournit
+la forme de `StateFile.data`.
 
 ```ts
-type PipelineState = {
+type WorkflowState = {
+  schema: "go.workflow-state.v1";
   runId: string;
-  requestedChange: RequestedChange;
+  runInit: RunInitRecord;
+  policy: WorkflowPolicy;
   repository: RepositoryContext;
-  currentStage: PipelineStage;
-  currentTurnlockState: string;
+  currentStage: WorkflowStage | null;
+  startupTasks: StartupTaskRecord[];
+  runCapture?: RunCaptureArtifact;
+  repositoryDiscoveryDraft?: RepositoryDiscoveryDraft;
   workSession?: WorkSession;
   projectDiscovery?: ProjectDiscovery;
   snapshots: ChangeSnapshot[];
-  stageOutputs: StageOutputRecord[];
+  executionRecords: WorkflowExecutionRecord[];
   businessArtifacts: BusinessArtifactRecord[];
   checks: CheckRun[];
   findings: ReviewFinding[];
@@ -36,15 +43,30 @@ type PipelineState = {
 };
 ```
 
+`currentStage` represente le chemin metier principal. Il vaut `null` tant que
+le run est encore dans le startup.
+
+`policy` est un snapshot durable des decisions d'autorisation et de securite du
+run. Les docs peuvent dire "selon policy" seulement si la decision correspond a
+un champ de `WorkflowPolicy`.
+
+Les startup tasks sont representees par `startupTasks` et leurs artefacts
+metier, puis projetees dans `WorkflowState` par Turnlock apres validation.
+
 ---
 
-## 2. Stages et états
+## 2. Startup tasks, stages et états
 
 ```ts
-type PipelineStage =
-  | "intake"
+type StartupTaskName =
+  | "run-capture"
+  | "repo-discovery-draft"
   | "workspace-setup"
-  | "agent-onboarding"
+  | "project-discovery-finalize";
+```
+
+```ts
+type WorkflowStage =
   | "implementation"
   | "change-snapshot"
   | "conduct-settled"
@@ -62,9 +84,101 @@ type PipelineStage =
 ```
 
 ```ts
+type WorkflowUnitName = StartupTaskName | WorkflowStage;
+```
+
+```ts
+type RunInitRecord = {
+  schema: "go.run-init.v1";
+  runId: string;
+  launchContext: RepositoryLaunchContext;
+  turnlockRun: TurnlockRunRef;
+  artefactRootRef: string;
+  workflowLogRootRef?: string;
+  worktreeRootReservedPath: string;
+  initializedAt: string;
+};
+```
+
+```ts
+type RepositoryLaunchContext = {
+  schema: "go.repository-launch-context.v1";
+  invocationDirectory: string;
+  activePathRefs: string[];
+  repositoryRootHint?: string;
+  canonicalRepositoryRoot: string;
+  projectRoot?: string;
+  providerHint?: "github" | "gitlab" | "local-only";
+  remoteNameHint?: string;
+  defaultTargetBranchHint?: string;
+  resolutionSource:
+    | "explicit-user-input"
+    | "active-path"
+    | "invocation-directory"
+    | "parent-session";
+  symlinkResolved: boolean;
+  resolvedAt: string;
+};
+```
+
+`RepositoryLaunchContext` est fourni par le parent process avant `run-init`.
+`run-init` le stocke sans discovery Git. `workspace-setup` le verifie ensuite
+contre l'etat Git reel.
+
+```ts
+type TurnlockRunRef = {
+  runId: string;
+  runDirRef: string;
+  stateFileRef: string;
+  eventsRef?: string;
+};
+```
+
+`TurnlockRunRef` reference l'enveloppe runtime creee par Turnlock. `/go` ne
+definit pas le lock runtime, le schema de `StateFile`, ni l'ecriture atomique de
+`state.json`.
+
+```ts
+type StartupTaskRecord = {
+  task: StartupTaskName;
+  status: "not-started" | "running" | "passed" | "failed" | "errored";
+  startedAt?: string;
+  endedAt?: string;
+  executionRecordId?: string;
+  businessArtifactIds: string[];
+  requiredBefore: WorkflowUnitName[];
+};
+```
+
+```ts
+type WorkflowExecutionRecord = {
+  id: string;
+  unit: WorkflowUnitName;
+  envelopeKind: "stage-output" | "startup-output" | "turnlock-transition";
+  startedAt: string;
+  endedAt: string;
+  artefactDir: string;
+  outputJsonPath: string;
+  status: "passed" | "failed" | "skipped" | "errored";
+  evidenceRefs: string[];
+  businessArtifactIds: string[];
+  errors: StageError[];
+  headShaAfter: string | null;
+  trackedWorktreeHash: string | null;
+  worktreeClean: boolean | null;
+};
+```
+
+`WorkflowExecutionRecord` est l'enveloppe durable d'une workflow unit. Pour un
+stage execute via le stage harness, `envelopeKind` vaut `"stage-output"` et
+`outputJsonPath` pointe vers le `StageOutput` canonique. Pour une startup task
+qui n'est pas un stage, le record garde le meme role d'audit sans la renommer en
+stage.
+
+```ts
 type TurnlockStateRecord = {
   id: string;
-  stage: PipelineStage;
+  unit: WorkflowUnitName;
   stateName: string;
   startedAt: string;
   endedAt?: string;
@@ -76,32 +190,179 @@ type TurnlockStateRecord = {
 
 ---
 
-## 3. Demande et repository
+## 3. Policy durable du run
 
 ```ts
-type RequestedChange = {
-  summary: string;
-  promptRef?: string;
-  specRefs: string[];
-  acceptanceCriteria: string[];
-  constraints: string[];
+type WorkflowPolicy = {
+  schema: "go.workflow-policy.v1";
+  dirtyState: DirtyStatePolicy;
+  launchContextMismatch: LaunchContextMismatchPolicy;
+  discovery: DiscoveryPolicy;
+  gates: GatePolicy;
+  review: ReviewPolicy;
+  packaging: PackagingPolicy;
+  retention: RetentionPolicy;
+};
+```
+
+```ts
+type DirtyStatePolicy = {
+  mode: "require-clean" | "adopt-as-input" | "human-gate-if-dirty";
+  adoptionRequiresPatchEvidence: boolean;
+  adoptionRequiresWorktreeReplay: boolean;
+};
+```
+
+```ts
+type LaunchContextMismatchPolicy = {
+  repositoryRootMismatch: "fail";
+  projectRootOutsideRepository: "fail";
+  defaultTargetBranchMismatch: "correct-and-record" | "fail";
+  providerMismatch: "correct-and-record" | "fail";
+};
+```
+
+```ts
+type DiscoveryPolicy = {
+  allowSourceCheckoutDraft: boolean;
+  allowWorktreeRerun: boolean;
+  noReliableGateBehavior: "fail" | "human-gate" | "allow-with-evidence";
+};
+```
+
+```ts
+type GatePolicy = {
+  requiredKinds: Array<
+    | "format"
+    | "lint"
+    | "typecheck"
+    | "tests"
+    | "build"
+    | "security"
+    | "generated-drift"
+    | "api-compat"
+  >;
+  allowOptionalGateFailure: boolean;
+};
+```
+
+```ts
+type ReviewPolicy = {
+  requireRunCaptureForPrePackageReview: true;
+  requireRunCaptureForPrCiReview: true;
+  unclearIntentBehavior: "fail" | "human-gate";
+  blockingMajorFindingBehavior: "human-gate" | "fail";
+};
+```
+
+```ts
+type PackagingPolicy = {
+  requireCleanWorktreeForPackaging: boolean;
+  allowPublishPr: boolean;
+  requirePackageReconstructionProof: boolean;
+};
+```
+
+```ts
+type RetentionPolicy = {
+  incompleteRunBehavior: "resume" | "quarantine" | "manual-cleanup";
+  staleRuntimeLockBehavior: "turnlock-policy";
+};
+```
+
+`WorkflowPolicy` est resolue par le parent process ou par la configuration du
+workflow avant `run-init`, puis stockee par `run-init`. Les startup tasks et
+stages ne doivent pas inventer de policy locale.
+
+---
+
+## 4. Capture, discovery et repository
+
+```ts
+type RunCaptureArtifact = {
+  schema: "go.run-capture.v1";
+  id: string;
+  runId: string;
+  sessionRef: string;
+  sessionExcerptRef: string;
+  promptAtGoRef: string;
+  promptHash: string;
+  excerptHash: string;
+  capturedAt: string;
+};
+```
+
+`RunCaptureArtifact` est mecanique. Il ne contient pas de resume,
+contraintes, criteres d'acceptation ou specs applicables deduits par LLM.
+
+```ts
+type RepositoryDiscoveryDraft = {
+  schema: "go.repository-discovery-draft.v1";
+  id: string;
+  runId: string;
+  sourceCheckoutRoot: string;
+  inspectedAt: string;
+  inspectedFiles: InspectedFileRef[];
+  candidatePackageManager?:
+    | "bun"
+    | "npm"
+    | "pnpm"
+    | "yarn"
+    | "cargo"
+    | "go"
+    | "python"
+    | "unknown";
+  candidateLockfiles: string[];
+  candidateCommands: CandidateMechanicalCommand[];
+  providerCapabilities: ProviderCapabilities;
+};
+```
+
+```ts
+type InspectedFileRef = {
+  path: string;
+  hash: string;
+  requiredForFinalization: boolean;
+};
+```
+
+```ts
+type CandidateMechanicalCommand = {
+  id: string;
+  kind:
+    | "format"
+    | "lint"
+    | "typecheck"
+    | "tests"
+    | "build"
+    | "security"
+    | "generated-drift"
+    | "api-compat"
+    | "custom";
+  command: string[];
+  discoveredFrom: string;
+  requiredCandidate: boolean;
 };
 ```
 
 ```ts
 type RepositoryContext = {
   repositoryRoot: string;
+  projectRoot?: string;
   provider?: "github" | "gitlab" | "local-only";
   remoteName?: string;
   defaultTargetBranch: string;
 };
 ```
 
+`RepositoryContext` est initialise depuis `RepositoryLaunchContext`, puis
+verifie ou corrige par `workspace-setup` selon la policy du run.
+
 ---
 
-## 4. `WorkSession`
+## 5. `WorkSession`
 
-Produit par `workspace-setup`.
+Produit par la startup task `workspace-setup`.
 
 ```ts
 type WorkSession = {
@@ -116,6 +377,7 @@ type WorkSession = {
   defaultTargetBranch: string;
   initialDirtyState: "clean" | "dirty-adopted";
   initialStatusPorcelain: string;
+  dirtyStateAdoption?: DirtyStateAdoption;
   workBranch: `work/${string}`;
   workBranchCreatedAt: string;
 };
@@ -124,15 +386,43 @@ type WorkSession = {
 `worktreeRoot` est un checkout physique privé. `artefactRoot` est hors du
 worktree.
 
+```ts
+type DirtyStateAdoption = {
+  sourceStatusPorcelainRef: string;
+  sourcePatchRef: string;
+  sourcePatchHash: string;
+  replayedIntoWorktree: boolean;
+  worktreeStatusAfterReplayRef: string;
+};
+```
+
+Si `initialDirtyState` vaut `"dirty-adopted"`, `dirtyStateAdoption` est
+obligatoire. L'adoption signifie que le dirty state du checkout source est
+capture comme patch, hashe, puis rejoue dans le worktree prive avant toute
+delegation agentique.
+
 ---
 
-## 5. `ProjectDiscovery`
+## 6. `ProjectDiscovery`
 
-Produit par `agent-onboarding`.
+Produit par le startup join `project-discovery-finalize` apres finalisation
+contre le worktree prive.
 
 ```ts
 type ProjectDiscovery = {
-  packageManager?: "bun" | "npm" | "pnpm" | "yarn" | "cargo" | "go" | "python" | "unknown";
+  source: "draft-finalized" | "worktree-rerun";
+  finalizedFromDraftId?: string;
+  finalizedAgainstWorktreeRoot: string;
+  inspectedFiles: InspectedFileRef[];
+  packageManager?:
+    | "bun"
+    | "npm"
+    | "pnpm"
+    | "yarn"
+    | "cargo"
+    | "go"
+    | "python"
+    | "unknown";
   lockfiles: string[];
   checkCommands: MechanicalCheckDefinition[];
   testCommands: MechanicalCheckDefinition[];
@@ -171,56 +461,50 @@ type ProviderCapabilities = {
 
 ---
 
-## 6. `StageOutputRecord`
+## 7. `WorkflowExecutionRecord`
 
-Projection d'un `StageOutput` dans l'état global.
+Projection d'une enveloppe d'execution dans l'etat global.
 
 ```ts
-type StageOutputRecord = {
-  id: string;
-  stage: PipelineStage;
-  stage: string;
-  startedAt: string;
-  endedAt: string;
-  artefactDir: string;
-  outputJsonPath: string;
-  status: "passed" | "failed" | "skipped" | "errored";
-  evidenceRefs: string[];
-  businessArtifactIds: string[];
-  errors: StageError[];
-  headShaAfter: string | null;
-  trackedWorktreeHash: string | null;
-  worktreeClean: boolean | null;
+type WorkflowExecutionRecord = {
+  // Defined in section 2.
 };
 ```
 
+Un `WorkflowExecutionRecord` remplace l'ancien reflexe de tout appeler
+`StageOutputRecord`. Il peut pointer vers un `StageOutput` canonique, mais il
+peut aussi representer une startup task ou une transition Turnlock.
+
 ---
 
-## 7. `BusinessArtifactRecord`
+## 8. `BusinessArtifactRecord`
 
 Projection d'un artefact métier typé validé dans l'état global.
 
 ```ts
 type BusinessArtifactRecord = {
   id: string;
-  stage: PipelineStage;
+  unit: WorkflowUnitName;
   kind: BusinessArtifactKind;
   schema: string;
   ref: string;
-  stageOutputId: string;
+  executionRecordId: string;
+  stageOutputId?: string;
   validationStatus: "passed" | "failed" | "errored";
 };
 ```
 
 ```ts
 type BusinessArtifactKind =
-  | "requested-change"
+  | "run-capture"
+  | "repository-discovery-draft"
   | "work-session"
-  | "agent-onboarding"
+  | "project-discovery"
   | "implementation-evidence"
   | "change-snapshot"
   | "conduct-evidence"
   | "review-findings"
+  | "review-report"
   | "mechanical-check-results"
   | "remediation-attempt"
   | "package-plan"
@@ -230,19 +514,23 @@ type BusinessArtifactKind =
 ```
 
 Un artefact métier typé est toujours référencé par `ref`, validé par son
-`schema`, puis projeté dans le champ spécialisé de `PipelineState` quand le
+`schema`, puis projeté dans le champ spécialisé de `WorkflowState` quand le
 schéma le permet.
+
+`executionRecordId` est obligatoire pour relier l'artefact a l'execution qui l'a
+produit. `stageOutputId` est present seulement si cette execution a produit un
+`StageOutput` du stage harness.
 
 ---
 
-## 8. `ChangeSnapshot`
+## 9. `ChangeSnapshot`
 
 Produit après toute mutation agentique ou Git significative.
 
 ```ts
 type ChangeSnapshot = {
   id: string;
-  stage: PipelineStage;
+  stage: WorkflowStage;
   source: "implementation" | "remediation" | "packaging" | "pr-ci" | "manual";
   headShaAfter: string | null;
   trackedWorktreeHash: string | null;
@@ -263,7 +551,7 @@ type ChangedFile = {
 
 ---
 
-## 9. `CheckRun`
+## 10. `CheckRun`
 
 Résultat d'un check mécanique dans `mechanical-gates` ou `pr-ci-review`.
 
@@ -292,7 +580,7 @@ type CheckRun = {
 
 ---
 
-## 10. `ReviewFinding`
+## 11. `ReviewFinding`
 
 Produit par les stages de jugement structuré.
 
@@ -307,9 +595,11 @@ type ReviewFinding = {
     | "pr-ci-review";
   dimension:
     | "correctness"
+    | "intent-conformance"
     | "robustness"
     | "security"
     | "spec-conformance"
+    | "scope-control"
     | "backward-compatibility"
     | "build-ci-reproducibility"
     | "tests-substance"
@@ -323,7 +613,7 @@ type ReviewFinding = {
     | "agent-conduct"
     | "packaging";
   severity: "Critical" | "Major" | "Minor" | "Notable";
-  blocksPipeline: boolean;
+  blocksWorkflow: boolean;
   title: string;
   file?: string;
   line?: number;
@@ -349,18 +639,77 @@ type ReviewFindingsArtifact = {
 };
 ```
 
+```ts
+type ReviewReportArtifact = {
+  schema: "go.review-report.v1";
+  id: string;
+  stage: "pre-package-review" | "pr-ci-review";
+  stageOutputId: string;
+  runCaptureId: string;
+  reviewedSnapshotId?: string;
+  reviewedPullRequestNumber?: number;
+  intentCoverage: IntentCoverageRecord[];
+  specConformance: SpecConformanceRecord[];
+  scopeAssessment: ScopeAssessment;
+  engineeringAssessment: EngineeringAssessment;
+  findingArtifactId: string;
+  narrativeSummaryRef: string;
+};
+```
+
+```ts
+type IntentCoverageRecord = {
+  requirement: string;
+  sourceRef: string;
+  status:
+    | "satisfied"
+    | "partially-satisfied"
+    | "missing"
+    | "not-applicable"
+    | "unclear";
+  evidenceRefs: string[];
+};
+```
+
+```ts
+type SpecConformanceRecord = {
+  specRef: string;
+  status: "conformant" | "violated" | "not-applicable" | "unclear";
+  evidenceRefs: string[];
+};
+```
+
+```ts
+type ScopeAssessment = {
+  unexpectedChanges: string[];
+  missingExpectedChanges: string[];
+  explicitNonGoalsRespected: boolean | "unclear";
+  evidenceRefs: string[];
+};
+```
+
+```ts
+type EngineeringAssessment = {
+  correctness: "passed" | "failed" | "unclear";
+  robustness: "passed" | "failed" | "unclear";
+  compatibility: "passed" | "failed" | "unclear";
+  tests: "substantive" | "insufficient" | "not-applicable" | "unclear";
+  evidenceRefs: string[];
+};
+```
+
 `ReviewFinding` ne dérive pas de `StageError`. Un finding est une décision
 métier avec cycle de vie. Une `StageError` est un diagnostic d'exécution figé
 dans le `StageOutput`.
 
 ---
 
-## 11. `HumanGate`
+## 12. `HumanGate`
 
 ```ts
 type HumanGate = {
   id: string;
-  stage: PipelineStage;
+  stage: WorkflowStage;
   reason: string;
   findingIds: string[];
   allowedActions: Array<"apply" | "dismiss" | "defer" | "abort">;
@@ -372,7 +721,7 @@ type HumanGate = {
 
 ---
 
-## 12. `RemediationAttempt`
+## 13. `RemediationAttempt`
 
 ```ts
 type RemediationAttempt = {
@@ -391,7 +740,7 @@ type RemediationAttempt = {
 
 ---
 
-## 13. `PackagePlan`
+## 14. `PackagePlan`
 
 ```ts
 type PackagePlan = {
@@ -432,7 +781,7 @@ type CommitPlanRecord = {
 
 ---
 
-## 14. `PackageVerification`
+## 15. `PackageVerification`
 
 ```ts
 type PackageVerification = {
@@ -457,7 +806,7 @@ type PackageVerificationResult = {
 
 ---
 
-## 15. Branches, commits, PRs
+## 16. Branches, commits, PRs
 
 ```ts
 type BranchRecord = {

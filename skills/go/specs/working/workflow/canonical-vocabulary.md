@@ -8,22 +8,47 @@ Turnlock, les délégations agentiques, et le contrat de sortie du stage harness
 
 ## 1. Principe
 
-Le workflow `/go` a deux couches distinctes.
+Le workflow `/go` distingue trois niveaux.
 
-La première couche est le **stage**. Il décrit ce que le workflow fait du point
-de vue produit : préparer le workspace, implémenter, vérifier, reviewer,
-corriger, publier.
+Avant ces niveaux, le parent process produit un **launch context**. Ce n'est
+pas une unite Turnlock : c'est l'input resolu qui indique quel repo et quel
+sous-perimetre projet le run cible.
 
-La deuxième couche est la **phase Turnlock**. Elle décrit l'unité atomique,
+Le premier niveau est le **startup**. Il amorce le run : identifiant, lock,
+artefacts, capture de session, worktree prive et discovery projet.
+
+Le deuxieme niveau est le **stage**. Il décrit ce que le workflow fait du point
+de vue produit : implémenter, vérifier, reviewer, corriger, publier.
+
+Le troisieme niveau est la **phase Turnlock**. Elle décrit l'unité atomique,
 persistée, reprenable et validable qui exécute une partie mécanique du stage.
 
-Un stage peut contenir plusieurs phases Turnlock. Un stage peut aussi contenir
-une délégation agentique, mais cette délégation doit toujours être encadrée par
-des phases Turnlock déterministes avant et après.
+Une startup task ou un stage peut contenir plusieurs phases Turnlock. Un stage
+peut aussi contenir une délégation agentique, mais cette délégation doit
+toujours être encadrée par des phases Turnlock déterministes avant et après.
 
 ---
 
 ## 2. Termes normatifs
+
+### Launch context
+
+Le launch context est produit par le parent process avant `run-init`.
+
+Il repond a la question : **quel repo Git et quel sous-perimetre projet ce run
+`/go` cible-t-il ?**
+
+Il contient notamment :
+
+- repertoire d'invocation ;
+- chemins actifs ;
+- racine Git canonique cible ;
+- sous-projet optionnel ;
+- hints provider et branche cible ;
+- information de resolution des symlinks.
+
+Le launch context n'est pas une startup task, pas un stage et pas une phase
+Turnlock. `run-init` le stocke. `workspace-setup` le verifie.
 
 ### Stage
 
@@ -31,12 +56,12 @@ Un stage est une étape lisible par un humain dans le workflow `/go`.
 
 Exemples :
 
-- `workspace-setup`
 - `implementation`
 - `mechanical-gates`
 - `pre-package-review`
 - `review-remediation`
-- `package-and-publish`
+- `package-plan`
+- `publish-pr`
 - `pr-ci-review`
 
 Un stage répond à la question : **quel travail est accompli dans le
@@ -44,6 +69,85 @@ cycle logiciel ?**
 
 Il ne garantit pas à lui seul l'atomicité de reprise. Cette atomicité appartient
 aux phases Turnlock internes.
+
+Un stage appartient au chemin metier principal. Les travaux de demarrage ne sont
+pas des stages.
+
+### Startup
+
+Le startup est l'amorcage mecanique du run `/go`.
+
+Il repond a la question : **quelles preuves et ressources doivent exister avant
+que le workflow metier commence ?**
+
+Turnlock cree l'enveloppe runtime :
+
+- `StateFile<WorkflowState>` ;
+- `runId` ;
+- `runDir` ;
+- lock runtime ;
+- horloges et logger runtime ;
+- ecritures atomiques de `state.json`.
+
+`run-init` initialise dans `WorkflowState` :
+
+- `runId` ;
+- `RepositoryLaunchContext` ;
+- reference vers le run Turnlock ;
+- `artefactRoot` ;
+- chemin de worktree reserve, sans checkout Git ;
+- etat initial minimal ;
+- schema/version de l'etat ;
+- startup task records initiaux.
+
+Le startup n'est pas un stage.
+
+### Startup task
+
+Une startup task est un travail d'amorcage lance apres `run-init`.
+
+Exemples :
+
+- `run-capture`
+- `workspace-setup`
+- `repo-discovery-draft`
+- `project-discovery-finalize`
+
+Une startup task repond a la question :
+**quel travail preparatoire peut avancer sans bloquer le worktree prive ?**
+
+Elle doit toujours avoir :
+
+- un espace d'artefacts reserve par `run-init` ;
+- un artefact metier typé ou un `StageOutput` validable ;
+- aucun acces en ecriture au `WorkflowState` ;
+- un point de join explicite ;
+- un comportement fail-closed si le join ne peut pas prouver l'artefact.
+
+### Startup branch
+
+Une startup branch est une startup task qui peut avancer en parallele d'autres
+startup tasks.
+
+Exemples :
+
+- `run-capture`
+- `repo-discovery-draft`
+- `workspace-setup`
+
+### Startup join
+
+Un startup join est une startup task qui synchronise des resultats de startup
+avant le premier stage metier.
+
+Exemples :
+
+- `project-discovery-finalize` joint `workspace-setup` et
+  `repo-discovery-draft` ;
+
+Un startup join ne reinterprete pas librement une sortie manquante. Il valide un
+artefact, relance une operation autorisee, ouvre une HumanGate, ou echoue
+ferme.
 
 ### Phase Turnlock
 
@@ -95,16 +199,19 @@ stage :
 `trackedWorktreeHash`, et `worktreeClean`.
 
 Turnlock enveloppe des stages conformes à ce contrat pour obtenir la reprise,
-les retries, les gates humaines, et la persistance de `PipelineState`.
+les retries, les gates humaines, et la persistance de `WorkflowState`.
 
 ### Artefact métier typé
 
 Un artefact métier typé est un JSON validé par schéma, référencé depuis une
-stage, puis projeté par Turnlock dans `PipelineState`.
+stage, puis projeté par Turnlock dans `WorkflowState`.
 
 Exemples :
 
+- `RunCaptureArtifact`
+- `RepositoryDiscoveryDraft`
 - `ReviewFindingsArtifact`
+- `ReviewReportArtifact`
 - `PackagePlan`
 - `PackageVerification`
 - `ChangeSnapshot`
@@ -201,23 +308,33 @@ phase Turnlock.
 
 ## 5. Règles de rédaction des specs
 
-- Utiliser **stage** pour parler du workflow humain.
+- Utiliser **startup** pour parler de l'amorcage du run avant le premier stage
+  metier.
+- Utiliser **startup task**, **startup branch** et **startup join** pour les
+  travaux de demarrage hors stages.
+- Utiliser **stage** pour parler du workflow metier humain.
 - Utiliser **phase Turnlock** pour parler de reprise, atomicité, retry et
   persistance mécanique.
 - Utiliser **délégation** pour tout travail agentique non déterministe.
 - Utiliser **stage harness** uniquement pour le contrat `StageInput ->
   StageOutput`.
 - Utiliser **artefact métier typé** pour les payloads JSON durables produits par
-  un stage et consommés par les stages suivants.
+  une startup task ou un stage et consommés par les unites suivantes.
 - Ne jamais utiliser `StageOutput.errors` comme canal principal d'un payload
   métier complexe tel que `ReviewFinding[]`.
 - Valider les artefacts métier typés avant de les projeter dans
-  `PipelineState`.
+  `WorkflowState`.
 - Ne jamais dire qu'une délégation est autoritaire tant qu'un état mécanique ne
   l'a pas validée.
 - Ne jamais faire porter une décision humaine par un stage de mutation : la
   décision est une HumanGate, la mutation est une délégation ou un check
   séparé.
+- Ne jamais confondre capture mecanique et analyse semantique : `run-capture`
+  fige des preuves, la review interprete l'intention.
+- Ne jamais appeler `run-capture`, `workspace-setup`,
+  `repo-discovery-draft` ou `project-discovery-finalize` des stages.
+- Ne jamais faire ecrire une startup branch directement dans `WorkflowState`;
+  la projection passe par une transition Turnlock deterministe.
 
 ---
 

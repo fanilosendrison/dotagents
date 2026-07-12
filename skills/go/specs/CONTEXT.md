@@ -1,15 +1,16 @@
-# `/go` Pipeline - Specs
+# `/go` Workflow - Specs
 
 Ce dossier contient les specs du workflow `/go`.
 
 Les documents actifs distinguent maintenant :
 
 - **stage** : étape métier du workflow ;
+- **startup task** : travail d'amorcage du run, hors stages métier ;
 - **phase Turnlock** : unité atomique, persistée et reprenable ;
 - **délégation** : travail agentique non déterministe encadré ;
 - **stage harness** : contrat `StageInput -> StageOutput` ;
 - **artefact métier typé** : payload JSON durable validé avant projection dans
-  `PipelineState`.
+  `WorkflowState`.
 
 Voir [`working/workflow/canonical-vocabulary.md`](./working/workflow/canonical-vocabulary.md).
 
@@ -56,6 +57,21 @@ quand leur niveau de détail sera suffisant pour construction.
 - [`multi-agent-concurrency.md`](./working/workflow/multi-agent-concurrency.md)
   - Concurrence multi-run et worktrees physiques.
 
+### Startup
+
+- [`launch-context.md`](./working/startup/launch-context.md)
+  - Resolution parent process du repo cible avant `run-init`.
+- [`run-init.md`](./working/startup/run-init.md)
+  - Startup du run, startup branches, joins et projection fail-closed.
+- [`run-capture.md`](./working/startup/run-capture.md)
+  - Capture mecanique du prompt `/go`, de l'extrait de session et des hashes.
+- [`workspace-setup.md`](./working/startup/workspace-setup.md)
+  - Creation du worktree physique et `WorkSession`.
+- [`repo-discovery-draft.md`](./working/startup/repo-discovery-draft.md)
+  - Discovery repo non autoritative depuis le checkout source.
+- [`project-discovery-finalize.md`](./working/startup/project-discovery-finalize.md)
+  - Finalisation de la discovery repo contre le worktree prive.
+
 ### Artefacts
 
 - [`workflow-artifacts.md`](./working/artifacts/workflow-artifacts.md)
@@ -63,10 +79,6 @@ quand leur niveau de détail sera suffisant pour construction.
 
 ### Stages
 
-- [`workspace-setup.md`](./working/stages/workspace-setup.md)
-  - Création du worktree physique et `WorkSession`.
-- [`agent-onboarding.md`](./working/stages/agent-onboarding.md)
-  - Détection des commandes et capacités du repo.
 - [`implementation.md`](./working/stages/implementation.md)
   - Délégation agentique d'implémentation.
 - [`agent-conduct-check.md`](./working/stages/agent-conduct-check.md)
@@ -75,15 +87,18 @@ quand leur niveau de détail sera suffisant pour construction.
   - Format, lint, typecheck, tests, build, scans.
 - [`review-remediation.md`](./working/stages/review-remediation.md)
   - HumanGate, remediation, dismiss, defer, abort.
-- [`package-and-publish.md`](./working/stages/package-and-publish.md)
+
+### Packaging
+
+- [`package-and-publish.md`](./working/packaging/package-and-publish.md)
   - `package-plan`, `package-verify`, branches, commits, PRs.
-- [`pr-ci-review.md`](./working/stages/pr-ci-review.md)
-  - Gate CI autoritative.
 
 ### Review
 
 - [`ideal-review.md`](./working/review/ideal-review.md)
   - Dimensions, sévérités, preuves, boucle de remediation.
+- [`pr-ci-review.md`](./working/review/pr-ci-review.md)
+  - Gate CI autoritative sur la PR publiee.
 
 ---
 

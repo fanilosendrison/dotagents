@@ -25,11 +25,18 @@ Son coeur est non déterministe : l'agent raisonne, édite, teste, itère.
 
 ## 2. Inputs
 
-- `RequestedChange`
 - `WorkSession`
-- specs applicables (`NIB-S`, `NIB-M`, `NIB-T`, DC, ADR)
-- project discovery
+- contexte de session courant fourni par le parent process
+- prompt utilisateur associe au `/go`
+- specs disponibles ou explicitement referencees (`NIB-S`, `NIB-M`, `NIB-T`,
+  DC, ADR)
+- `ProjectDiscovery`
 - contraintes d'autorisation
+- `RunCaptureArtifact` si deja projete dans `WorkflowState`
+
+`implementation` ne depend pas d'une analyse d'intention prealable. L'agent
+d'implementation est lance dans le contexte de la session qui a declenche
+`/go`.
 
 ---
 
@@ -39,7 +46,8 @@ Evidence JSON :
 
 ```ts
 type ImplementationEvidence = {
-  requestedChangeRef: string;
+  runCaptureRef?: string;
+  sessionContextRef?: string;
   consumedSpecRefs: string[];
   changedFiles: ChangedFile[];
   summary: string;
@@ -61,6 +69,8 @@ officielles s'exécutent après `change-snapshot`.
 - L'agent peut lancer des commandes exploratoires, mais leur succès ne remplace
   pas `mechanical-gates`.
 - Si le stage consomme des NIB, il doit respecter RED/GREEN quand applicable.
+- Le stage ne doit pas inventer un artefact semantique durable pour justifier
+  son travail. L'analyse de conformite a l'intention appartient a la review.
 
 ---
 
