@@ -24,13 +24,15 @@ contrôlé sur lequel l'agent pourra travailler.
 ```ts
 type WorkSession = {
   runId: string;
-  repoRoot: string;
+  repositoryRoot: string;
   baseBranch: string;
   baseHeadSha: string;
   baseRemote?: string;
   defaultTargetBranch: string;
   initialDirtyState: "clean" | "dirty-adopted";
+  initialStatusPorcelain: string;
   workBranch: `work/${string}`;
+  workBranchCreatedAt: string;
 };
 ```
 
