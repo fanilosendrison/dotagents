@@ -1,226 +1,331 @@
-# Go Pipeline Contract — FSM, artefacts, gates
+# Contrat du pipeline `/go`
 
-Ce document est le contrat central du pipeline `/go`. Il définit les invariants,
-les sévérités, le catalogue des phases, les règles de terminaison et de preuve,
-et la relation avec Turnlock.
+Ce document définit le contrat central du pipeline `/go` après séparation entre
+**stages**, **phases Turnlock**, **délégations**, et **stage
+harness**.
 
-Documents référencés :
+Documents compagnons :
 
-- [`software-design-workflow.md`](./software-design-workflow.md) — architecture générale du pipeline.
-- [`ideal-review.md`](../review/ideal-review.md) — contenu sémantique de la review.
-- [`agent-conduct-check.md`](../phases/agent-conduct-check.md) — check des traces process de l'agent.
-- [`commit-push-pr.md`](../phases/commit-push-pr.md) — découpage Git, branches, push, PR.
-- [`pipeline-artifacts.md`](../artifacts/pipeline-artifacts.md) — types JSON partagés.
-- [`phase-harness/`](../../briefs/phase-harness/) — harness d'exécution de phase (NIB).
-
-Le principe : **Turnlock porte l'état mécanique**, les outils déterministes
-produisent des preuves, les agents produisent des artefacts JSON validés, et
-l'humain arbitre uniquement les décisions sémantiques irréductibles.
-
-> **Note — Phase Contract**: L'exécution individuelle de chaque phase est
-> régie par [`phase-harness/NIB-S-go-phase-harness.md`](../../briefs/phase-harness/NIB-S-go-phase-harness.md),
-> qui définit les types canoniques `PhaseInput`, `PhaseDraftOutput`, `PhaseOutput`,
-> `PhaseError` et le runner `runPhase()`. Les structures ci-dessous sont des
-> projections d'état pipeline ; elles ne remplacent jamais `artefactDir/output.json`,
-> qui reste la sortie canonique de phase.
+- [`canonical-vocabulary.md`](./canonical-vocabulary.md) - vocabulaire normatif.
+- [`software-design-workflow.md`](./software-design-workflow.md) - récit complet
+  du cycle `/go`.
+- [`multi-agent-concurrency.md`](./multi-agent-concurrency.md) - isolation et
+  concurrence multi-run.
+- [`pipeline-artifacts.md`](../artifacts/pipeline-artifacts.md) - types JSON
+  partagés.
+- [`stage-harness/`](../../briefs/stage-harness/) - contrat d'exécution d'une
+  stage standalone.
 
 ---
 
-## Invariants globaux
+## 1. Objectif
 
-1. **Snapshot-authoritative** : `state.json` Turnlock est la source de vérité de
-   l'avancement. Les logs et commentaires PR sont dérivés, jamais autoritaires.
-2. **Fail-closed** : absence d'artefact, JSON invalide, schéma invalide, finding
-   bloquant non traité, ou résultat non reproductible → arrêt du pipeline.
-3. **JSON-only** : tout artefact échangé entre phases est du JSON validable.
-4. **Pas de jugement caché dans le pipeline** : une branche conditionnelle de
-   la FSM dépend d'un `PhaseOutput.status`, d'un booléen, d'un hash canonique,
-   d'un compteur, ou d'un finding structuré. Elle ne dépend jamais d'une phrase
-   libre ni d'un exit code brut.
-5. **Tout finding bloquant est probatoire** : il nomme l'invariant violé et
-   fournit une reproduction minimale ou une preuve mécanique.
-6. **Toute modification relance les gates mécaniques** : après un fix agentique,
-   le pipeline repasse par `agent-conduct-check` → lint → typecheck → tests
-   avant toute review suivante.
-7. **Human gate explicite** : aucun changement de code issu d'une finding de
-   review agentique n'est appliqué sans décision explicite ou mode d'auto-apply
-   déclaré dans `state.json`.
+`/go` transforme une demande utilisateur en un ensemble de PRs publiables, en
+préservant quatre propriétés :
+
+- base Git figée ;
+- travail agentique isolé ;
+- gates mécaniques reproductibles ;
+- publication en paquets vérifiés.
+
+Le pipeline doit échouer fermé dès qu'il ne peut plus prouver l'état courant.
 
 ---
 
-## Sévérités canoniques
+## 2. Invariants globaux
 
-Le pipeline utilise exactement les sévérités de [`ideal-review.md`](../review/ideal-review.md).
+### 2.1 State-authoritative
 
-- **Bloquant** : bug, faille, corruption, régression, breaking change non
-  documenté, test mensonger, ou échec mécanique. Le pipeline ne peut pas
-  avancer tant que ce point n'est pas corrigé, rejeté comme faux positif avec
-  justification, ou explicitement converti en décision humaine documentée.
-- **Majeur** : dette ou risque significatif. Peut bloquer si `blocksPipeline`
-  vaut `true`, sinon devient une gate humaine ou un backlog prioritaire.
-- **Mineur** : amélioration utile mais non bloquante. N'arrête pas le pipeline.
-- **Suggestion** : préférence, alternative équivalente, micro-refactor. N'arrête
-  jamais le pipeline.
+`PipelineState` est la source de vérité de l'avancement. Les logs, messages
+agentiques et commentaires PR sont dérivés.
 
-Le vocabulaire `CRITICAL/HIGH/MEDIUM/LOW` n'est pas utilisé dans les artefacts du
-pipeline. Si un outil externe émet ces niveaux, la phase d'ingestion les mappe
-avant persistance.
+### 2.2 StageOutput-as-execution-envelope
 
-Mapping avec `PhaseError.severity` (voir `phase-harness/`) :
+Chaque stage standalone produit un `StageOutput` canonique via le stage harness.
+Ce `StageOutput` est l'enveloppe d'exécution du stage : statut, evidence refs,
+erreurs de stage, champs Git canoniques et chemin de l'`output.json`.
 
-- `blocking` → `Bloquant`
-- `major` → `Majeur`
-- `minor` → `Mineur`
+Le payload métier durable d'un stage complexe vit dans des artefacts métier
+typés, validés par Turnlock avant projection dans `PipelineState`.
 
-`Suggestion` est propre aux `ReviewFinding` : ce n'est pas une sévérité de
-`PhaseError`. Si une suggestion doit être conservée comme preuve de phase, elle
-reste un finding non bloquant ou est encodée en `minor` avec contexte explicite.
+### 2.3 Workspace physique exclusif
 
----
+Chaque run `/go` travaille dans un worktree Git physique privé. Une simple
+branche dans le checkout courant ne suffit pas pour la cible du pipeline.
 
-## Phases canoniques
+### 2.4 Fail-closed
 
-### 1. `workspace-setup`
+Absence d'artefact, JSON invalide, schéma invalide, finding bloquant ouvert,
+preuve de reconstruction absente, ou état Git ambigu arrêtent le pipeline.
 
-Phase déterministe avant toute implémentation. Elle fige le point de départ du
-run : repo, branche courante, `HEAD`, état dirty, branche cible par défaut, et
-branche de travail privée. Voir [`workspace-setup.md`](../phases/workspace-setup.md).
+### 2.5 JSON-only entre stages
 
-### 2. `implementation`
+Tout artefact échangé entre stages est du JSON validable ou une evidence ref
+pointant vers un fichier sous `artefactDir`.
 
-L'agent principal implémente la demande utilisateur. Cette phase peut lancer ses
-propres tests exploratoires, mais ses résultats ne sont pas autoritaires. Elle
-travaille sur `work/<run-id>` et produit un diff brut plus un résumé d'intention.
+### 2.6 Typed business artifacts
 
-### 3. `agent-conduct-check`
+Un résultat métier structuré consommé par un stage suivant doit être porté par
+un artefact métier typé. `StageOutput.errors` ne doit pas devenir un canal
+générique pour des payloads riches.
 
-Check déterministe des traces laissées par l'agent : secrets dans commandes,
-fichiers temporaires, environnement, staging area, permissions dangereuses,
-process debug persistants. Voir [`agent-conduct-check.md`](../phases/agent-conduct-check.md).
+Cas normatif : `pre-package-review` et `pr-ci-review` produisent des
+`ReviewFinding[]` dans un `ReviewFindingsArtifact`. Le `StageOutput` de review
+peut être `passed` même si cet artefact contient des findings `Critical` ou
+`Major` bloquants. La transition suivante lit les findings projetés dans
+`PipelineState`, pas un échec d'exécution du stage.
 
-### 4. `lint`
+### 2.7 No hidden judgment
 
-Check déterministe de surface. Échec → délégation de correction, retry borné,
-fallback model, puis recheck.
+Une transition dépend d'un statut, d'un booléen, d'un hash, d'un compteur, d'une
+HumanGate, d'un artefact métier typé validé, ou d'un finding structuré. Elle ne
+dépend jamais d'une phrase libre.
 
-### 5. `typecheck`
+### 2.8 Toute mutation invalide les gates
 
-Check déterministe de cohérence statique. Échec → délégation de correction,
-retry borné, fallback model, puis recheck.
+Après toute délégation qui modifie le worktree, les checks précédents ne sont
+plus autoritaires. Le pipeline revient à `change-snapshot`, puis aux gates
+requises.
 
-### 6. `tests`
+### 2.9 Review globale avant packaging, vérification après packaging
 
-Check déterministe de comportement. Échec → délégation de correction, retry
-borné, fallback model, puis recheck.
-
-### 7. `pre-pr-review`
-
-Review hybride avant commit : agrège checks mécaniques spécifiques à
-[`ideal-review.md`](../review/ideal-review.md) puis délègue les dimensions sémantiques à
-des agents. Elle produit des findings structurés, pas des modifications directes.
-
-### 8. `review-remediation`
-
-Si des findings `Bloquant` ou des findings `Majeur` avec `blocksPipeline: true`
-existent, la FSM demande une décision humaine :
-
-- `apply` : l'agent corrige le batch approuvé, puis retour à `agent-conduct-check`.
-- `dismiss` : le finding est marqué faux positif avec justification.
-- `defer` : autorisé seulement pour `Majeur` non bloquant, `Mineur`, ou `Suggestion`.
-- `abort` : arrêt du pipeline.
-
-### 9. `commit-push-pr`
-
-Découpe le diff en paquets logiques, crée les branches dédiées, applique les
-paquets, commit, push, et ouvre les PRs. Voir [`commit-push-pr.md`](../phases/commit-push-pr.md).
-
-### 10. `pr-ci-review`
-
-Review de PR côté CI. Elle réexécute les gates mécaniques et la review
-structurée sur le diff réellement poussé. C'est la gate autoritative de merge.
-Voir [`pr-ci-review.md`](../phases/pr-ci-review.md).
+Le pipeline review le résultat global final avant de le découper. Le découpage
+ne peut toutefois pas être publié sans `package-verify`, car le split peut créer
+des états intermédiaires invalides.
 
 ---
 
-## Review execution matrix
+## 3. Sévérités canoniques
 
-Chaque dimension de [`ideal-review.md`](../review/ideal-review.md) est exécutée sous une
-des trois formes :
+Les findings utilisent exactement :
 
-- **Mécanique** : outil déterministe ou script maison.
-- **Agentique** : agent de jugement qui retourne `ReviewFinding[]`.
-- **Hybride** : ingestion mécanique d'indices puis jugement agentique.
+- `Critical`
+- `Major`
+- `Minor`
+- `Notable`
 
-### Mécanique par défaut
+Les erreurs de stage utilisent les sévérités du stage harness :
 
-- Build / CI / Reproducibility : clean install/build quand possible, lockfile
-  consistency, generated-file drift.
-- Tests — Substance : mutation ciblée quand disponible, absence d'assertions,
-  tests skipped/focused.
-- Tests — Coverage : coverage diff, présence de tests pour fichiers touchés.
-- Security : secrets scan, SAST, dependency CVEs.
-- Compliance / Supply Chain : license scan, SCA, package-health checks.
-- Backward Compatibility : OpenAPI diff, protobuf breaking check, public API diff,
-  migration/config drift quand applicable.
-- Agent Conduct : checks locaux définis par [`agent-conduct-check.md`](../phases/agent-conduct-check.md).
+- `blocking`
+- `major`
+- `minor`
 
-### Agentique par défaut
+Mapping :
 
-- Correctness : comportement attendu, edge cases, régressions silencieuses.
-- Robustness : crash consistency, idempotence, lifecycle, race assumptions.
-- Spec Conformance : alignement sur specs/NIB/contrats.
-- Interface : ergonomie API, erreur stable, call sites.
-- Observability : capacité de diagnostic réelle.
-- Structure : local reasoning, suppression, duplication sémantique.
-- Simplicity / Sobriety : sur-abstraction, gold-plating, fausse consistance.
-- AI Artifact Detection : APIs hallucinated, commentaires menteurs, docs alignées
-  sur du faux code, mauvais idiomes.
+- `blocking` -> `Critical`
+- `major` -> `Major`
+- `minor` -> `Minor`
+
+`Notable` n'est pas une sévérité de `StageError`. Un finding notable conservé
+comme preuve de stage doit être encodé comme finding, ou comme `minor` avec
+contexte explicite.
 
 ---
 
-## Règles de terminaison
+## 4. Stages canoniques
 
-La review ne cherche jamais zéro remarque. Elle cherche zéro risque bloquant.
+### 4.1 `intake`
 
-Le pipeline peut avancer vers `commit-push-pr` seulement si :
+Fige la demande utilisateur, les specs applicables, les contraintes, les
+critères d'acceptation, et le mode d'autorisation.
 
-- tous les checks mécaniques requis sont `passed` ;
-- aucun finding `Bloquant` n'est `open` ;
-- aucun finding `Majeur` avec `blocksPipeline: true` n'est `open` ;
-- tous les `HumanGate` requis ont une décision et une justification ;
-- le `trackedWorktreeHash` courant correspond à celui validé par les derniers
-  checks et le worktree est `worktreeClean` (voir `phase-harness/`).
+Ce stage ne modifie pas le repo cible.
 
-Tout fix appliqué invalide les checks précédents et force un retour à
-`agent-conduct-check`.
+### 4.2 `workspace-setup`
+
+Crée le worktree Git physique privé du run, enregistre `WorkSession`, et fixe
+`baseHeadSha`.
+
+Ce stage est la frontière de départ de toutes les preuves de diff.
+
+### 4.3 `project-discovery`
+
+Détecte les commandes et capacités du repo : package manager, lint, typecheck,
+tests, build, scans disponibles, conventions Git et provider.
+
+Ce stage produit une matrice de gates mécaniques à exécuter.
+
+### 4.4 `implementation`
+
+Délègue le travail de création ou modification à l'agent principal, à partir de
+la demande et des specs.
+
+Le stage est sémantique et encadrée par Turnlock, mais son coeur est agentique.
+
+### 4.5 `change-snapshot`
+
+Capture le diff courant, le périmètre des fichiers modifiés, `StageOutput`, et
+les hashes canoniques après une mutation.
+
+Ce stage rend le travail agentique vérifiable par les gates suivantes.
+
+### 4.6 `conduct-settled`
+
+Vérifie les traces de processus après mutation : secrets, fichiers temporaires,
+permissions dangereuses, staging area, debug persistants.
+
+### 4.7 `mechanical-gates`
+
+Exécute les checks mécaniques ordonnés pour le repo : format, lint, typecheck,
+tests, build, scans, generated drift, API compat si disponibles.
+
+Ce stage peut contenir plusieurs `CheckRun`.
+
+### 4.8 `pre-package-review`
+
+Review hybride du résultat global final avant découpage en paquets. Ce stage produit
+un `ReviewFindingsArtifact` contenant des `ReviewFinding[]` structurés.
+
+Elle cherche zéro risque bloquant, pas zéro remarque.
+
+### 4.9 `review-remediation`
+
+Résout les findings ouverts via HumanGate, dismissal justifié, defer autorisé,
+ou délégation de correction.
+
+Toute correction retourne à `change-snapshot`.
+
+### 4.10 `final-change-snapshot`
+
+Capture l'état final validé qui servira d'entrée au packaging.
+
+Le hash de cet état devient la référence contre laquelle le split doit prouver
+sa reconstruction.
+
+### 4.11 `package-plan`
+
+Découpe le diff final en paquets logiques de PR, avec dépendances, branches
+cibles, et preuve de reconstruction attendue.
+
+### 4.12 `package-verify`
+
+Vérifie que les paquets reconstruisent exactement le diff final et que chaque
+branche ou stack intermédiaire est mécaniquement valide selon son scope.
+
+Ce stage est obligatoire parce que la review globale ne prouve pas la
+validité des états partiels.
+
+### 4.13 `branch-materialize`
+
+Crée les branches `pr/<run-id>/<slug>` depuis leur base déclarée et applique les
+paquets vérifiés.
+
+### 4.14 `commit-package`
+
+Crée les commits atomiques pour chaque paquet via le chemin Git de confiance.
+
+Ce stage est la seule stage autorisée à produire des commits.
+
+### 4.15 `publish-pr`
+
+Push les branches PR autorisées et ouvre les PRs avec les artefacts de preuve.
+
+### 4.16 `pr-ci-review`
+
+Rejoue les gates mécaniques et la review structurée sur le diff réellement
+poussé. C'est la gate autoritative avant merge.
+
+### 4.17 `post-merge-tracking`
+
+Suit les merges, retarget/rebase les PRs dépendantes, enregistre les statuts, et
+nettoie les branches quand les preuves nécessaires sont conservées.
 
 ---
 
-## Règles de preuve
+## 5. Règles de transition
 
-Un finding peut bloquer le pipeline seulement s'il contient au moins une preuve :
+Le chemin nominal est :
 
-- sortie d'un outil déterministe ;
+```text
+intake
+-> workspace-setup
+-> project-discovery
+-> implementation
+-> change-snapshot
+-> conduct-settled
+-> mechanical-gates
+-> pre-package-review
+-> review-remediation
+-> final-change-snapshot
+-> package-plan
+-> package-verify
+-> branch-materialize
+-> commit-package
+-> publish-pr
+-> pr-ci-review
+-> post-merge-tracking
+```
+
+`review-remediation` peut retourner à `change-snapshot`.
+
+`mechanical-gates` peut déléguer des corrections, mais toute correction retourne
+à `change-snapshot`.
+
+`package-verify` peut retourner à `package-plan` si le découpage est invalide.
+
+`pr-ci-review` peut retourner à une remediation de PR ou ouvrir une HumanGate.
+
+---
+
+## 6. Règles de terminaison locale
+
+Le pipeline peut passer à `package-plan` seulement si :
+
+- `conduct-settled` est `passed` ;
+- toutes les gates mécaniques requises sont `passed` ;
+- aucun finding `Critical` n'est `open` ;
+- aucun finding `Major` avec `blocksPipeline: true` n'est `open` ;
+- toutes les HumanGates requises ont une décision et une justification ;
+- le dernier `trackedWorktreeHash` correspond à l'état final reviewé ;
+- `worktreeClean` est compatible avec la policy de packaging.
+
+Le pipeline peut passer à `publish-pr` seulement si :
+
+- `package-plan` est validé ;
+- `package-verify` a prouvé la reconstruction ;
+- les branches matérialisées correspondent aux paquets ;
+- les commits ont été créés via le chemin de confiance ;
+- aucun paquet ne possède une dépendance implicite non déclarée.
+
+---
+
+## 7. Règles de preuve
+
+Un finding bloquant doit contenir au moins une preuve :
+
+- sortie d'outil déterministe ;
 - reproduction minimale ;
-- citation d'une spec, NIB, ou contrat public ;
+- citation d'une spec, NIB ou contrat public ;
 - comparaison avant/après ;
-- chemin de données ou contrôle démontré ;
-- explication d'un invariant durable violé.
+- chemin de données ou de contrôle démontré ;
+- invariant durable violé.
 
-Un finding sans preuve peut rester `Mineur` ou `Suggestion`, mais ne peut pas
-être `Bloquant`.
+Un finding sans preuve peut être `Minor` ou `Notable`, mais ne peut pas être
+`Critical`.
 
 ---
 
-## Relation avec Turnlock
+## 8. Relation à Turnlock
 
-Turnlock ne connaît pas les règles métier ci-dessus. Il garantit seulement :
+Turnlock porte la mécanique :
 
-- persistance atomique de l'état ;
-- reprise exacte après délégation ;
-- protocole stdout fermé ;
-- validation JSON par les phases ;
-- retry/fallback/loop detection mécanique.
+- états atomiques ;
+- persistance de `PipelineState`;
+- reprise ;
+- retry ;
+- fallback ;
+- loop detection ;
+- HumanGate ;
+- délégations encadrées.
 
-Le pipeline `/go` est un consommateur de Turnlock. Ses phases et artefacts sont
-des données applicatives, pas des fonctionnalités du runtime.
+Le pipeline `/go` porte la sémantique :
+
+- quelles stages existent ;
+- quelles preuves sont exigées ;
+- quelles transitions sont valides ;
+- quels artefacts sont produits ;
+- quand une publication est autorisée.
+
+---
+
+VegaCorp - `/go` Pipeline - "Reliability precedes intelligence."
