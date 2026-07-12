@@ -26,15 +26,15 @@ Ces documents sont normatifs pour construction RED/GREEN.
 
 ## ADR actifs
 
-- [`ARD-go-stage-harness-v1-non-goals.md`](./ard/ARD-go-stage-harness-v1-non-goals.md)
+- [`ADR-go-stage-harness-v1-non-goals.md`](./adr/ADR-go-stage-harness-v1-non-goals.md)
   - Non-goals v1 du stage harness.
-- [`ARD-go-stages-vs-turnlock-phases.md`](./ard/ARD-go-stages-vs-turnlock-phases.md)
+- [`ADR-go-stages-vs-turnlock-phases.md`](./adr/ADR-go-stages-vs-turnlock-phases.md)
   - Séparation stage, phase Turnlock, délégation, stage harness.
-- [`ARD-go-physical-worktree-isolation.md`](./ard/ARD-go-physical-worktree-isolation.md)
+- [`ADR-go-physical-worktree-isolation.md`](./adr/ADR-go-physical-worktree-isolation.md)
   - Worktree Git physique privé par run `/go`.
-- [`ARD-go-review-before-packaging-with-package-verify.md`](./ard/ARD-go-review-before-packaging-with-package-verify.md)
+- [`ADR-go-review-before-packaging-with-package-verify.md`](./adr/ADR-go-review-before-packaging-with-package-verify.md)
   - Review globale avant packaging, avec vérification obligatoire du split.
-- [`ARD-go-stage-output-envelope-and-typed-business-artifacts.md`](./ard/ARD-go-stage-output-envelope-and-typed-business-artifacts.md)
+- [`ADR-go-stage-output-envelope-and-typed-business-artifacts.md`](./adr/ADR-go-stage-output-envelope-and-typed-business-artifacts.md)
   - `StageOutput` comme enveloppe d'exécution, payloads riches en artefacts
     métier typés.
 
@@ -65,7 +65,7 @@ quand leur niveau de détail sera suffisant pour construction.
 
 - [`workspace-setup.md`](./working/stages/workspace-setup.md)
   - Création du worktree physique et `WorkSession`.
-- [`project-discovery.md`](./working/stages/project-discovery.md)
+- [`agent-onboarding.md`](./working/stages/agent-onboarding.md)
   - Détection des commandes et capacités du repo.
 - [`implementation.md`](./working/stages/implementation.md)
   - Délégation agentique d'implémentation.

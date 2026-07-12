@@ -24,7 +24,7 @@ des hashes.
 /go
   -> intake
   -> workspace-setup
-  -> project-discovery
+  -> agent-onboarding
   -> implementation
   -> change-snapshot
   -> conduct-settled
@@ -68,7 +68,7 @@ Le point de départ Git doit être figé avant toute mutation. Le workflow crée
 worktree physique privé pour éviter les collisions entre sessions et les dirty
 states partagés.
 
-### `project-discovery`
+### `agent-onboarding`
 
 Le workflow ne doit pas inventer les commandes de check. Il détecte ce que le
 repo expose réellement : package manager, scripts, lockfiles, conventions,

@@ -138,7 +138,7 @@ Crée le worktree Git physique privé du run, enregistre `WorkSession`, et fixe
 
 Ce stage est la frontière de départ de toutes les preuves de diff.
 
-### 4.3 `project-discovery`
+### 4.3 `agent-onboarding`
 
 Détecte les commandes et capacités du repo : package manager, lint, typecheck,
 tests, build, scans disponibles, conventions Git et provider.
@@ -239,7 +239,7 @@ Le chemin nominal est :
 ```text
 intake
 -> workspace-setup
--> project-discovery
+-> agent-onboarding
 -> implementation
 -> change-snapshot
 -> conduct-settled

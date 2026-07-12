@@ -44,7 +44,7 @@ type PipelineState = {
 type PipelineStage =
   | "intake"
   | "workspace-setup"
-  | "project-discovery"
+  | "agent-onboarding"
   | "implementation"
   | "change-snapshot"
   | "conduct-settled"
@@ -128,7 +128,7 @@ worktree.
 
 ## 5. `ProjectDiscovery`
 
-Produit par `project-discovery`.
+Produit par `agent-onboarding`.
 
 ```ts
 type ProjectDiscovery = {
@@ -216,7 +216,7 @@ type BusinessArtifactRecord = {
 type BusinessArtifactKind =
   | "requested-change"
   | "work-session"
-  | "project-discovery"
+  | "agent-onboarding"
   | "implementation-evidence"
   | "change-snapshot"
   | "conduct-evidence"
