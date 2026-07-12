@@ -47,35 +47,55 @@ Turnlock persiste cet etat comme `StateFile<WorkflowState>`. Turnlock fournit
 l'enveloppe durable ; `/go` fournit le payload metier stocke dans
 `StateFile.data`.
 
-### 2.2 StageOutput-as-execution-envelope
+### 2.2 Policy-authoritative
+
+Les decisions dites "selon policy" doivent etre lues dans
+`WorkflowState.policy`. Une startup task ou un stage ne doit pas inventer une
+policy locale pendant son execution.
+
+La policy durable couvre notamment :
+
+- dirty state ;
+- correction des hints parent ;
+- discovery et rerun depuis le worktree ;
+- gates requises ;
+- delegation agentique et remediation ;
+- review et HumanGates ;
+- packaging et publication ;
+- retention des runs incomplets.
+
+### 2.3 WorkflowExecutionRecord-as-execution-envelope
+
+Chaque workflow unit qui produit un artefact durable produit aussi un
+`WorkflowExecutionRecord`.
 
 Chaque stage standalone produit un `StageOutput` canonique via le stage harness.
 Ce `StageOutput` est l'enveloppe d'exécution du stage : statut, evidence refs,
 erreurs de stage, champs Git canoniques et chemin de l'`output.json`.
 
-Une startup task peut aussi utiliser le stage harness pour produire la meme
-enveloppe d'execution. Cela ne la transforme pas en stage metier.
+Une startup task peut utiliser le stage harness, ou produire une enveloppe de
+startup equivalente. Cela ne la transforme pas en stage metier.
 
 Le payload métier durable d'une startup task ou d'un stage complexe vit dans
 des artefacts métier typés, validés par Turnlock avant projection dans
 `WorkflowState`.
 
-### 2.3 Workspace physique exclusif
+### 2.4 Workspace physique exclusif
 
 Chaque run `/go` travaille dans un worktree Git physique privé. Une simple
 branche dans le checkout courant ne suffit pas pour la cible du workflow.
 
-### 2.4 Fail-closed
+### 2.5 Fail-closed
 
 Absence d'artefact, JSON invalide, schéma invalide, finding bloquant ouvert,
 preuve de reconstruction absente, ou état Git ambigu arrêtent le workflow.
 
-### 2.5 JSON-only entre unites de workflow
+### 2.6 JSON-only entre unites de workflow
 
 Tout artefact échangé entre startup tasks, stages et reviews est du JSON
 validable ou une evidence ref pointant vers un fichier sous `artefactDir`.
 
-### 2.6 Typed business artifacts
+### 2.7 Typed business artifacts
 
 Un résultat métier structuré consommé par un stage suivant doit être porté par
 un artefact métier typé. `StageOutput.errors` ne doit pas devenir un canal
@@ -87,34 +107,35 @@ peut être `passed` même si cet artefact contient des findings `Critical` ou
 `Major` bloquants. La transition suivante lit les findings projetés dans
 `WorkflowState`, pas un échec d'exécution du stage.
 
-### 2.7 No hidden judgment
+### 2.8 No hidden judgment
 
 Une transition dépend d'un statut, d'un booléen, d'un hash, d'un compteur, d'une
 HumanGate, d'un artefact métier typé validé, ou d'un finding structuré. Elle ne
 dépend jamais d'une phrase libre.
 
-### 2.8 Toute mutation invalide les gates
+### 2.9 Toute mutation invalide les gates
 
 Après toute délégation qui modifie le worktree, les checks précédents ne sont
 plus autoritaires. Le workflow revient à `change-snapshot`, puis aux gates
 requises.
 
-### 2.9 Review globale avant packaging, vérification après packaging
+### 2.10 Review globale avant packaging, vérification après packaging
 
 Le workflow review le résultat global final avant de le découper. Le découpage
 ne peut toutefois pas être publié sans `package-verify`, car le split peut créer
 des états intermédiaires invalides.
 
-### 2.10 Startup branches sans ecriture concurrente d'etat
+### 2.11 Startup branches sans ecriture concurrente d'etat
 
 Le startup peut lancer des startup branches de demarrage, mais ces branches
 ne modifient pas directement `WorkflowState`.
 
-Chaque branche produit des artefacts et evidence refs sous l'`artefactRoot` du
-run. Turnlock projette ensuite les artefacts valides dans `WorkflowState` via
-une transition deterministe.
+Chaque branche produit des artefacts, evidence refs et un
+`WorkflowExecutionRecord` sous l'`artefactRoot` du run. Turnlock projette
+ensuite les artefacts valides dans `WorkflowState` via une transition
+deterministe.
 
-### 2.11 Capture mecanique, analyse semantique tardive
+### 2.12 Capture mecanique, analyse semantique tardive
 
 La capture du moment `/go` est mecanique. Elle fige des references, extraits et
 hashes.
@@ -420,7 +441,7 @@ Le workflow peut passer à `package-plan` seulement si :
 - aucun finding `Major` avec `blocksWorkflow: true` n'est `open` ;
 - toutes les HumanGates requises ont une décision et une justification ;
 - le dernier `trackedWorktreeHash` correspond à l'état final reviewé ;
-- `worktreeClean` est compatible avec la policy de packaging.
+- `worktreeClean` est compatible avec `WorkflowPolicy.packaging`.
 
 Le workflow peut passer à `publish-pr` seulement si :
 

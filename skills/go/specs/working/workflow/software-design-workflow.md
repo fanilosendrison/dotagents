@@ -137,7 +137,8 @@ decide pas encore les gates.
 
 Il verifie que les fichiers inspectes par `repo-discovery-draft` correspondent
 au `worktreeRoot` issu de `WorkSession`. Si les hashes ne correspondent pas, il
-relance la discovery depuis le worktree ou echoue ferme selon la policy.
+relance la discovery depuis le worktree ou echoue ferme selon
+`WorkflowPolicy.discovery`.
 
 Le resultat autoritatif est `ProjectDiscovery`, qui fixe la matrice de gates
 mecaniques.
@@ -298,7 +299,7 @@ Le workflow avance si :
 - aucun `Critical` n'est ouvert ;
 - aucun `Major` bloquant n'est ouvert ;
 - les dismissals sont justifiés ;
-- les defers respectent la policy ;
+- les defers respectent `WorkflowPolicy.review` ;
 - les gates mécaniques sont vertes sur le dernier snapshot.
 
 Les findings `Minor` et `Notable` peuvent devenir backlog, mais ne bloquent

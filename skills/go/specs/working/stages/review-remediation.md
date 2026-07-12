@@ -56,7 +56,7 @@ Marquer le finding comme faux positif ou non applicable avec justification.
 ### `defer`
 
 Autorisé seulement pour `Major` non bloquant, `Minor`, ou `Notable`, selon
-policy.
+`WorkflowPolicy.review`.
 
 ### `abort`
 

@@ -16,7 +16,7 @@ packaging.
 - dernier `ChangeSnapshot`
 - `ProjectDiscovery` finalise
 - `WorkSession`
-- policy de gates
+- `WorkflowPolicy.gates`
 
 ---
 
@@ -56,7 +56,8 @@ n'a pas ete finalisee contre le worktree prive, le stage echoue ferme.
 - Les commandes sont des argv, pas des chaînes shell concaténées.
 - Les sorties longues vont en evidence files.
 - Un check requis failed bloque le stage.
-- Un check optionnel failed produit finding ou warning selon policy.
+- Un check optionnel failed produit finding ou warning selon
+  `WorkflowPolicy.gates.allowOptionalGateFailure`.
 - Toute correction déléguée retourne à `change-snapshot`.
 
 ---

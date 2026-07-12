@@ -80,7 +80,7 @@ review-bot/<run-id>/<slug>
 `pr/<run-id>/<slug>` est une branche de PR publiée.
 
 `review-bot/<run-id>/<slug>` est réservée aux corrections post-PR si elles sont
-autorisées par la policy.
+autorisées par `WorkflowPolicy.delegation`.
 
 Toute branche créée par `/go` hors de ces patterns doit être rejetée.
 

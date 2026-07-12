@@ -43,7 +43,7 @@ project-discovery-finalize
 - repository source ;
 - checkout source ;
 - `artefactRoot` reserve par `run-init` ;
-- policy de discovery.
+- `WorkflowPolicy.discovery`.
 
 ---
 
@@ -106,7 +106,8 @@ draft inspected config hash == worktree config hash
 ```
 
 Si les hashes ne correspondent pas, `project-discovery-finalize` relance la
-discovery depuis `worktreeRoot` ou echoue ferme selon la policy.
+discovery depuis `worktreeRoot` ou echoue ferme selon
+`WorkflowPolicy.discovery`.
 
 ---
 
@@ -119,7 +120,7 @@ inspect-source-package-scripts
 inspect-source-provider-capabilities
 hash-inspected-files
 write-repository-discovery-draft
-persist-stage-output
+persist-execution-record
 ```
 
 ---

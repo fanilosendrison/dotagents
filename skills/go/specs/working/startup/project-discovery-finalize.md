@@ -48,7 +48,8 @@ Inputs obligatoires :
 - `WorkSession`
 - worktree physique prive (`worktreeRoot`)
 - artefact root prive (`artefactRoot`)
-- policy de gates
+- `WorkflowPolicy.discovery`
+- `WorkflowPolicy.gates`
 
 Inputs optionnels :
 
@@ -115,6 +116,7 @@ Evidence typiques :
 - Detecter le provider Git distant si possible.
 - Detecter si les PRs peuvent etre ouvertes automatiquement.
 - Ecrire la matrice `MechanicalCheckDefinition[]`.
+- Produire un `WorkflowExecutionRecord` durable.
 
 ---
 
@@ -150,14 +152,15 @@ Quand un draft existe, `project-discovery-finalize` doit verifier :
   `workingDirectory: worktreeRoot` ou un sous-dossier valide ;
 - les commandes retenues sont des argv, pas des chaines shell concatenees ;
 - aucun evidence ref ne pointe dans le worktree ;
-- la policy autorise les gates retenues.
+- `WorkflowPolicy.gates` autorise les gates retenues.
 
 Si toutes les preuves matchent, le `ProjectDiscovery.source` vaut
 `"draft-finalized"`.
 
 Si une preuve ne matche pas, le join doit choisir entre :
 
-- relancer la discovery depuis `worktreeRoot`, si la policy l'autorise ;
+- relancer la discovery depuis `worktreeRoot`, si
+  `WorkflowPolicy.discovery.allowWorktreeRerun` l'autorise ;
 - echouer ferme.
 
 Dans le cas d'un rerun depuis le worktree, `ProjectDiscovery.source` vaut
@@ -171,8 +174,9 @@ Dans le cas d'un rerun depuis le worktree, `ProjectDiscovery.source` vaut
 - Ne pas modifier le repo.
 - Ne pas executer les checks lourds ; seulement decouvrir.
 - Preferer les scripts du projet aux conventions generiques.
-- Echouer ferme si aucun moyen fiable de verifier le projet n'existe et que la
-  policy exige des gates.
+- Echouer ferme si aucun moyen fiable de verifier le projet n'existe et que
+  `WorkflowPolicy.discovery.noReliableGateBehavior` ou `WorkflowPolicy.gates`
+  l'exige.
 - Ne jamais rendre autoritatif un draft non prouve contre `WorkSession`.
 - Ne jamais utiliser le checkout source comme `workingDirectory` des gates
   finales.
@@ -188,7 +192,7 @@ validate-draft-file-hashes-against-worktree
 rerun-discovery-from-worktree-if-needed
 build-mechanical-gate-matrix
 write-discovery-evidence
-persist-stage-output
+persist-execution-record
 ```
 
 ---
@@ -198,7 +202,8 @@ persist-stage-output
 - `WorkSession` absent : `errored`.
 - Worktree introuvable : `errored`.
 - Draft invalide et rerun non autorise : `failed`.
-- Aucun check fiable detecte alors que la policy exige des gates : `failed`.
+- Aucun check fiable detecte alors que `WorkflowPolicy` exige des gates :
+  `failed`.
 - Commande candidate non representable en argv : `failed`.
 - Evidence hors `artefactRoot` : `errored`.
 - Artefact `ProjectDiscovery` invalide : `errored`.

@@ -90,7 +90,8 @@ persist-stage-output
 
 ## 6. Failure modes
 
-- Agent bloqué : `failed` ou HumanGate selon policy.
+- Agent bloqué : `failed` ou HumanGate selon
+  `WorkflowPolicy.delegation.implementationBlockedBehavior`.
 - Output agentique invalide : `errored`.
 - Mutation hors worktree : `failed`.
 - Specs contradictoires : HumanGate ou `failed`.

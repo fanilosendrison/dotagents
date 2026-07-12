@@ -92,10 +92,13 @@ type RunInitRecord = {
   schema: "go.run-init.v1";
   runId: string;
   launchContext: RepositoryLaunchContext;
+  launchContextHash: string;
+  workflowPolicyHash: string;
   turnlockRun: TurnlockRunRef;
   artefactRootRef: string;
   workflowLogRootRef?: string;
   worktreeRootReservedPath: string;
+  ownershipMarkerRef: string;
   initializedAt: string;
 };
 ```
@@ -137,6 +140,24 @@ type TurnlockRunRef = {
 `TurnlockRunRef` reference l'enveloppe runtime creee par Turnlock. `/go` ne
 definit pas le lock runtime, le schema de `StateFile`, ni l'ecriture atomique de
 `state.json`.
+
+```ts
+type RunInitOwnershipMarker = {
+  schema: "go.run-init-ownership.v1";
+  runId: string;
+  turnlockRunId: string;
+  artefactRootRef: string;
+  workflowLogRootRef?: string;
+  worktreeRootReservedPath: string;
+  launchContextHash: string;
+  workflowPolicyHash: string;
+  createdAt: string;
+};
+```
+
+`RunInitOwnershipMarker` est une evidence d'idempotence. Elle permet a un retry
+de distinguer une reference deja creee par le meme run d'un chemin occupe par un
+autre run ou par un etat inconnu.
 
 ```ts
 type StartupTaskRecord = {
@@ -199,6 +220,7 @@ type WorkflowPolicy = {
   launchContextMismatch: LaunchContextMismatchPolicy;
   discovery: DiscoveryPolicy;
   gates: GatePolicy;
+  delegation: DelegationPolicy;
   review: ReviewPolicy;
   packaging: PackagingPolicy;
   retention: RetentionPolicy;
@@ -243,6 +265,14 @@ type GatePolicy = {
     | "api-compat"
   >;
   allowOptionalGateFailure: boolean;
+};
+```
+
+```ts
+type DelegationPolicy = {
+  implementationBlockedBehavior: "human-gate" | "fail";
+  allowAutomaticRemediation: boolean;
+  remediationApproval: "policy" | "human";
 };
 ```
 
@@ -356,7 +386,8 @@ type RepositoryContext = {
 ```
 
 `RepositoryContext` est initialise depuis `RepositoryLaunchContext`, puis
-verifie ou corrige par `workspace-setup` selon la policy du run.
+verifie ou corrige par `workspace-setup` selon
+`WorkflowPolicy.launchContextMismatch`.
 
 ---
 
@@ -471,9 +502,8 @@ type WorkflowExecutionRecord = {
 };
 ```
 
-Un `WorkflowExecutionRecord` remplace l'ancien reflexe de tout appeler
-`StageOutputRecord`. Il peut pointer vers un `StageOutput` canonique, mais il
-peut aussi representer une startup task ou une transition Turnlock.
+Un `WorkflowExecutionRecord` peut pointer vers un `StageOutput` canonique, mais
+il peut aussi representer une startup task ou une transition Turnlock.
 
 ---
 

@@ -255,7 +255,8 @@ Responsabilites :
 - verifier que la racine Git reelle correspond au contexte parent ;
 - detecter `baseBranch` ;
 - detecter `baseHeadSha` ;
-- detecter ou corriger `defaultTargetBranch` selon la policy ;
+- detecter ou corriger `defaultTargetBranch` selon
+  `WorkflowPolicy.launchContextMismatch` ;
 - verifier que `projectRoot`, s'il existe, est sous le repo ;
 - refuser si les hints parent contredisent l'etat Git et ne peuvent pas etre
   corriges proprement.
@@ -267,7 +268,7 @@ parent hint: defaultTargetBranch = "main"
 real repo:   defaultTargetBranch = "master"
 
 workspace-setup either:
-  - records the correction and continues if policy allows it
+- records the correction and continues if `WorkflowPolicy` allows it
   - fails closed if the mismatch is unsafe
 ```
 
@@ -282,7 +283,7 @@ workspace-setup either:
 - Gateway non Git pris comme repo : `/go` echoue avant `run-init`.
 - `RepositoryLaunchContext` invalide : `run-init` echoue sans transition stable.
 - Contexte parent contredit Git reel : `workspace-setup` corrige ou echoue
-  selon policy.
+  selon `WorkflowPolicy.launchContextMismatch`.
 
 ---
 

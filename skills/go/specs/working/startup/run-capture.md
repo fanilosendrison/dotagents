@@ -161,7 +161,7 @@ write-prompt-evidence
 write-session-excerpt-evidence
 hash-capture-evidence
 write-run-capture-artifact
-persist-stage-output
+persist-execution-record
 ```
 
 ---

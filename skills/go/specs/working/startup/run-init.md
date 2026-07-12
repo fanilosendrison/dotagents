@@ -44,6 +44,7 @@ Turnlock a deja cree l'enveloppe runtime avant que `run-init` s'execute :
 - `runId` fourni par Turnlock ;
 - `RepositoryLaunchContext` fourni par le parent process ;
 - `WorkflowPolicy` fourni par le parent process ou la configuration `/go` ;
+- hashes canoniques du `RepositoryLaunchContext` et du `WorkflowPolicy` ;
 - reference vers l'enveloppe Turnlock ;
 - `artefactRoot` ou reference equivalente ;
 - chemin de worktree reserve, sans checkout Git ;
@@ -97,6 +98,7 @@ startup task :
 - correction autorisee ou non des hints parent ;
 - rerun autorise ou non de la discovery depuis le worktree ;
 - comportement si aucune gate fiable n'est detectee ;
+- comportement des delegations agentiques et remediations ;
 - obligation de `RunCaptureArtifact` pour les reviews ;
 - conditions de packaging et de publication ;
 - comportement de retention des runs incomplets.
@@ -168,7 +170,7 @@ references doivent conserver les memes proprietes :
 `state.json`, `events.ndjson`, le lock runtime et les logs Turnlock sont
 proprietes de Turnlock. `artefactRoot/`, `worktree/` et les sous-dossiers de
 preuves sont des references metier `/go` placees sous ou a cote de cette
-enveloppe runtime selon la policy.
+enveloppe runtime selon la configuration de stockage du run.
 
 ### 2.4 Frontieres de responsabilite
 
@@ -189,17 +191,20 @@ Responsabilites de `run-init` :
 
 - stocker le `RepositoryLaunchContext` parent ;
 - stocker le `WorkflowPolicy` du run ;
+- calculer et stocker les hashes canoniques de ces inputs ;
 - enregistrer une reference vers le run Turnlock ;
 - creer l'unique `artefactRoot` du run ;
 - creer `workflowLogRoot` si le workflow a besoin de logs metier separes ;
 - reserver `worktreeRoot` comme chemin logique du run ;
+- ecrire ou verifier le marqueur d'ownership de `run-init` ;
 - initialiser `startupTasks` ;
 - retourner un `WorkflowState` complet a Turnlock.
 
 Responsabilites de `workspace-setup` :
 
 - verifier que `canonicalRepositoryRoot` est un repo Git ;
-- verifier ou corriger les hints parent selon la policy ;
+- verifier ou corriger les hints parent selon
+  `WorkflowPolicy.launchContextMismatch` ;
 - verifier que le chemin `worktreeRoot` reserve est utilisable ;
 - creer le checkout Git physique prive ;
 - creer la branche `work/<runId>` ;
@@ -319,6 +324,8 @@ Exemple conceptuel :
         "symlinkResolved": true,
         "resolvedAt": "2026-07-12T14:30:00.000Z"
       },
+      "launchContextHash": "sha256:<canonical-launch-context-hash>",
+      "workflowPolicyHash": "sha256:<canonical-workflow-policy-hash>",
       "turnlockRun": {
         "runId": "go-20260712-a3f2b1",
         "runDirRef": "<go-run-root>/runs/go-20260712-a3f2b1",
@@ -328,6 +335,7 @@ Exemple conceptuel :
       "artefactRootRef": "artefactRoot/",
       "workflowLogRootRef": "logs/workflow/",
       "worktreeRootReservedPath": "worktree/",
+      "ownershipMarkerRef": "artefactRoot/run-init-ownership.json",
       "initializedAt": "2026-07-12T14:30:00.000Z"
     },
     "policy": {
@@ -351,6 +359,11 @@ Exemple conceptuel :
       "gates": {
         "requiredKinds": ["lint", "typecheck", "tests"],
         "allowOptionalGateFailure": true
+      },
+      "delegation": {
+        "implementationBlockedBehavior": "human-gate",
+        "allowAutomaticRemediation": true,
+        "remediationApproval": "human"
       },
       "review": {
         "requireRunCaptureForPrePackageReview": true,
@@ -425,7 +438,7 @@ Tout ce qui suit `run-init` est une mutation tracee de ce payload initial.
 
 Le champ `repository` est initialise depuis le `RepositoryLaunchContext`. Il
 n'est pas encore une preuve Git autoritative. `workspace-setup` le verifie,
-corrige selon policy, ou echoue ferme.
+corrige selon `WorkflowPolicy.launchContextMismatch`, ou echoue ferme.
 
 ### 2.8 Publication atomique
 
@@ -440,8 +453,10 @@ Turnlock creates runtime envelope
 Turnlock dispatches run-init
 run-init validates RepositoryLaunchContext shape
 run-init validates WorkflowPolicy shape
+run-init hashes canonical launch inputs
 run-init creates or reserves /go artefact refs
 run-init reserves worktreeRoot path
+run-init writes or verifies ownership marker
 run-init returns initialized WorkflowState
 Turnlock validates state schema
 Turnlock atomically writes StateFile<WorkflowState>
@@ -457,6 +472,85 @@ Regles :
   invalide ;
 - les fichiers temporaires ou incomplets de Turnlock ne sont jamais
   autoritatifs pour `/go`.
+
+#### 2.8.1 Idempotence et retry
+
+`run-init` peut etre execute plusieurs fois pour le meme run Turnlock. Il ne
+doit pourtant publier qu'un seul payload initialise pour un `runId` donne.
+
+Modele normatif :
+
+```text
+new /go invocation
+-> new Turnlock runId
+-> new /go run
+
+retry or resume of run-init
+-> same Turnlock runId
+-> same initialized WorkflowState or fail-closed
+```
+
+`run-init` est donc idempotent **dans le perimetre d'un meme `runId`**, mais il
+n'est jamais idempotent entre deux invocations `/go` distinctes.
+
+Inputs stables :
+
+- `StateFile.runId` fourni par Turnlock ;
+- `RepositoryLaunchContext` fourni par le parent process ;
+- `WorkflowPolicy` fourni par le parent process ou la configuration `/go` ;
+- refs runtime Turnlock ;
+- configuration de stockage du run.
+
+`run-init` doit calculer des hashes canoniques pour les inputs semantiques qu'il
+stocke :
+
+```text
+launchContextHash = sha256(canonical-json(RepositoryLaunchContext))
+workflowPolicyHash = sha256(canonical-json(WorkflowPolicy))
+```
+
+Ces hashes sont stockes dans `RunInitRecord` et dans
+`RunInitOwnershipMarker`.
+
+Refs creees ou reservees par `run-init` :
+
+- `artefactRootRef` ;
+- `workflowLogRootRef`, si present ;
+- `worktreeRootReservedPath` ;
+- `ownershipMarkerRef`.
+
+Regles de retry :
+
+- si `state.data.runInit` existe deja et que les hashes matchent les inputs de
+  resume, `run-init` retourne l'etat deja initialise sans regenerer de refs ;
+- si `state.data.runInit` existe deja mais que `launchContextHash` ou
+  `workflowPolicyHash` differe, `run-init` echoue ferme ;
+- si `artefactRootRef` existe avec un `RunInitOwnershipMarker` valide pour le
+  meme `runId`, les memes refs et les memes hashes, `run-init` l'adopte ;
+- si `artefactRootRef` existe avec un ownership marker d'un autre `runId`,
+  `run-init` echoue ferme ;
+- si `artefactRootRef` existe sans ownership marker verifiable, `run-init`
+  echoue ferme ou demande une quarantaine explicite au runtime ;
+- si `worktreeRootReservedPath` existe deja comme checkout Git physique,
+  `run-init` echoue ferme, car seul `workspace-setup` cree le worktree ;
+- si `worktreeRootReservedPath` existe comme placeholder vide et qu'il est
+  prouvablement reference par l'ownership marker du meme `runId`, `run-init`
+  peut l'adopter ;
+- si une ref reservee sort du namespace du run apres resolution canonique,
+  `run-init` echoue ferme.
+
+Regles de temps :
+
+- `initializedAt` est choisi une seule fois pour un run initialise ;
+- un retry apres publication stable reutilise `initializedAt` ;
+- un retry avant publication stable peut produire un nouveau timestamp seulement
+  s'il ne reste aucun `RunInitOwnershipMarker` autoritatif ;
+- les timestamps ne doivent jamais servir a decider qu'un chemin appartient au
+  run.
+
+Le marqueur d'ownership est une preuve d'idempotence, pas une seconde source de
+verite. La publication stable reste la transition atomique Turnlock vers
+`StateFile<WorkflowState>`.
 
 ### 2.9 Horloge du run
 
@@ -652,7 +746,8 @@ Elle produit :
 
 - un artefact metier typé ;
 - des evidence refs ;
-- un `StageOutput` si elle passe par le stage harness.
+- un `WorkflowExecutionRecord` ;
+- un `StageOutput` seulement si elle passe par le stage harness.
 
 Turnlock applique ensuite une transition de projection :
 
@@ -728,7 +823,7 @@ draft inspected config hash == worktree config hash
 
 Si les hashes matchent, le draft peut etre finalise. Sinon,
 `project-discovery-finalize` relance la discovery depuis `worktreeRoot` ou
-echoue ferme selon la policy.
+echoue ferme selon `WorkflowPolicy.discovery`.
 
 ---
 
