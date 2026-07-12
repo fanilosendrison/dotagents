@@ -155,10 +155,14 @@ const normalizedErrors = biomeErrors.map(e => ({
   line: e.line,
   rule: e.rule,
 }));
-const errorHash = sha256(JSON.stringify(normalizedErrors));
+const errorHash = canonicalJsonSha256(normalizedErrors);
 ```
 
 Si `errorHash === state.lastErrorHash` sur deux checks consécutifs → **loop detected** → abandon immédiat (pas de retry supplémentaire). L'agent a patiné et n'a rien changé.
+
+`canonicalJsonSha256` doit utiliser RFC 8785 / JSON Canonicalization Scheme
+(JCS), puis produire un hash au format `sha256:<lowercase-hex>`. Le hash porte
+sur le snapshot normalise, pas sur une sortie Biome brute.
 
 Ce qui est **exclu** du hash (non déterministe ou bruit) :
 - Le message descriptif (redondant avec `rule`)
