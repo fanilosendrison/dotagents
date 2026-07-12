@@ -262,5 +262,43 @@ describe("CommandValidator Core Unit Tests", () => {
 				).action,
 			).toBe("allow");
 		});
+
+		test("allows chained commands: harmless write (2>/dev/null) in one segment, read-only protected path in another", () => {
+			expect(
+				bashValidator.validate(
+					"cat ~/.agents/agent-enforcers/permission-enforcer/.gitignore 2>/dev/null; echo '---'; ls ~/.agents/agent-enforcers/permission-enforcer/.state/",
+				).action,
+			).toBe("allow");
+		});
+
+		test("allows chained commands: write to safe path, read-only protected path in another segment", () => {
+			expect(
+				bashValidator.validate(
+					"echo ok > /tmp/safe.txt && ls ~/.agents/agent-enforcers/permission-enforcer/.state/",
+				).action,
+			).toBe("allow");
+		});
+
+		test("denies chained commands: write AND protected path in the same segment", () => {
+			expect(
+				bashValidator.validate(
+					"ls /tmp; echo bad > ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
+				).action,
+			).toBe("deny");
+		});
+
+		test("denies mixed /dev/sda + /dev/null in same segment (not all refs are /dev/null)", () => {
+			expect(
+				bashValidator.validate("echo bad > /dev/sda 2>/dev/null").action,
+			).toBe("deny");
+		});
+
+		test("allows chained: tee to safe path, ls of protected path in separate segment", () => {
+			expect(
+				bashValidator.validate(
+					"echo ok | tee /tmp/log.txt; ls ~/.agents/agent-enforcers/permission-enforcer/.state/",
+				).action,
+			).toBe("allow");
+		});
 	});
 });

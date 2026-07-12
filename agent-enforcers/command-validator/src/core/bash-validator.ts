@@ -102,23 +102,43 @@ export class BashValidator {
 		if (!writeRegex.test(command)) return null;
 
 		const home = homedir();
-		for (const p of SECURITY_RULES.PROTECTED_PATHS) {
-			// /dev/null is a harmless data sink — allow writes to it (e.g. 2>/dev/null)
-			if (p === "/dev/") {
-				const devRefs = command.match(/\/dev\/\S+/g) || [];
-				if (devRefs.length > 0 && devRefs.every(r => r === "/dev/null" || r.startsWith("/dev/null"))) {
-					continue;
-				}
-			}
-			// Exact match
-			if (command.includes(p)) return p;
 
-			// Variantes avec ~ et $HOME (bash ne les expanse pas dans la commande brute)
-			if (p.startsWith(home)) {
-				const relative = p.slice(home.length); // ex: "/.agents/agent-enforcers/..."
-				if (command.includes(`~${relative}`)) return p;
-				if (command.includes(`$HOME${relative}`)) return p;
-				if (command.includes(`$\{HOME\}${relative}`)) return p;
+		// Split command into logical segments (separated by ;, &&, ||).
+		// Each segment is checked independently so that a read-only access
+		// to a protected path (e.g. ls .state/) in one segment does not
+		// get flagged because of an unrelated write (e.g. 2>/dev/null)
+		// in another segment.
+		const segments = command.split(/\s*(?:;|&&|\|\|)\s*/);
+
+		for (const segment of segments) {
+			// Skip segments without write operations
+			if (!writeRegex.test(segment)) continue;
+
+			// If this segment writes to a shell variable (e.g. tee "$P", > $OUT),
+			// fall back to searching the whole command — the variable may have been
+			// assigned to a protected path earlier in the command.
+			const writesToVariable =
+				/(?:>|>>|2>)\s*["']?\$|tee(?:\s+-[a-zA-Z]+)*\s+["']?\$/.test(segment);
+			const searchIn = writesToVariable ? command : segment;
+
+			for (const p of SECURITY_RULES.PROTECTED_PATHS) {
+				// /dev/null is a harmless data sink — allow writes to it (e.g. 2>/dev/null)
+				if (p === "/dev/") {
+					const devRefs = searchIn.match(/\/dev\/\S+/g) || [];
+					if (devRefs.length > 0 && devRefs.every(r => r === "/dev/null" || r.startsWith("/dev/null"))) {
+						continue;
+					}
+				}
+				// Exact match
+				if (searchIn.includes(p)) return p;
+
+				// Variantes avec ~ et $HOME (bash ne les expanse pas dans la commande brute)
+				if (p.startsWith(home)) {
+					const relative = p.slice(home.length); // ex: "/.agents/agent-enforcers/..."
+					if (searchIn.includes(`~${relative}`)) return p;
+					if (searchIn.includes(`$HOME${relative}`)) return p;
+					if (searchIn.includes(`$\{HOME\}${relative}`)) return p;
+				}
 			}
 		}
 		return null;
