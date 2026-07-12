@@ -79,7 +79,9 @@ Potentially dangerous but sometimes legitimate commands:
 | `nmap ...` | Network scanning |
 | `iptables ...` | Firewall modification |
 
-**Exception:** `chmod +x` is always allowed (making a script executable).
+**Exception:** `chmod +x` is allowed only as a single simple command (e.g. `chmod +x script.sh`).
+Chained forms like `chmod +x script.sh; rm -rf /` fall through to the full validator
+and are blocked by later checks.
 
 ### Core security rules
 
@@ -92,6 +94,39 @@ All three runtimes share the same rules defined in `~/.agents/agent-enforcers/co
 - **DANGEROUS_PATTERNS**: 50+ regex patterns covering destructive writes, pipes to shell, crypto miners, docker prunes, kernel module loading, cron injection, credential dumping, Prisma destructive resets, and more
 
 The Pi extension does not add its own patterns — it imports the shared core validator directly.
+
+### Protected path write blocking
+
+Any command that writes to a **protected path** is immediately denied. Protected
+paths are defined in `PROTECTED_PATHS` alongside the other rule groups:
+
+- `~/.agents/agent-enforcers/permission-enforcer/.state/` — permission-enforcer state
+- `/etc/`, `/usr/`, `/sbin/`, `/boot/`, `/sys/`, `/proc/`, `/dev/`, `/root/` — system directories
+
+**How it works:** the validator splits the command into logical segments
+(separated by `;`, `&&`, `||`) and checks each segment independently. A read-only
+access (e.g. `ls .state/`) in one segment is not flagged because of an unrelated
+write (e.g. `2>/dev/null`) in another segment.
+
+**Detected write operations** : `>`, `>>`, `tee`, `cp`, `mv`, `writeFile`,
+`writeFileSync`, `touch`, `truncate`, `sed -i`, `install`, `rsync`.
+
+**`cp`/`mv` special case:** only the destination (last non-flag argument) is
+checked against protected paths. Copying *from* a protected directory
+(e.g. `cp /usr/bin/foo /tmp/foo`) is allowed.
+
+**`/dev/null` exception:** `2>/dev/null` and similar harmless redirects to the
+null device are allowed even though `/dev/` is a protected directory.
+
+**Variable write fallback:** if a segment writes to a shell variable
+(e.g. `tee "$P"`, `> $OUT`), the validator searches the *whole* command for
+protected paths — the variable may have been assigned to a protected path
+earlier in the chain.
+
+**Known gaps:** `touch`, `truncate`, `sed -i`, `install`, and `rsync` are detected,
+but other write mechanisms like `python -c 'open(...,"w")'` or `dd of=...` are not.
+Relative-path writes after `cd` to a protected directory are also not caught
+(e.g. `cd ~/.agents/... && echo x > config.json`).
 
 ## 4. Behavior by runtime
 
@@ -163,8 +198,11 @@ command-validator/
 ## 7. Agent mitigation (when blocked)
 
 1. **CRITICAL (deny):** do not bypass. Reformulate with a more targeted approach
-   - `rm -rf /` → `rm -rf ./dir` or `rm file1 file2`
+   - `rm -rf /` → use `trash` or targeted `rm file1 file2` (without `-r`/`-f`)
    - `curl ... | bash` → download first, inspect, then execute
+   - Writes to protected paths (e.g. `~/.agents/.../permission-enforcer/.state/`) are
+     never allowed — read the file if you need its contents, but do not attempt to
+     modify, move, or overwrite it.
 2. **HIGH (ask):**
    - **Pi:** a UI dialog appears — respond in the dialog
    - **Claude Code:** Claude Code prompts the user via `permissionDecision: "ask"` — the user confirms or denies inline
