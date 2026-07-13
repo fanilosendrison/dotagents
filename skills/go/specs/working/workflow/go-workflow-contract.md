@@ -230,7 +230,7 @@ Turnlock execute et persiste cette phase, mais ne l'implemente pas. Le code de
 generique de Turnlock et n'est pas obligatoire pour tous les orchestrateurs
 Turnlock.
 
-Avant `run-init`, le parent process resout un `RepositoryLaunchContext` :
+Au début de `run-init`, le contexte est résolu en `RepositoryLaunchContext` :
 repo Git cible, sous-projet optionnel, et symlinks. Si ce contexte est absent ou ambigu, `/go` echoue
 avant Turnlock.
 

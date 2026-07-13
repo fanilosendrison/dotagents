@@ -10,7 +10,7 @@ Turnlock, les délégations agentiques, et le contrat de sortie du stage harness
 
 Le workflow `/go` distingue quatre niveaux.
 
-Avant ces niveaux, le parent process produit un **launch context**. Ce n'est
+Avant ces niveaux, `run-init` produit un **launch context**. Ce n'est
 pas une unite Turnlock : c'est l'input resolu qui indique quel repo et quel
 sous-perimetre projet le run cible.
 
@@ -41,7 +41,7 @@ valide et projette le resultat.
 
 ### Launch context
 
-Le launch context est produit par le parent process avant `run-init`.
+Le launch context est produit par `run-init` depuis le CWD de la session.
 
 Il repond a la question : **quel repo Git et quel sous-perimetre projet ce run
 `/go` cible-t-il ?**

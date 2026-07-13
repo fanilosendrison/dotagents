@@ -65,7 +65,7 @@ des hashes.
 Le cycle n'est pas linéaire dès qu'une correction est appliquée. Toute mutation
 retourne à `change-snapshot`.
 
-Avant le startup, le parent process resout le `RepositoryLaunchContext` : repo
+Lors du startup, `run-init` resout le `RepositoryLaunchContext` : repo
 Git cible, sous-projet optionnel, et symlinks. Si cette cible est absente ou ambigue, `/go` echoue avant
 Turnlock.
 

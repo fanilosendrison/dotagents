@@ -1,17 +1,17 @@
-# Launch context parent avant `run-init`
+# RepositoryLaunchContext
 
-Ce document definit le contexte que le parent process doit resoudre avant de
-lancer Turnlock.
+Ce document definit le contexte que `run-init` doit resoudre avant toute
+autre chose.
 
-`run-init` ne decouvre rien. Il ne lance pas `git`, ne choisit pas le repo
-cible, ne verifie pas la branche par defaut et ne resout pas les symlinks. Il
-stocke seulement un contexte de lancement deja resolu par le parent process.
+`run-init` ne lance pas `git`, ne choisit pas de branche et ne communique pas avec le réseau. Il
+utilise uniquement des opérations de système de fichiers (realpath, stat) pour déduire ce contexte
+à partir du répertoire d'invocation fourni par le parent process.
 
 ---
 
 ## 1. Objectif
 
-Avant `run-init`, le parent process doit produire un
+La toute première opération de `run-init` est de produire un
 `RepositoryLaunchContext`.
 
 Ce contexte repond a une question precise :
@@ -24,43 +24,29 @@ Il existe avant Turnlock pour eviter que `run-init` devienne une phase de
 discovery. `run-init` reste purement mecanique :
 
 ```text
-parent process resolves RepositoryLaunchContext
+parent process provides invocationDirectory
 -> parent process starts Turnlock with GoBootstrapState
--> run-init stores it without Git verification
+-> run-init resolves RepositoryLaunchContext from invocationDirectory
 -> workspace-setup verifies it against real Git state
 ```
 
 ---
 
-## 2. Responsabilite du parent process
+## 2. Première opération de run-init
 
-Le parent process est l'agent ou le harness qui recoit le `/go` dans la session.
-Il connait deja :
+Le parent process (l'agent ou le harness) qui recoit le `/go` ne fournit qu'une seule information relative au code :
 
-- le contexte de session ;
-- le prompt utilisateur ;
-- le repertoire courant ou workspace courant ;
-- les gateways et symlinks connus du harness.
+- le repertoire courant ou workspace courant (`invocationDirectory`).
 
-Le parent process doit resoudre un `RepositoryLaunchContext` avant d'appeler
-Turnlock, puis lancer Turnlock avec :
+`run-init` lit ce CWD depuis le `GoBootstrapState`, puis résout le `RepositoryLaunchContext` complet.
 
-- un `GoBootstrapState` contenant `RepositoryLaunchContext`, `WorkflowPolicy`,
-  et `CaptureContext` ;
-- un `runDirRoot` hors du repo cible ;
-- aucun `--run-id` externe, sauf s'il est deja un ULID Turnlock valide.
-
-Inputs typiques :
+Inputs typiques de la résolution interne de `run-init` :
 
 - `invocationDirectory` : repertoire courant de la session (l'unique source de verite pour la cible) ;
 
-Si le parent process ne peut pas prouver un repo Git cible unique, `/go` echoue
-avant `run-init`.
+Si `run-init` ne peut pas prouver un repo Git cible unique (ou fallback formel), `/go` echoue.
 
-Si le parent process ne peut pas configurer un `runDirRoot` hors de
-`canonicalRepositoryRoot`, `/go` echoue avant Turnlock. `run-init` verifiera
-encore le containment de `runDir`, mais il ne peut pas deplacer une enveloppe
-runtime deja creee.
+Si le parent process n'a pas configuré un `runDirRoot` valide, `run-init` verifie le containment de `runDir` par rapport au repo cible fraîchement résolu. S'il y a violation, `/go` échoue ferme, car il ne peut pas deplacer une enveloppe runtime deja creee.
 
 ---
 
@@ -95,7 +81,7 @@ monorepo. Il ne remplace jamais `canonicalRepositoryRoot`. S'il est absent, cela
 
 ## 4. Resolution normative
 
-Le parent process resout le contexte en utilisant strictement le repertoire courant (`invocationDirectory`) :
+Le sous-système de résolution de `run-init` produit le contexte en utilisant strictement le repertoire courant (`invocationDirectory`) :
 
 1. Utiliser le repertoire courant de la session comme unique point de depart.
 2. Normaliser les symlinks connus.
@@ -182,7 +168,7 @@ Cas :
 Un gateway peut contenir des dossiers physiques et des symlinks vers des repos
 Git reels.
 
-Le parent process ne doit pas supposer que le gateway lui-meme est un repo Git.
+`run-init` ne doit pas supposer que le gateway lui-meme est un repo Git.
 Il doit resoudre le work target reel :
 
 - si le target est `~/.agents/`, la resolution Git peut echouer ;
@@ -197,33 +183,7 @@ Regles :
 
 ---
 
-## 8. Rapport a `run-init`
-
-`run-init` recoit le `RepositoryLaunchContext` et le persiste dans
-`WorkflowState`.
-
-Plus precisement, `RepositoryLaunchContext` arrive dans `GoBootstrapState`.
-`run-init` lit ce bootstrap snapshot durable, valide sa forme, calcule les hashes
-JCS, puis produit le `WorkflowState` complet.
-
-Le noyau bootstrap de `run-init` ne doit pas :
-
-- appeler `git rev-parse` ;
-- verifier que `canonicalRepositoryRoot` existe ;
-- choisir entre `main` et `master` ;
-- resoudre un sous-projet ;
-- suivre des symlinks.
-
-Ces decisions sont hors de son perimetre direct. Elles sont verifiees plus tard
-par la startup task interne `workspace-setup`.
-
-Si le contexte fourni est absent, incomplet, ou mal forme, `run-init` echoue
-avant que les startup tasks internes ne puissent produire une evidence
-autoritative.
-
----
-
-## 9. Rapport a `workspace-setup`
+## 8. Rapport a `workspace-setup`
 
 `workspace-setup` verifie le contexte contre le repo reel.
 
@@ -238,16 +198,14 @@ Responsabilites :
 
 ---
 
-## 10. Failure modes
+## 9. Failure modes
 
-- Aucun chemin cible exploitable : `/go` echoue avant `run-init`.
-- Aucun repo Git trouve : Le parent process assigne le CWD comme `canonicalRepositoryRoot` et délègue l'initialisation à `workspace-setup`.
-- Plusieurs repos Git candidats : `/go` echoue avant `run-init`.
-- `projectRoot` hors repo : `/go` echoue avant `run-init`.
-- Gateway non Git pris comme repo : `/go` echoue avant `run-init`.
+- Aucun chemin cible exploitable : `run-init` echoue avant le workflow.
+- Aucun repo Git trouve : `run-init` assigne le CWD comme `canonicalRepositoryRoot` et délègue l'initialisation à `workspace-setup`.
+- Plusieurs repos Git candidats : `run-init` echoue.
+- `projectRoot` hors repo : `run-init` echoue.
+- Gateway non Git pris comme repo : `run-init` echoue.
 - `RepositoryLaunchContext` invalide : `run-init` echoue sans transition stable.
-- Contexte parent contredit Git reel : `workspace-setup` corrige ou echoue
-  selon `WorkflowPolicy.launchContextMismatch`.
 
 ---
 

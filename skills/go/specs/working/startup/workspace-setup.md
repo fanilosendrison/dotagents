@@ -129,7 +129,7 @@ worktree doivent etre finalises contre ce `WorkSession` avant de produire un
 ## 6. Operations internes typiques
 
 ```text
-resolve-repository
+verify-canonical-repository (déjà résolu par run-init)
 if-is-new-repository-initialize-git-repo
 verify-launch-context-against-git
 validate-dirty-state-policy

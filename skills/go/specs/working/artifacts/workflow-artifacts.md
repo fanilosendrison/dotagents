@@ -21,13 +21,13 @@ type GoRuntimeState = GoBootstrapState | WorkflowState;
 ```ts
 type GoBootstrapState = {
   schema: "go.bootstrap-state.v1";
-  launchContext: RepositoryLaunchContext;
+  invocationDirectory: string;
   policy: WorkflowPolicy;
 };
 ```
 
 `GoBootstrapState` est l'etat initial minimal donne a Turnlock avant
-`run-init`. Il contient seulement les inputs parent deja resolus. Il ne contient
+`run-init`. Il contient seulement les inputs parent deja resolus (le CWD). Il ne contient
 pas `runId`, car `runId` appartient a `StateFile.runId`, ni `runInit`, car
 `run-init` ne l'a pas encore produit.
 
@@ -143,8 +143,8 @@ type RepositoryLaunchContext = {
 };
 ```
 
-`RepositoryLaunchContext` est fourni par le parent process dans
-`GoBootstrapState` avant `run-init`. `run-init` le stocke sans discovery Git.
+`RepositoryLaunchContext` est produit par `run-init` depuis le `invocationDirectory` fourni dans le
+`GoBootstrapState`. `run-init` le stocke sans discovery Git complète.
 `workspace-setup` le verifie ensuite contre l'etat Git reel.
 
 ```ts
