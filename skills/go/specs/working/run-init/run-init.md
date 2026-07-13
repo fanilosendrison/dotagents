@@ -86,7 +86,13 @@ Les trois bootstrap tasks suivantes s'executent en parallele une fois
   repo distant via [`ProviderConfig`](./provider-config.md).
 - **`repo-discovery-draft`** : lit le checkout source pour decouvrir les
   commandes et capacites du repo, pendant que le worktree est cree. Ce
-  resultat n'est qu'un brouillon.
+  resultat n'est qu'un brouillon. De plus, `repo-discovery-draft` ne doit pas
+  executer de commandes Git sur le checkout source. Elle lit uniquement des
+  fichiers. Si un fichier ou dossier (comme `.git/`) est absent parce que
+  `workspace-setup` est en cours d'initialisation parallele, la branche
+  traite cette absence comme une information manquante (draft incomplet) et ne
+  crashe pas. Le join `project-discovery-finalize` validera ou relancera la
+  discovery finale.
 
 Aucune bootstrap branch ne demarre avant que `run-init` ait reserve ses refs
 d'ecriture (artefactRoot, worktreeRoot, ownership marker), car aucune startup
