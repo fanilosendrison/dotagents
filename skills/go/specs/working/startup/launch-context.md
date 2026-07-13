@@ -47,20 +47,17 @@ Il connait deja :
 Le parent process doit resoudre un `RepositoryLaunchContext` avant d'appeler
 Turnlock, puis lancer Turnlock avec :
 
-- un `GoBootstrapState` contenant `RepositoryLaunchContext` et
-  `WorkflowPolicy` ;
+- un `GoBootstrapState` contenant `RepositoryLaunchContext`, `WorkflowPolicy`,
+  et `CaptureContext` ;
 - un `runDirRoot` hors du repo cible ;
 - aucun `--run-id` externe, sauf s'il est deja un ULID Turnlock valide.
 
 Inputs typiques :
 
-- `invocationDirectory` : repertoire courant de la session ;
-- `activePathRefs` : fichiers ou dossiers actifs pertinents ;
-- `repositoryRootHint` : repo explicitement fourni par l'utilisateur ou le
-  harness ;
-- `projectRootHint` : sous-dossier metier explicitement cible ;
+- `invocationDirectory` : repertoire courant de la session (l'unique source de verite pour la cible) ;
+- `activePathRefs` : fichiers ou dossiers actifs pertinents (conserves uniquement pour le contexte semantique, jamais pour decider du repo) ;
 - hints provider : `github`, `gitlab`, `local-only` ;
-- hint de branche cible : `main`, `master`, ou autre.
+- hint de branche cible : branche courante du checkout source (`HEAD`).
 
 Si le parent process ne peut pas prouver un repo Git cible unique, `/go` echoue
 avant `run-init`.
@@ -99,8 +96,6 @@ type RepositoryLaunchContext = {
   remoteNameHint?: string;
   defaultTargetBranchHint?: string;
   resolutionSource:
-    | "explicit-user-input"
-    | "active-path"
     | "invocation-directory"
     | "parent-session";
   symlinkResolved: boolean;
@@ -119,20 +114,19 @@ monorepo. Il ne remplace jamais `canonicalRepositoryRoot`. S'il est absent, cela
 
 ## 4. Resolution normative
 
-Le parent process resout le contexte dans cet ordre :
+Le parent process resout le contexte en utilisant strictement le repertoire courant (`invocationDirectory`) :
 
-1. Utiliser un repo explicitement demande par l'utilisateur ou le harness.
-2. Sinon, utiliser les fichiers ou dossiers actifs.
-3. Sinon, utiliser le repertoire courant de la session.
-4. Normaliser les symlinks connus avant de valider la racine Git.
-5. Appeler l'equivalent de `git rev-parse --show-toplevel` depuis le chemin
-   cible normalise.
-6. Refuser si aucune racine Git unique ne peut etre prouvee, sauf si l'intention de creer un nouveau projet est explicite (`isNewRepository: true`).
+1. Utiliser le repertoire courant de la session comme unique point de depart.
+2. Normaliser les symlinks connus avant de valider la racine Git.
+3. Appeler l'equivalent de `git rev-parse --show-toplevel` depuis ce chemin cible normalise.
+4. Refuser si aucune racine Git unique ne peut etre prouvee, sauf si l'intention de creer un nouveau projet est explicite (`isNewRepository: true`).
+
+Les fichiers actifs (`activePathRefs`) ou les demandes explicites de l'utilisateur ne doivent jamais court-circuiter cette regle. Le repo cible est **toujours** defini par le CWD.
 
 Le parent process peut extraire les hints par heuristique legere sans bloquer s'il ne trouve rien :
 - `remoteNameHint` : nom du premier remote Git (ex: `origin`).
 - `providerHint` : infere depuis l'URL du remote, ou depuis les variables d'environnement du harness (ex: `GITHUB_REPOSITORY`).
-- `defaultTargetBranchHint` : branche courante du checkout source (`HEAD`), ou omis si non determinable sans operation reseau.
+- `defaultTargetBranchHint` : branche courante du checkout source (`HEAD`), ou omis si non determinable sans operation reseau. Cela donne a l'utilisateur le controle de son point de depart en faisant simplement un `git checkout` avant `/go`.
 
 Aucun de ces hints n'est autoritatif. Leur absence ne doit jamais faire echouer le parent process. Ils servent a initialiser l'etat du run et a produire une trace.
 
@@ -190,22 +184,15 @@ workspace/
         └── .git/
 ```
 
-La cible normative est le repo Git le plus proche du work target reel.
+La cible normative est le premier repo Git trouve en remontant depuis le repertoire courant de la session (`invocationDirectory`).
 
-Si le fichier actif est dans `vendor/nested-repo/`, le parent process doit
-resoudre `canonicalRepositoryRoot` vers `vendor/nested-repo/`, pas vers
-`workspace/`.
-
-Si plusieurs chemins actifs pointent vers plusieurs repos Git, le parent process
-doit echouer avant `run-init`, sauf si l'utilisateur ou le harness fournit une
-cible explicite.
+Meme si le fichier actif dans l'IDE se trouve dans `vendor/nested-repo/`, si le terminal de la session (CWD) est dans `workspace/`, c'est `workspace/` qui devient le `canonicalRepositoryRoot`. A l'inverse, si le terminal est positionne dans `workspace/vendor/nested-repo/`, la resolution s'arretera sur `nested-repo/`. Le terminal a toujours raison.
 
 Regles :
 
-- ne pas choisir le repo parent si le work target est dans un repo imbrique ;
-- ne pas fusionner plusieurs repos dans un seul run `/go` ;
-- refuser les cibles ambigues avant Turnlock ;
-- stocker les chemins actifs qui ont servi a la decision.
+- `canonicalRepositoryRoot` est resolu uniquement en cherchant le `.git` le plus proche au-dessus du `invocationDirectory` ;
+- les chemins actifs (`activePathRefs`) ne modifient pas la resolution, ils servent uniquement de contexte pour comprendre l'intention (via `RunCaptureArtifact`) ;
+- refuser la cible avant Turnlock si le repertoire courant ne permet pas de trouver une racine Git unique en remontant.
 
 ---
 
