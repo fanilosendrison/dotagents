@@ -230,9 +230,7 @@ Turnlock execute et persiste cette phase, mais ne l'implemente pas. Le code de
 generique de Turnlock et n'est pas obligatoire pour tous les orchestrateurs
 Turnlock.
 
-Au début de `run-init`, le contexte est résolu en `RepoCapture` :
-repo Git cible, sous-projet optionnel, et symlinks. Si ce contexte est absent ou ambigu, `/go` echoue
-avant Turnlock.
+Au début de `run-init`, le contexte est résolu en `RepoCapture` : repo Git cible, sous-projet optionnel, et symlinks. Si ce contexte est absent ou si la résolution cible un répertoire "gateway" non-Git (identifié par la présence de fichiers sentinelles comme `AGENTS.md`, `SKILL.md` ou `.agents/` sans dépôt Git parent), `/go` échoue. Les chemins du répertoire d'invocation et de la racine Git doivent être comparés et résolus via `realpath` pour toute comparaison ou vérification de sous-dossier (monorepo).
 
 Turnlock cree `StateFile<RuntimeState>` contenant `BootstrapState`, `runDir`,
 lock runtime, horloges, logger et ecritures atomiques. `run-init` remplace
@@ -252,17 +250,23 @@ partie de la phase Turnlock `run-init`.
 
 ```text
 run-init
-├─ run-capture
-├─ repo-discovery-draft
-└─ workspace-setup
-       ↓
-project-discovery-finalize
-       ↓
-join run-capture
-       ↓
-delegate implementation
-       ↓ resumeAt
-implementation-settlement
+│
+├─ repo-capture (sequentiel)
+│       │
+│       ├─ run-capture (parallele) ─────────────────┐
+│       ├─ workspace-setup (parallele) ──┐          │
+│       └─ repo-discovery-draft (parallele)         │
+│                  │                      │          │
+│                  └──────────┬───────────┘          │
+│                             ↓                      │
+│                 project-discovery-finalize         │
+│                             │                      │
+│                             ↓                      │
+│                 join run-capture ◄─────────────────┘
+│                             ↓
+└─ delegate implementation
+         ↓ resumeAt
+    implementation-settlement
 ```
 
 Les sous-sections `4.1.x` ne sont pas des stages canoniques et ne sont pas des
@@ -280,8 +284,7 @@ avant la delegation `implementation`.
 
 #### 4.1.2 `workspace-setup`
 
-Crée le worktree Git physique privé du run, enregistre `WorkSession`, et fixe
-`baseHeadSha`.
+Prépare le terrain isolé du run. En mode `execute` (nominal), elle crée le worktree Git physique privé, enregistre `WorkSession`, et fixe `baseHeadSha` (supportant le cas d'un HEAD non né pour un dépôt initialisé sans commit). En mode `validate` (retry/resume), elle valide le worktree sans reconstruction en utilisant un contrôle d'ancêtre (`git merge-base --is-ancestor`) au lieu de l'égalité stricte de HEAD, et en filtrant les vérifications porcelain sur les fichiers du patch d'adoption (via `git apply --numstat`).
 
 Cette bootstrap task est la frontière de départ de toutes les preuves de diff.
 
@@ -464,15 +467,18 @@ nettoie les branches quand les preuves nécessaires sont conservées.
 stocke le `RepoCapture` fourni par le parent process dans
 `WorkflowState`, initialise les refs `/go`, execute le bootstrap/onboarding, puis
 emet la delegation `implementation`. L'enveloppe runtime est fournie par
-Turnlock.
+Turnlock. Lors de la reprise après interruption de `run-init`, la bootstrap task `workspace-setup` est ré-exécutée en mode `"validate"`. Toute reconstruction ou restauration ultérieure du worktree après la finalisation de `run-init` (en cours d'implémentation) est une responsabilité de niveau Turnlock ; `workspace-setup` ne doit pas être ré-invoquée dans les phases subséquentes.
 
 Dans `run-init`, le demarrage nominal est parallele :
 
 ```text
 run-init
-├─ run-capture
-├─ repo-discovery-draft
-└─ workspace-setup
+│
+├─ repo-capture (sequentiel)
+│       │
+│       ├─ run-capture (parallele)
+│       ├─ workspace-setup (parallele)
+│       └─ repo-discovery-draft (parallele)
 ```
 
 Le bootstrap joint ensuite les branches necessaires avant la premiere delegation

@@ -437,6 +437,7 @@ type CandidateMechanicalCommand = {
 type RepositoryContext = {
   repositoryRoot: string;
   projectRoot?: string;
+  worktreeProjectRoot?: string;
   provider?: "github" | "gitlab" | "local-only";
   remoteName?: string;
   defaultTargetBranch: string;
@@ -458,6 +459,7 @@ type WorkSession = {
   repositoryRoot: string;
   sourceCheckoutRoot: string;
   worktreeRoot: string;
+  worktreeProjectRoot?: string;
   artefactRoot: string;
   baseBranch: string;
   baseHeadSha: string;
