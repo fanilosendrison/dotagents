@@ -90,7 +90,7 @@ Le sous-système de résolution de `run-init` produit le contexte en utilisant s
 
 Les demandes explicites de l'utilisateur ne doivent jamais court-circuiter cette regle. Le repo cible est **toujours** defini par le CWD.
 
-`workspace-setup` est la premiere startup task qui verifie l'etat du
+`workspace-setup` est la premiere bootstrap task qui verifie l'etat du
 repo Git reel.
 
 ---

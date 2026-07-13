@@ -5,7 +5,7 @@ Il ne se contente pas de lire des manifestes : il prouve que les commandes de
 gates retenues correspondent au worktree physique prive qui sera modifie et
 verifie.
 
-Ce startup join synchronise :
+Ce bootstrap join synchronise :
 
 - `workspace-setup`, qui produit `WorkSession` ;
 - `repo-discovery-draft`, qui peut avoir inspecte le checkout source en
@@ -127,7 +127,7 @@ Evidence typiques :
 
 ## 6. `repo-discovery-draft`
 
-`repo-discovery-draft` est une startup branch. Elle lit le
+`repo-discovery-draft` est une bootstrap branch. Elle lit le
 checkout source en lecture seule pendant que `workspace-setup` peut creer le
 worktree.
 

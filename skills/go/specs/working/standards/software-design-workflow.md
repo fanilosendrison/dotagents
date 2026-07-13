@@ -1,7 +1,7 @@
 # Workflow logiciel `/go`
 
 Ce document décrit le cycle complet d'un `/go` dans le vocabulaire canonique :
-startup tasks, stages, phases Turnlock, délégations, et stage harness.
+bootstrap tasks, stages, phases Turnlock, délégations, et stage harness.
 
 ---
 
@@ -70,7 +70,7 @@ Git cible, sous-projet optionnel, et symlinks. Si cette cible est absente ou amb
 Turnlock.
 
 Le demarrage n'est pas lineaire non plus. Ce n'est pas un stage : c'est le
-startup du run porte par la phase Turnlock `run-init`. `run-capture`,
+bootstrap du run porte par la phase Turnlock `run-init`. `run-capture`,
 `repo-discovery-draft` et `workspace-setup` peuvent avancer en parallele a
 l'interieur de `run-init`, tant qu'ils ne modifient pas directement
 `WorkflowState`.
@@ -89,7 +89,7 @@ atomique.
 `run-init` remplace ensuite `GoBootstrapState` par `WorkflowState` dans
 `StateFile.data` : `RepoCapture`, `WorkflowPolicy`, hashes JCS des
 inputs JSON, `artefactRoot`, marqueur d'ownership, chemin de worktree reserve et
-startup task records initiaux.
+bootstrap task records initiaux.
 
 `run-init` stocke le `RepoCapture`, mais ne le decouvre pas lui-meme
 et ne cree pas l'enveloppe runtime Turnlock. Il orchestre ensuite les startup
@@ -103,7 +103,7 @@ meme payload initialise ou echouer ferme. Cette idempotence ne traverse jamais
 deux invocations `/go` distinctes.
 
 Ce n'est pas une analyse de la demande. C'est la condition de securite qui
-permet aux startup branches d'ecrire leurs preuves au bon endroit et a l'agent
+permet aux bootstrap branches d'ecrire leurs preuves au bon endroit et a l'agent
 de travailler dans le bon worktree.
 
 ### Startup branch: `run-capture`

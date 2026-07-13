@@ -33,7 +33,7 @@ Le `RepoCapture` est désormais résolu de manière strictement implicite et dé
 
 1. **Le dépôt cible (canonicalRepositoryRoot)** est l'unique dépôt Git trouvé en remontant depuis le `invocationDirectory` (CWD). Les fichiers ouverts dans l'IDE ne peuvent plus court-circuiter cette règle.
 2. **La branche de départ (defaultTargetBranchHint)** est strictement déduite du pointeur `HEAD` courant du checkout source. L'utilisateur contrôle son point de départ en effectuant simplement un `git checkout` avant d'invoquer `/go`.
-3. **La cible de Pull Request** (ex: `main` ou `master`) n'est plus devinée par le parent process. C'est une propriété intrinsèque du dépôt que la startup task `workspace-setup` découvrira elle-même en inspectant le remote.
+3. **La cible de Pull Request** (ex: `main` ou `master`) n'est plus devinée par le parent process. C'est une propriété intrinsèque du dépôt que la bootstrap task `workspace-setup` découvrira elle-même en inspectant le remote.
 
 ---
 

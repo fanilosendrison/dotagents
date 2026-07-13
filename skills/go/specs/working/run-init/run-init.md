@@ -13,16 +13,16 @@ pas au runtime Turnlock.
 
 - une primitive generique fournie par Turnlock ;
 - un stage metier `/go` ;
-- une startup task parallele ;
+- une bootstrap task parallele ;
 - une phase obligatoire pour tous les orchestrateurs Turnlock.
 
 Elle est obligatoire seulement pour le workflow `/go`, parce que `/go` doit
 transformer `GoBootstrapState` en `WorkflowState`, executer le
 bootstrap/onboarding, puis emettre la premiere delegation agentique.
 
-Le principe central : le startup n'est pas un stage metier et les travaux de
-startup ne sont pas des phases Turnlock separees. Ils sont des startup tasks
-internes a `run-init`. Les startup branches peuvent s'executer en parallele,
+Le principe central : le bootstrap n'est pas un stage metier et les travaux de
+startup ne sont pas des phases Turnlock separees. Ils sont des bootstrap tasks
+internes a `run-init`. Les bootstrap branches peuvent s'executer en parallele,
 mais leurs artefacts ne deviennent autoritaires qu'au moment ou `run-init`
 les valide et les projette dans le `WorkflowState` donne a Turnlock avec la
 delegation `implementation`.
@@ -57,7 +57,7 @@ run-init
 ### 1.1 Resolution du repo capture
 
 `run-init` resout le `RepoCapture` comme sa toute premiere
-operation interne, depuis le CWD fourni dans `GoBootstrapState`. Le contrat
+bootstrap task, depuis le CWD fourni dans `GoBootstrapState`. Le contrat
 detaille vit dans [`repo-capture.md`](./repo-capture.md).
 
 Cette etape est sequentielle : `workspace-setup` a besoin de
@@ -65,12 +65,12 @@ Cette etape est sequentielle : `workspace-setup` a besoin de
 ne peut pas demarrer en parallele de la resolution.
 
 Si le `RepoCapture` ne peut pas etre resolu (par exemple si on ne
-trouve aucun depot Git parent), `run-init` echoue avant que les startup tasks
+trouve aucun depot Git parent), `run-init` echoue avant que les bootstrap tasks
 internes ne puissent produire une evidence autoritative.
 
 ### 1.2 Branches paralleles
 
-Les trois startup tasks suivantes s'executent en parallele une fois
+Les trois bootstrap tasks suivantes s'executent en parallele une fois
 `repo-capture` termine :
 
 - **`run-capture`** : capture les preuves du moment `/go` (prompt, extrait de
@@ -86,14 +86,14 @@ Les trois startup tasks suivantes s'executent en parallele une fois
   commandes et capacites du repo, pendant que le worktree est cree. Ce
   resultat n'est qu'un brouillon.
 
-Aucune startup branch ne demarre avant que `run-init` ait reserve ses refs
+Aucune bootstrap branch ne demarre avant que `run-init` ait reserve ses refs
 d'ecriture (artefactRoot, worktreeRoot, ownership marker), car aucune startup
 branch ne doit inventer son propre emplacement d'ecriture ou son propre
 identifiant.
 
 ### 1.3 Joins
 
-`project-discovery-finalize` est le startup join entre `workspace-setup` et
+`project-discovery-finalize` est le bootstrap join entre `workspace-setup` et
 `repo-discovery-draft`. Il verifie que les fichiers inspectes par le draft
 correspondent au worktree prive (hashes de `package.json`, lockfile, config).
 Si les hashes matchent, le draft est finalise en `ProjectDiscovery`
@@ -119,7 +119,7 @@ io.delegate(
 
 ### 1.5 Regles de parallelisme
 
-**Regle d'autorite.** Une startup branch ne modifie pas directement
+**Regle d'autorite.** Une bootstrap branch ne modifie pas directement
 `WorkflowState`. Elle produit un artefact metier type, des evidence refs, et un
 `WorkflowExecutionRecord`. `run-init` valide ensuite (schema, containment,
 hashes) et projette dans le `WorkflowState` qu'il remet a Turnlock. Cette regle
@@ -147,8 +147,8 @@ La cancellation utilise les primitives runtime disponibles (`io.signal`,
 timeouts Turnlock, ecritures atomiques). Elle n'introduit pas un second
 scheduler ou un second systeme de lock propre a `/go`.
 
-**Joins fail-closed.** Un startup join est un point ou le chemin principal
-exige qu'une startup branch ait produit un resultat valide. Si un join ne peut
+**Joins fail-closed.** Un bootstrap join est un point ou le chemin principal
+exige qu'une bootstrap branch ait produit un resultat valide. Si un join ne peut
 pas prouver ses inputs, il echoue ferme. Il ne continue pas sur une inference
 libre :
 
@@ -210,7 +210,7 @@ Exemple conceptuel avant `run-init` :
 ### 2.2 `WorkflowPolicy`
 
 Le parent process ou la configuration `/go` fournit un `WorkflowPolicy` qui
-fige les decisions ne devant pas etre improvisees par une startup task :
+fige les decisions ne devant pas etre improvisees par une bootstrap task :
 
 - adoption ou refus du dirty state initial ;
 - rerun autorise ou non de la discovery depuis le worktree ;
@@ -239,7 +239,7 @@ type CaptureContext = {
 };
 ```
 
-La startup task `run-capture` lit ces inputs pour produire le
+La bootstrap task `run-capture` lit ces inputs pour produire le
 `RunCaptureArtifact`. `run-init` ne modifie pas le `CaptureContext`, il le
 transmet tel quel.
 
@@ -342,7 +342,7 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
       "defaultTargetBranch": "main"
     },
     "currentStage": "implementation",
-    "startupTasks": [
+    "bootstrapTasks": [
       {
         "task": "run-capture",
         "status": "passed",
@@ -384,7 +384,7 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
 ```
 
 `currentStage` vaut `"implementation"`, car le prochain travail externe est la
-delegation agentique. Les travaux de demarrage sont suivis par `startupTasks`,
+delegation agentique. Les travaux de demarrage sont suivis par `bootstrapTasks`,
 pas par `currentStage`.
 
 `currentPhase` est un pointeur Turnlock vers la prochaine phase runtime stable.
@@ -419,7 +419,7 @@ maquillees en erreur de stage.
 
 `run-init` doit etre atomique du point de vue du workflow : soit Turnlock a
 persiste un snapshot stable contenant `WorkflowState` et la delegation
-`implementation`, soit aucune sortie de startup task ne devient autoritative.
+`implementation`, soit aucune sortie de bootstrap task ne devient autoritative.
 
 Sequence normative :
 
@@ -434,7 +434,7 @@ run-init hashes canonical launch inputs
 run-init creates or reserves /go artefact refs
 run-init reserves worktreeRoot path
 run-init writes or verifies ownership marker
-run-init starts startup branches
+run-init starts bootstrap branches
 run-init runs workspace-setup
 run-init runs or finalizes repo discovery
 run-init joins project-discovery-finalize
@@ -453,7 +453,7 @@ Regles :
 - `run-init` ne publie pas de marqueur de completion separe ;
 - le snapshot stable Turnlock est l'unique preuve que `run-init` a reussi ;
 - apres un snapshot stable, `state.data.schema` vaut `"go.workflow-state.v1"` ;
-- une startup task refuse de produire une evidence autoritative si
+- une bootstrap task refuse de produire une evidence autoritative si
   `state.data.runInit` est absent ou invalide ;
 - la reprise apres delegation passe par `pendingDelegation.resumeAt`, pas par
   une phase startup intermediaire ;
@@ -469,7 +469,7 @@ Regles :
 `runId` est l'identifiant unique du run Turnlock. `/go` ne genere pas un second
 identifiant. `WorkflowState.runId` doit etre identique a `StateFile.runId`.
 
-Il sert de namespace a tout ce qui appartient au workflow : startup tasks,
+Il sert de namespace a tout ce qui appartient au workflow : bootstrap tasks,
 stages, artefacts metier, evidence files, logs, branches de travail, commits,
 pull requests.
 
@@ -585,7 +585,7 @@ Regles :
 - les references d'evidence sont verifiees avant projection dans
   `WorkflowState`.
 
-Les startup tasks internes publient un `task-record.json` terminal par ecriture
+Les bootstrap tasks internes publient un `task-record.json` terminal par ecriture
 atomique seulement quand leur resultat est complet, schema-valide et verifie
 contre les inputs stables du run.
 
@@ -619,14 +619,14 @@ persistance atomique. Turnlock est la primitive autoritative.
 
 ### 5.1 Checkpoints internes de startup
 
-Les startup tasks internes publient des checkpoints sous
+Les bootstrap tasks internes publient des checkpoints sous
 `artefactRoot/startup/<task>/task-record.json`. Ces checkpoints sont des
 preuves de reprise pour `run-init`, pas une seconde source de verite.
 
 Forme normative :
 
 ```ts
-type StartupTaskCheckpointRecord = {
+type BootstrapTaskCheckpoint = {
   schema: "go.startup-task-checkpoint.v1";
   runId: string;
   task:
@@ -650,7 +650,7 @@ Regles :
 
 - `task-record.json` est ecrit atomiquement ;
 - aucun `task-record.json` non terminal n'est autoritatif ;
-- `inputHash` couvre les inputs exacts de la startup task ;
+- `inputHash` couvre les inputs exacts de la bootstrap task ;
 - `repoCaptureHash` et `workflowPolicyHash` doivent matcher le
   `RunInitRecord` courant ;
 - `runId` doit matcher `StateFile.runId` ;
@@ -665,8 +665,8 @@ Sur retry de `run-init` :
   - Pour `workspace-setup` : deleguer systematiquement la tache en mode
     `validate` pour verifier l'etat physique du depot Git (reparer/pruner si
     necessaire).
-  - Pour les autres startup tasks : adopter directement.
-- checkpoint absent : relancer la startup task ;
+  - Pour les autres bootstrap tasks : adopter directement.
+- checkpoint absent : relancer la bootstrap task ;
 - checkpoint partiel ou temporaire : ignorer ou mettre en quarantaine, puis
   relancer si la task est idempotente ;
 - checkpoint terminal `failed` ou `errored` : fail-closed, sauf policy
@@ -746,16 +746,16 @@ Cas normatifs :
 - `StateFile` valide, schema `"go.bootstrap-state.v1"` : reprise a `run-init`
   si `currentPhase` le permet ;
 - `StateFile` valide, schema `"go.workflow-state.v1"`, `runInit` valide, sans
-  delegation pending : reprise depuis `startupTasks`, `currentStage` et
+  delegation pending : reprise depuis `bootstrapTasks`, `currentStage` et
   artefacts deja projetes ;
 - `StateFile` valide, `pendingDelegation.label` vaut `"implementation"` :
   Turnlock reprend a `pendingDelegation.resumeAt` ;
 - `StateFile` valide mais payload `/go` absent ou schema inconnu : echec ferme
   ou migration explicite.
 
-Chaque startup branch doit pouvoir etre reprise independamment (non demarree,
+Chaque bootstrap branch doit pouvoir etre reprise independamment (non demarree,
 en cours, terminee avec artefact valide, terminee avec artefact invalide,
-echouee). Cette information vit dans les records de startup task et les
+echouee). Cette information vit dans les records de bootstrap task et les
 `WorkflowExecutionRecord`.
 
 ### 5.4 Retention
@@ -801,7 +801,7 @@ Regles :
 - `workflowLogRootRef`, s'il existe, ne doit pas etre sous le worktree ;
 - `worktreeRootReservedPath` doit etre sous le namespace du run ;
 - les chemins resolus ne doivent pas sortir de leur racine via `..` ou symlink ;
-- aucune startup task ne peut fournir un chemin absolu qui remplace une racine
+- aucune bootstrap task ne peut fournir un chemin absolu qui remplace une racine
   reservee par `run-init`.
 
 Les checks de containment s'appliquent aux chemins locaux apres resolution
@@ -811,7 +811,7 @@ retry, et aucune ref n'est derivee d'un input utilisateur brut sans validation.
 
 ### 6.3 Regles de securite
 
-- Aucune startup branch ne peut ecrire dans le worktree d'une autre branche.
+- Aucune bootstrap branch ne peut ecrire dans le worktree d'une autre branche.
 - Les artefacts de demarrage s'ecrivent hors worktree.
 - Les commandes de discovery ne doivent pas installer d'outils.
 - Les commandes de discovery ne doivent pas executer les tests lourds.
@@ -847,7 +847,7 @@ Turnlock runtime envelope
 ├─ ownershipMarkerRef
 ├─ worktreeRootReservedPath
 ├─ WorkflowState initial data
-└─ startupTasks initial records
+└─ bootstrapTasks initial records
 ```
 
 ---

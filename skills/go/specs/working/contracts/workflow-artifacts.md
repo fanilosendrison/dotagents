@@ -1,6 +1,6 @@
 # Artefacts JSON du workflow `/go`
 
-Ce document définit les artefacts JSON partagés entre startup tasks, stages et
+Ce document définit les artefacts JSON partagés entre bootstrap tasks, stages et
 reviews. Les résultats individuels restent des `StageOutput` produits par le
 stage harness quand l'unite passe par ce harness. Les payloads métier durables
 sont des artefacts métier typés validés avant projection dans `WorkflowState`.
@@ -39,7 +39,7 @@ type WorkflowState = {
   policy: WorkflowPolicy;
   repository: RepositoryContext;
   currentStage: WorkflowStage | null;
-  startupTasks: StartupTaskRecord[];
+  bootstrapTasks: BootstrapTaskRecord[];
   runCapture?: RunCaptureArtifact;
   repositoryDiscoveryDraft?: RepositoryDiscoveryDraft;
   workSession?: WorkSession;
@@ -61,7 +61,7 @@ type WorkflowState = {
 ```
 
 `WorkflowState` existe seulement apres le snapshot stable emis par `run-init`.
-Toutes les startup tasks internes projetees par `run-init` et tous les stages
+Toutes les bootstrap tasks internes projetees par `run-init` et tous les stages
 apres la delegation `implementation` exigent `WorkflowState`; seul `run-init`
 accepte `GoBootstrapState`.
 
@@ -73,7 +73,7 @@ pendant que Turnlock attend le resultat de la delegation du meme nom.
 run. Les docs peuvent dire "selon policy" seulement si la decision correspond a
 un champ de `WorkflowPolicy`.
 
-Les startup tasks sont representees par `startupTasks` et leurs artefacts
+Les bootstrap tasks sont representees par `bootstrapTasks` et leurs artefacts
 metier. Elles sont executees comme sous-taches de `run-init`, puis projetees
 dans le `WorkflowState` donne a Turnlock avec la delegation `implementation`.
 
@@ -82,7 +82,7 @@ dans le `WorkflowState` donne a Turnlock avec la delegation `implementation`.
 ## 2. Startup tasks, stages et états
 
 ```ts
-type StartupTaskName =
+type BootstrapTaskName =
   | "run-capture"
   | "repo-discovery-draft"
   | "workspace-setup"
@@ -113,7 +113,7 @@ Turnlock de reprise qui consomme le resultat de la delegation
 mecanique.
 
 ```ts
-type WorkflowUnitName = StartupTaskName | WorkflowStage;
+type WorkflowUnitName = BootstrapTaskName | WorkflowStage;
 ```
 
 ```ts
@@ -194,8 +194,8 @@ d'etre transforme en identifiant derive.
 necessaire, appartient aux metadata d'evidence non autoritatives.
 
 ```ts
-type StartupTaskRecord = {
-  task: StartupTaskName;
+type BootstrapTaskRecord = {
+  task: BootstrapTaskName;
   status:
     | "not-started"
     | "running"
@@ -213,10 +213,10 @@ type StartupTaskRecord = {
 ```
 
 ```ts
-type StartupTaskCheckpointRecord = {
+type BootstrapTaskCheckpoint = {
   schema: "go.startup-task-checkpoint.v1";
   runId: string;
-  task: StartupTaskName;
+  task: BootstrapTaskName;
   status: "passed" | "failed" | "errored" | "cancelled";
   inputHash: string;
   repoCaptureHash: string;
@@ -228,9 +228,9 @@ type StartupTaskCheckpointRecord = {
 };
 ```
 
-`StartupTaskCheckpointRecord` est ecrit atomiquement sous
+`BootstrapTaskCheckpoint` est ecrit atomiquement sous
 `artefactRoot/startup/<task>/task-record.json`. Il sert a `run-init` pour
-adopter, relancer, annuler ou refuser une startup task au retry. Il ne remplace
+adopter, relancer, annuler ou refuser une bootstrap task au retry. Il ne remplace
 pas `StateFile<GoRuntimeState>`.
 
 ```ts
@@ -254,7 +254,7 @@ type WorkflowExecutionRecord = {
 
 `WorkflowExecutionRecord` est l'enveloppe durable d'une workflow unit. Pour un
 stage execute via le stage harness, `envelopeKind` vaut `"stage-output"` et
-`outputJsonPath` pointe vers le `StageOutput` canonique. Pour une startup task
+`outputJsonPath` pointe vers le `StageOutput` canonique. Pour une bootstrap task
 qui n'est pas un stage, le record garde le meme role d'audit sans la renommer en
 stage.
 
@@ -353,7 +353,7 @@ type RetentionPolicy = {
 ```
 
 `WorkflowPolicy` est resolue par le parent process ou par la configuration du
-workflow avant `run-init`, puis stockee par `run-init`. Les startup tasks et
+workflow avant `run-init`, puis stockee par `run-init`. Les bootstrap tasks et
 stages ne doivent pas inventer de policy locale.
 
 ---
@@ -450,7 +450,7 @@ verifie par `workspace-setup`.
 
 ## 5. `WorkSession`
 
-Produit par la startup task `workspace-setup`.
+Produit par la bootstrap task `workspace-setup`.
 
 ```ts
 type WorkSession = {
@@ -493,7 +493,7 @@ delegation agentique.
 
 ## 6. `ProjectDiscovery`
 
-Produit par le startup join `project-discovery-finalize` apres finalisation
+Produit par le bootstrap join `project-discovery-finalize` apres finalisation
 contre le worktree prive.
 
 ```ts
@@ -560,7 +560,7 @@ type WorkflowExecutionRecord = {
 ```
 
 Un `WorkflowExecutionRecord` peut pointer vers un `StageOutput` canonique, mais
-il peut aussi representer une startup task ou une transition Turnlock apres
+il peut aussi representer une bootstrap task ou une transition Turnlock apres
 `run-init`. La transition bootstrap `run-init` est l'exception : elle est
 prouvee par `RunInitRecord`, `RunInitOwnershipMarker` et la transition stable
 Turnlock qui remplace `GoBootstrapState` par `WorkflowState`.

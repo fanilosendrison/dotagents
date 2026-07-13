@@ -16,7 +16,7 @@ Documents compagnons :
 - [`repo-capture.md`](../run-init/repo-capture.md) - contexte parent resolu
   avant `run-init`.
 - [`run-init.md`](../run-init/run-init.md) - phase Turnlock de
-  bootstrap/onboarding, startup tasks internes et premiere delegation.
+  bootstrap/onboarding, bootstrap tasks internes et premiere delegation.
 - [`multi-agent-concurrency.md`](../standards/multi-agent-concurrency.md) - isolation et
   concurrence multi-run.
 - [`workflow-artifacts.md`](../contracts/workflow-artifacts.md) - types JSON
@@ -55,7 +55,7 @@ Turnlock persiste le payload `/go` comme `StateFile<GoRuntimeState>`, ou
 ### 2.2 Policy-authoritative
 
 Les decisions dites "selon policy" doivent etre lues dans
-`WorkflowState.policy`. Une startup task ou un stage ne doit pas inventer une
+`WorkflowState.policy`. Une bootstrap task ou un stage ne doit pas inventer une
 policy locale pendant son execution.
 
 La policy durable couvre notamment :
@@ -102,10 +102,10 @@ Chaque stage standalone produit un `StageOutput` canonique via le stage harness.
 Ce `StageOutput` est l'enveloppe d'exécution du stage : statut, evidence refs,
 erreurs de stage, champs Git canoniques et chemin de l'`output.json`.
 
-Une startup task peut utiliser le stage harness, ou produire une enveloppe de
+Une bootstrap task peut utiliser le stage harness, ou produire une enveloppe de
 startup equivalente. Cela ne la transforme pas en stage metier.
 
-Le payload métier durable d'une startup task ou d'un stage complexe vit dans
+Le payload métier durable d'une bootstrap task ou d'un stage complexe vit dans
 des artefacts métier typés, validés par Turnlock avant projection dans
 `WorkflowState`.
 
@@ -138,7 +138,7 @@ preuve de reconstruction absente, ou état Git ambigu arrêtent le workflow.
 
 ### 2.9 JSON-only entre unites de workflow
 
-Tout artefact échangé entre startup tasks, stages et reviews est du JSON
+Tout artefact échangé entre bootstrap tasks, stages et reviews est du JSON
 validable ou une evidence ref pointant vers un fichier sous `artefactDir`.
 
 ### 2.10 Typed business artifacts
@@ -173,7 +173,7 @@ des états intermédiaires invalides.
 
 ### 2.14 Startup branches sans ecriture concurrente d'etat
 
-Le startup lance des startup branches de demarrage a l'interieur de `run-init`,
+Le bootstrap lance des bootstrap branches de demarrage a l'interieur de `run-init`,
 mais ces branches ne modifient pas directement `WorkflowState`.
 
 Chaque branche produit des artefacts, evidence refs et un
@@ -246,7 +246,7 @@ resumeAt: implementation-settlement
 
 `run-init` ne cree pas l'enveloppe runtime Turnlock et ne resout pas le repo
 cible. Ces responsabilites appartiennent respectivement a Turnlock et au parent
-process. En revanche, les startup tasks `workspace-setup`,
+process. En revanche, les bootstrap tasks `workspace-setup`,
 `repo-discovery-draft`, `project-discovery-finalize` et `run-capture` font bien
 partie de la phase Turnlock `run-init`.
 
@@ -266,7 +266,7 @@ implementation-settlement
 ```
 
 Les sous-sections `4.1.x` ne sont pas des stages canoniques et ne sont pas des
-phases Turnlock separees. Elles decrivent les startup tasks internes de
+phases Turnlock separees. Elles decrivent les bootstrap tasks internes de
 `run-init`.
 
 #### 4.1.1 `run-capture`
@@ -274,7 +274,7 @@ phases Turnlock separees. Elles decrivent les startup tasks internes de
 Fige le prompt `/go`, une reference de session, un extrait minimal de session
 et leurs hashes.
 
-Cette startup branch ne modifie pas le repo cible, ne lit pas le worktree, et
+Cette bootstrap branch ne modifie pas le repo cible, ne lit pas le worktree, et
 ne produit aucune interpretation semantique. Pour v1, elle doit etre jointe
 avant la delegation `implementation`.
 
@@ -283,14 +283,14 @@ avant la delegation `implementation`.
 Crée le worktree Git physique privé du run, enregistre `WorkSession`, et fixe
 `baseHeadSha`.
 
-Cette startup task est la frontière de départ de toutes les preuves de diff.
+Cette bootstrap task est la frontière de départ de toutes les preuves de diff.
 
 #### 4.1.3 `repo-discovery-draft`
 
 Inspecte le checkout source en lecture seule pour detecter manifestes,
 lockfiles, scripts, configs et capacites provider candidates.
 
-Cette startup branch produit un brouillon non autoritatif. Elle peut s'executer
+Cette bootstrap branch produit un brouillon non autoritatif. Elle peut s'executer
 en parallele de `workspace-setup`.
 
 #### 4.1.4 `project-discovery-finalize`
@@ -298,7 +298,7 @@ en parallele de `workspace-setup`.
 Détecte les commandes et capacités du repo : package manager, lint, typecheck,
 tests, build, scans disponibles, conventions Git et provider.
 
-Ce startup join finalise le brouillon de discovery contre le worktree prive, ou
+Ce bootstrap join finalise le brouillon de discovery contre le worktree prive, ou
 relance la discovery depuis `worktreeRoot` si le brouillon ne peut pas etre
 prouve.
 
@@ -475,7 +475,7 @@ run-init
 └─ workspace-setup
 ```
 
-Le startup joint ensuite les branches necessaires avant la premiere delegation
+Le bootstrap joint ensuite les branches necessaires avant la premiere delegation
 agentique :
 
 ```text
@@ -502,7 +502,7 @@ project-discovery-finalize
 valide, soit l'autorisation de relancer la discovery depuis `worktreeRoot`.
 
 Pour v1, la delegation `implementation` exige aussi un `RunCaptureArtifact`
-valide. `run-capture` peut s'executer en parallele des autres startup tasks, mais
+valide. `run-capture` peut s'executer en parallele des autres bootstrap tasks, mais
 son absence bloque la sortie finale de `run-init`.
 
 `implementation-settlement` exige un resultat de delegation `implementation`
@@ -577,7 +577,7 @@ Turnlock porte la mécanique :
 
 Le workflow `/go` porte la sémantique :
 
-- quelles startup tasks et quels stages existent ;
+- quelles bootstrap tasks et quels stages existent ;
 - quelles preuves sont exigées ;
 - quelles transitions sont valides ;
 - quels artefacts sont produits ;

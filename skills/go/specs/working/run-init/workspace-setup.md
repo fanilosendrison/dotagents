@@ -1,7 +1,7 @@
 # Startup task `workspace-setup`
 
 `workspace-setup` prépare le terrain isolé d'un run `/go`. Elle doit s'exécuter
-avant toute délégation agentique qui modifie le code. Elle est une startup task
+avant toute délégation agentique qui modifie le code. Elle est une bootstrap task
 interne a la phase Turnlock `run-init`, pas une phase Turnlock separee.
 
 ---
@@ -11,7 +11,7 @@ interne a la phase Turnlock `run-init`, pas une phase Turnlock separee.
 Créer un worktree Git physique privé, enregistrer le point de départ, et
 produire un `WorkSession`.
 
-Cette startup task ne produit aucun code applicatif.
+Cette bootstrap task ne produit aucun code applicatif.
 
 ---
 
@@ -120,7 +120,7 @@ figer le point de depart Git et de creer le worktree prive.
 `workspace-setup` produit le premier artefact autoritatif pour les preuves Git :
 `WorkSession`.
 
-Les startup tasks de discovery qui ont lu le checkout source avant la creation du
+Les bootstrap tasks de discovery qui ont lu le checkout source avant la creation du
 worktree doivent etre finalises contre ce `WorkSession` avant de produire un
 `ProjectDiscovery` autoritatif.
 

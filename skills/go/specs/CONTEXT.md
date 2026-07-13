@@ -5,7 +5,7 @@ Ce dossier contient les specs du workflow `/go`.
 Les documents actifs distinguent maintenant :
 
 - **stage** : étape métier du workflow ;
-- **startup task** : travail d'amorcage du run, hors stages métier ;
+- **bootstrap task** : travail d'amorcage du run, hors stages métier ;
 - **phase Turnlock** : unité atomique, persistée et reprenable ;
 - **délégation** : travail agentique non déterministe encadré ;
 - **stage harness** : contrat `StageInput -> StageOutput` ;
@@ -69,7 +69,7 @@ quand leur niveau de détail sera suffisant pour construction.
 ### Phase `run-init`
 
 - [`run-init.md`](./working/run-init/run-init.md)
-  - Phase Turnlock de bootstrap : startup tasks, joins et projection fail-closed.
+  - Phase Turnlock de bootstrap : bootstrap tasks, joins et projection fail-closed.
 - [`repo-capture.md`](./working/run-init/repo-capture.md)
   - Resolution mecanique du repo cible depuis le CWD.
 - [`run-capture.md`](./working/run-init/run-capture.md)

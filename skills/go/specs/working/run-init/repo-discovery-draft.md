@@ -23,7 +23,7 @@ Produire un `RepositoryDiscoveryDraft` contenant :
 
 ## 2. Position dans le demarrage
 
-`repo-discovery-draft` est une startup branch interne a la phase Turnlock
+`repo-discovery-draft` est une bootstrap branch interne a la phase Turnlock
 `run-init`.
 
 ```text

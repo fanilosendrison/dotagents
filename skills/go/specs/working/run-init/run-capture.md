@@ -26,7 +26,7 @@ pas de criteres d'acceptation, et ne decide pas si la demande est faisable.
 ## 2. Position dans le workflow
 
 `run-capture` est lance a l'interieur de la phase Turnlock `run-init`, en
-parallele des autres startup tasks :
+parallele des autres bootstrap tasks :
 
 ```text
 run-init
@@ -152,11 +152,11 @@ referencable via `sessionRef`, mais le run doit rester reviewable avec
 
 ## 8. Regles de parallelisme
 
-`run-capture` peut s'executer en parallele avec les startup tasks qui ne
+`run-capture` peut s'executer en parallele avec les bootstrap tasks qui ne
 consomment pas ses sorties. Pour v1, `run-init` doit tout de meme joindre
 `run-capture` avant de deleguer `implementation`.
 
-Les startup branches ne doivent pas ecrire directement dans `WorkflowState`.
+Les bootstrap branches ne doivent pas ecrire directement dans `WorkflowState`.
 Chaque branche produit son artefact dans son propre espace d'evidence et un
 `WorkflowExecutionRecord`. `run-init` projette ensuite les artefacts valides
 dans le `WorkflowState` donne a Turnlock avec la delegation `implementation`.

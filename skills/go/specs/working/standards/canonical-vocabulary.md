@@ -29,8 +29,8 @@ Le quatrieme niveau est la **délégation**. Elle décrit le travail externe,
 agentique ou LLM, que Turnlock ne rend pas déterministe mais qu'il encadre par
 des snapshots stables avant et apres.
 
-Une phase Turnlock peut executer plusieurs startup tasks ou plusieurs operations
-mecaniques avant de s'arreter sur une delegation. Une startup task n'est pas une
+Une phase Turnlock peut executer plusieurs bootstrap tasks ou plusieurs operations
+mecaniques avant de s'arreter sur une delegation. Une bootstrap task n'est pas une
 phase Turnlock separee. Un stage peut etre realise par une delegation, mais
 cette delegation doit toujours avoir une phase Turnlock de reprise qui collecte,
 valide et projette le resultat.
@@ -54,7 +54,7 @@ Il contient notamment :
 
 - information de resolution des symlinks.
 
-Le repo capture n'est pas une startup task, pas un stage et pas une phase
+Le repo capture n'est pas une bootstrap task, pas un stage et pas une phase
 Turnlock. `run-init` le stocke. `workspace-setup` le verifie.
 
 ### Stage
@@ -111,7 +111,7 @@ bootstrap/onboarding, puis s'arrete sur la delegation `implementation` :
 - chemin de worktree reserve, sans checkout Git ;
 - etat initial minimal ;
 - schema/version de l'etat ;
-- startup task records ;
+- bootstrap task records ;
 - `WorkSession` ;
 - `ProjectDiscovery` ;
 - delegation `implementation` avec `resumeAt: "implementation-settlement"`.
@@ -131,7 +131,7 @@ la phase Turnlock `run-init`, pas des phases Turnlock separees.
 
 ### Startup task
 
-Une startup task est un travail d'amorcage execute a l'interieur de `run-init`.
+Une bootstrap task est un travail d'amorcage execute a l'interieur de `run-init`.
 
 Exemples :
 
@@ -140,7 +140,7 @@ Exemples :
 - `repo-discovery-draft`
 - `project-discovery-finalize`
 
-Une startup task repond a la question :
+Une bootstrap task repond a la question :
 **quel travail preparatoire peut avancer sans bloquer inutilement le reste du
 bootstrap ?**
 
@@ -159,8 +159,8 @@ task ne publie jamais seule une transition Turnlock.
 
 ### Startup branch
 
-Une startup branch est une startup task qui peut avancer en parallele d'autres
-startup tasks a l'interieur de `run-init`.
+Une bootstrap branch est une bootstrap task qui peut avancer en parallele d'autres
+bootstrap tasks a l'interieur de `run-init`.
 
 Exemples :
 
@@ -170,7 +170,7 @@ Exemples :
 
 ### Startup join
 
-Un startup join est une startup task qui synchronise des resultats de startup
+Un bootstrap join est une bootstrap task qui synchronise des resultats de startup
 avant la delegation `implementation`.
 
 Exemples :
@@ -178,7 +178,7 @@ Exemples :
 - `project-discovery-finalize` joint `workspace-setup` et
   `repo-discovery-draft` ;
 
-Un startup join ne reinterprete pas librement une sortie manquante. Il valide un
+Un bootstrap join ne reinterprete pas librement une sortie manquante. Il valide un
 artefact, relance une operation autorisee, ouvre une HumanGate, ou echoue
 ferme.
 
@@ -357,7 +357,7 @@ necessairement a la meme phase Turnlock.
 
 - Utiliser **startup** pour parler de l'amorcage du run porte par la phase
   Turnlock `run-init`.
-- Utiliser **startup task**, **startup branch** et **startup join** pour les
+- Utiliser **bootstrap task**, **bootstrap branch** et **bootstrap join** pour les
   sous-operations de demarrage internes a `run-init`.
 - Utiliser **stage** pour parler du workflow metier humain.
 - Utiliser **phase Turnlock** pour parler de reprise, atomicité, retry et
@@ -370,7 +370,7 @@ necessairement a la meme phase Turnlock.
 - Utiliser **stage harness** uniquement pour le contrat `StageInput ->
   StageOutput`.
 - Utiliser **artefact métier typé** pour les payloads JSON durables produits par
-  une startup task ou un stage et consommés par les unites suivantes.
+  une bootstrap task ou un stage et consommés par les unites suivantes.
 - Ne jamais utiliser `StageOutput.errors` comme canal principal d'un payload
   métier complexe tel que `ReviewFinding[]`.
 - Valider les artefacts métier typés avant de les projeter dans
@@ -386,8 +386,8 @@ necessairement a la meme phase Turnlock.
   `repo-discovery-draft` ou `project-discovery-finalize` des stages.
 - Ne jamais appeler `run-capture`, `workspace-setup`,
   `repo-discovery-draft` ou `project-discovery-finalize` des phases Turnlock
-  separees du workflow `/go`; ce sont des startup tasks internes a `run-init`.
-- Ne jamais faire ecrire une startup branch directement dans `WorkflowState`;
+  separees du workflow `/go`; ce sont des bootstrap tasks internes a `run-init`.
+- Ne jamais faire ecrire une bootstrap branch directement dans `WorkflowState`;
   la projection passe par le snapshot stable que `run-init` remet a Turnlock.
 
 ---

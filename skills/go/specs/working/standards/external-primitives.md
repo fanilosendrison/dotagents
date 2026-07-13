@@ -129,7 +129,7 @@ Primitive externe :
 Role de `/go` :
 
 - fournir le payload metier stocke dans `WorkflowState` ;
-- declarer les startup tasks, stages, artefacts et transitions attendues ;
+- declarer les bootstrap tasks, stages, artefacts et transitions attendues ;
 - respecter les decisions de lock, retry, resume et atomic write de Turnlock.
 
 `/go` ne doit pas definir son propre runtime de lock, journal, retry ou
