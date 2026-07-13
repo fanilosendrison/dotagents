@@ -57,6 +57,7 @@ Inputs obligatoires :
 Inputs optionnels :
 
 - `RepositoryDiscoveryDraft`
+- `projectRoot` (sous-périmètre de projet issu de `WorkSession` ou du launch context)
 - fichiers manifeste du projet
 - scripts declares par le projet
 - lockfiles
@@ -110,11 +111,12 @@ Evidence typiques :
 ## 5. Responsabilites
 
 - Verifier la presence du worktree prive.
-- Valider que les chemins de commande pointent vers `worktreeRoot`.
+- Valider que les chemins de commande pointent vers `worktreeRoot` (ou sous `projectRoot` si spécifié).
 - Valider que les evidence refs pointent sous `artefactRoot`.
 - Detecter ou finaliser le package manager.
 - Detecter ou finaliser les lockfiles.
 - Detecter ou finaliser les scripts de format, lint, typecheck, tests et build.
+- Filtrer et limiter la matrice de commandes mécaniques pour cibler en priorité le périmètre de `projectRoot` si spécifié.
 - Detecter les scans disponibles.
 - Detecter le provider Git distant si possible.
 - Detecter si les PRs peuvent etre ouvertes automatiquement.
@@ -152,7 +154,8 @@ Quand un draft existe, `project-discovery-finalize` doit verifier :
 - chaque fichier requis par `inspectedFiles` existe dans `worktreeRoot` ;
 - le hash du fichier dans le worktree correspond au hash du draft ;
 - les commandes candidates peuvent etre exprimees avec
-  `workingDirectory: worktreeRoot` ou un sous-dossier valide ;
+  `workingDirectory: worktreeRoot` (ou sous `projectRoot` si spécifié) ;
+- si un `projectRoot` est spécifié, valider que les fichiers inspectés et les commandes filtrées correspondent à ce sous-périmètre de projet ;
 - les commandes retenues sont des argv, pas des chaines shell concatenees ;
 - aucun evidence ref ne pointe dans le worktree ;
 - `WorkflowPolicy.gates` autorise les gates retenues.

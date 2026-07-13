@@ -46,7 +46,8 @@ project-discovery-finalize
 - repository source ;
 - checkout source ;
 - `artefactRoot` reserve par `run-init` ;
-- `WorkflowPolicy.discovery`.
+- `WorkflowPolicy.discovery` ;
+- `projectRoot` (optionnel, sous-périmètre de projet cible issu de `RepositoryLaunchContext`).
 
 ---
 
@@ -89,6 +90,8 @@ La branche peut inspecter :
 - fichiers de workspace ;
 - configuration Git remote ;
 - scripts declares par le projet.
+
+Si un `projectRoot` est spécifié, l'inspection des fichiers et la détection du gestionnaire de paquets doivent prioritairement se limiter à ce sous-dossier projet et ses fichiers de configuration parents directs (par exemple, un fichier `package.json` de projet et le lockfile parent à la racine du monorepo).
 
 Elle ne doit pas executer les checks lourds et ne doit pas installer d'outils.
 
