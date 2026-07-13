@@ -136,7 +136,6 @@ type RunInitRecord = {
 type RepositoryLaunchContext = {
   schema: "go.repository-launch-context.v1";
   invocationDirectory: string;
-  activePathRefs: string[];
   repositoryRootHint?: string;
   canonicalRepositoryRoot: string;
   projectRoot?: string;
@@ -144,8 +143,6 @@ type RepositoryLaunchContext = {
   remoteNameHint?: string;
   defaultTargetBranchHint?: string;
   resolutionSource:
-    | "explicit-user-input"
-    | "active-path"
     | "invocation-directory"
     | "parent-session";
   symlinkResolved: boolean;

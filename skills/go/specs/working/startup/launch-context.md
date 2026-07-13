@@ -55,7 +55,6 @@ Turnlock, puis lancer Turnlock avec :
 Inputs typiques :
 
 - `invocationDirectory` : repertoire courant de la session (l'unique source de verite pour la cible) ;
-- `activePathRefs` : fichiers ou dossiers actifs pertinents (conserves uniquement pour le contexte semantique, jamais pour decider du repo) ;
 - hints provider : `github`, `gitlab`, `local-only` ;
 - hint de branche cible : branche courante du checkout source (`HEAD`).
 
@@ -74,7 +73,6 @@ runtime deja creee.
 `RepositoryLaunchContext` doit contenir :
 
 - le repertoire d'invocation ;
-- les chemins actifs utilises pour resoudre la cible ;
 - la racine Git canonique cible ;
 - le sous-perimetre projet optionnel ;
 - les hints provider et branche cible ;
@@ -87,7 +85,6 @@ Forme conceptuelle :
 type RepositoryLaunchContext = {
   schema: "go.repository-launch-context.v1";
   invocationDirectory: string;
-  activePathRefs: string[];
   repositoryRootHint?: string;
   canonicalRepositoryRoot: string;
   isNewRepository?: boolean;
@@ -105,8 +102,6 @@ type RepositoryLaunchContext = {
 
 `canonicalRepositoryRoot` est la racine Git cible (ou le dossier cible si `isNewRepository` est vrai). Elle doit etre utilisable par `workspace-setup` pour creer une branche et un worktree.
 
-`activePathRefs` doit conserver les chemins logiques originaux (tels que vus par l'utilisateur ou l'IDE, sans resolution des symlinks). Ces chemins portent le contexte semantique de l'invocation qui est necessaire au `RunCaptureArtifact` pour comprendre l'intention de l'utilisateur.
-
 `projectRoot` est optionnel. Il represente le sous-dossier metier vise dans un
 monorepo. Il ne remplace jamais `canonicalRepositoryRoot`. S'il est absent, cela signifie qu'il n'y a pas de restriction de sous-perimetre (on travaille a la racine).
 
@@ -121,7 +116,7 @@ Le parent process resout le contexte en utilisant strictement le repertoire cour
 3. Appeler l'equivalent de `git rev-parse --show-toplevel` depuis ce chemin cible normalise.
 4. Refuser si aucune racine Git unique ne peut etre prouvee, sauf si l'intention de creer un nouveau projet est explicite (`isNewRepository: true`).
 
-Les fichiers actifs (`activePathRefs`) ou les demandes explicites de l'utilisateur ne doivent jamais court-circuiter cette regle. Le repo cible est **toujours** defini par le CWD.
+Les demandes explicites de l'utilisateur ne doivent jamais court-circuiter cette regle. Le repo cible est **toujours** defini par le CWD.
 
 Le parent process peut extraire les hints par heuristique legere sans bloquer s'il ne trouve rien :
 - `remoteNameHint` : nom du premier remote Git (ex: `origin`).
@@ -191,7 +186,6 @@ Meme si le fichier actif dans l'IDE se trouve dans `vendor/nested-repo/`, si le 
 Regles :
 
 - `canonicalRepositoryRoot` est resolu uniquement en cherchant le `.git` le plus proche au-dessus du `invocationDirectory` ;
-- les chemins actifs (`activePathRefs`) ne modifient pas la resolution, ils servent uniquement de contexte pour comprendre l'intention (via `RunCaptureArtifact`) ;
 - refuser la cible avant Turnlock si le repertoire courant ne permet pas de trouver une racine Git unique en remontant.
 
 ---
@@ -214,14 +208,11 @@ Il doit resoudre le work target reel :
 
 - si le target est `~/.agents/`, la resolution Git peut echouer ;
 - si le target est `~/.agents/skills/go/`, le symlink peut mener au repo reel ;
-- si le client expose un fichier actif sous un symlink, ce fichier doit etre
-  normalise avant validation Git.
 
 Regles :
 
 - `invocationDirectory` peut rester le chemin visible par la session ;
 - `canonicalRepositoryRoot` doit pointer vers la racine Git canonique ;
-- `activePathRefs` doivent conserver les chemins qui expliquent la decision ;
 - `symlinkResolved` indique si la resolution a traverse un symlink ;
 - un gateway non Git ne doit pas etre accepte comme `canonicalRepositoryRoot`.
 

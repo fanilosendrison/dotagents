@@ -19,7 +19,7 @@ VegaCorp - July 2026
 Le démarrage d'un run `/go` nécessite de résoudre le `RepositoryLaunchContext`, c'est-à-dire déterminer sur quel dépôt Git l'agent doit s'ancrer, et à partir de quelle branche il doit créer son worktree de travail.
 
 Historiquement, la spécification tentait de mélanger plusieurs heuristiques :
-- Déduire le repo cible via les fichiers ouverts dans l'IDE (`activePathRefs`) en priorité sur le répertoire courant.
+- Déduire le repo cible via les fichiers ouverts dans l'IDE en priorité sur le répertoire courant.
 - Permettre à l'utilisateur de fournir des hints explicites pour forcer un repo.
 - Introduire un `baseBranchHint` artificiel pour séparer la branche de départ de la branche de fusion (PR cible).
 
@@ -31,7 +31,7 @@ Cette approche créait de la friction, de l'ambiguïté (magie de l'IDE), et com
 
 Le `RepositoryLaunchContext` est désormais résolu de manière strictement implicite et déterministe via l'état du terminal au moment de l'invocation, selon la philosophie : **"là où tu es, là où tu bosses"**.
 
-1. **Le dépôt cible (canonicalRepositoryRoot)** est l'unique dépôt Git trouvé en remontant depuis le `invocationDirectory` (CWD). Les fichiers ouverts dans l'IDE (`activePathRefs`) ne peuvent plus court-circuiter cette règle.
+1. **Le dépôt cible (canonicalRepositoryRoot)** est l'unique dépôt Git trouvé en remontant depuis le `invocationDirectory` (CWD). Les fichiers ouverts dans l'IDE ne peuvent plus court-circuiter cette règle.
 2. **La branche de départ (defaultTargetBranchHint)** est strictement déduite du pointeur `HEAD` courant du checkout source. L'utilisateur contrôle son point de départ en effectuant simplement un `git checkout` avant d'invoquer `/go`.
 3. **La cible de Pull Request** (ex: `main` ou `master`) n'est plus devinée par le parent process. C'est une propriété intrinsèque du dépôt que la startup task `workspace-setup` découvrira elle-même en inspectant le remote.
 

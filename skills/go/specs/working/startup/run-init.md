@@ -466,7 +466,6 @@ Exemple conceptuel avant `run-init` :
     "launchContext": {
       "schema": "go.repository-launch-context.v1",
       "invocationDirectory": "<session-cwd>",
-      "activePathRefs": ["<active-file-or-directory>"],
       "canonicalRepositoryRoot": "<canonical-repository-root>",
       "projectRoot": "<optional-project-root>",
       "providerHint": "github",
@@ -520,7 +519,6 @@ reprise fourni par Turnlock, pas dependra de champs internes non documentes.
       "launchContext": {
         "schema": "go.repository-launch-context.v1",
         "invocationDirectory": "<session-cwd>",
-        "activePathRefs": ["<active-file-or-directory>"],
         "canonicalRepositoryRoot": "<canonical-repository-root>",
         "projectRoot": "<optional-project-root>",
         "providerHint": "github",
