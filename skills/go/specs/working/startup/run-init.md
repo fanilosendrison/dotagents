@@ -479,6 +479,12 @@ Exemple conceptuel avant `run-init` :
     "policy": {
       "schema": "go.workflow-policy.v1",
       "...": "<policy-fields>"
+    },
+    "captureContext": {
+      "schema": "go.capture-context.v1",
+      "sessionRef": "<session-id-or-path>",
+      "promptAtGo": "le prompt exact tape par l'utilisateur",
+      "sessionExcerpt": "extrait de la session jusqu'au prompt"
     }
   }
 }
@@ -526,6 +532,7 @@ reprise fourni par Turnlock, pas dependra de champs internes non documentes.
       },
       "launchContextHash": "sha256:<canonical-launch-context-hash>",
       "workflowPolicyHash": "sha256:<canonical-workflow-policy-hash>",
+      "captureContextHash": "sha256:<canonical-capture-context-hash>",
       "turnlockRun": {
         "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
         "runDirRef": "<go-run-root>/runs/01ARZ3NDEKTSV4RRFFQ69G5FAV",
@@ -720,6 +727,7 @@ type StartupTaskCheckpointRecord = {
   inputHash: string;
   launchContextHash: string;
   workflowPolicyHash: string;
+  captureContextHash: string;
   businessArtifactIds: string[];
   evidenceRefs: string[];
   startedAt: string;
@@ -780,16 +788,19 @@ Inputs stables :
 - `StateFile.runId` fourni par Turnlock ;
 - `RepositoryLaunchContext` lu depuis `GoBootstrapState` ;
 - `WorkflowPolicy` lu depuis `GoBootstrapState` ;
+- `CaptureContext` lu depuis `GoBootstrapState` ;
 - refs runtime Turnlock ;
 - configuration de stockage du run.
 
 `run-init` doit calculer des hashes JCS pour les inputs semantiques qu'il
 stocke, selon le profil JCS `/go` defini dans
-[`canonical-hashing.md`](../workflow/canonical-hashing.md) :
+[`canonical-hashing.md`](../workflow/canonical-hashing.md).
+Le hash de `captureContext` est requis pour sceller complètement le point de départ de la session, même si `run-capture` produit ses propres preuves plus tard.
 
 ```text
 launchContextHash = canonicalHash(RepositoryLaunchContext)
 workflowPolicyHash = canonicalHash(WorkflowPolicy)
+captureContextHash = canonicalHash(CaptureContext)
 ```
 
 Ces hashes sont stockes dans `RunInitRecord` et dans
@@ -1187,7 +1198,9 @@ La delegation `implementation` n'a pas besoin de lire le `RunCaptureArtifact`
 pour comprendre la demande. L'agent d'implementation est deja dans la session
 qui a declenche `/go` et recoit le contexte du parent.
 
-Le `RunCaptureArtifact` sert aux reviews et a l'audit :
+La tâche `run-capture` elle-même lit ses inputs (`sessionRef`, `promptAtGo`, `sessionExcerpt`) directement depuis `GoBootstrapState.captureContext` (fourni par le parent process au lancement). Le parent a déjà accès à ces données, il s'agit juste du canal de transmission formel.
+
+Le `RunCaptureArtifact` produit par cette tâche sert ensuite aux reviews et a l'audit :
 
 - prouver quel prompt a declenche le run ;
 - relire un extrait minimal de session ;
