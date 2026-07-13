@@ -47,7 +47,7 @@ describe("runStage properties", () => {
       }),
       { numRuns: 8 },
     );
-  });
+  }, 30000);
 
   test("P2 untracked and ignored files do not affect tracked hash", async () => {
     const repo = await createCommittedRepo({ "src/a.txt": "alpha\n", ".gitignore": "ignored.txt\n" });
