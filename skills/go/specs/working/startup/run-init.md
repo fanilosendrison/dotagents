@@ -304,8 +304,8 @@ Responsabilités de `workspace-setup` :
 - produire `WorkSession`.
 
 `run-init` ne doit pas creer de checkout Git a `worktreeRoot`. Si
-`RepositoryLaunchContext.invocationDirectory` ou `runDir` devient inaccessible, `/go` echoue,
-mais `run-init` ne tente jamais de deplacer l'enveloppe runtime. Si
+l'implementation Git exige que le dossier cible n'existe pas avant
+`git worktree add`, `run-init` doit seulement persister le chemin reserve. Si
 elle autorise un dossier vide, ce dossier reste un placeholder, pas un worktree
 autoritatif.
 
@@ -639,6 +639,18 @@ run et tant que Turnlock n'a pas persiste un snapshot stable contenant le
 Sequence normative :
 
 ```text
+Turnlock creates runtime envelope
+Turnlock persists StateFile<GoRuntimeState> with GoBootstrapState
+Turnlock dispatches run-init
+run-init reads GoBootstrapState
+run-init resolves RepositoryLaunchContext from invocationDirectory
+run-init validates WorkflowPolicy shape from GoBootstrapState
+run-init hashes canonical launch inputs
+run-init creates or reserves /go artefact refs
+run-init reserves worktreeRoot path
+run-init writes or verifies ownership marker
+run-init starts startup branches
+run-init runs workspace-setup
 run-init runs or finalizes repo discovery
 run-init joins project-discovery-finalize
 run-init joins run-capture
@@ -1007,10 +1019,7 @@ Turnlock runtime envelope
 - extraire des contraintes ou criteres d'acceptation ;
 - resoudre les specs applicables ;
 - inventer ou modifier la policy du run ;
-- resoudre le repo cible ;
-- verifier la racine Git ;
 - detecter la branche par defaut ;
-- suivre des symlinks ;
 - creer le `StateFile` Turnlock ;
 - ecrire atomiquement `state.json` ;
 - creer le lock runtime Turnlock ;
@@ -1031,22 +1040,31 @@ Dans `run-init`, le graphe nominal est :
 
 ```text
 run-init
-├─ run-capture
-├─ repo-discovery-draft
-└─ workspace-setup
-       ↓
-project-discovery-finalize
-       ↓
-join run-capture
-       ↓
-delegate implementation
-       ↓ resumeAt
-implementation-settlement
+│
+├─ resolve-launch-context (sequentiel)
+│       │
+│       ├─ run-capture (parallele) ─────────────────┐
+│       ├─ workspace-setup (parallele) ──┐          │
+│       └─ repo-discovery-draft (parallele)         │
+│                  │                      │          │
+│                  └──────────┬───────────┘          │
+│                             ↓                      │
+│                 project-discovery-finalize         │
+│                             │                      │
+│                             ↓                      │
+│                 join run-capture ◄─────────────────┘
+│                             ↓
+└─ delegate implementation
+         ↓ resumeAt
+    implementation-settlement
 ```
 
-`run-capture` et `repo-discovery-draft` sont des startup branches. Elles
-peuvent s'executer pendant que `workspace-setup` cree le worktree physique
-prive.
+`resolve-launch-context` est sequentiel : `workspace-setup` a besoin de
+`canonicalRepositoryRoot` et `projectRoot` pour creer le worktree, donc elle
+ne peut pas demarrer en parallele de la resolution.
+
+`run-capture`, `workspace-setup` et `repo-discovery-draft` s'executent en
+parallele une fois `resolve-launch-context` termine.
 
 `project-discovery-finalize` est le startup join entre `workspace-setup` et
 `repo-discovery-draft`. Il produit le `ProjectDiscovery` autoritatif avant que
