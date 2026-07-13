@@ -48,7 +48,7 @@ stage harness, ce record reference le `StageOutput` canonique.
 ## 4. Responsabilités
 
 - Résoudre `repositoryRoot`.
-- Si aucun dépôt Git n'existe à `canonicalRepositoryRoot`, l'initialiser (`git init`) et créer un commit initial vide pour permettre la création de branches et de worktrees.
+- Si aucun dépôt Git n'existe à `canonicalRepositoryRoot`, l'initialiser (`git init`), ajouter les fichiers existants (`git add -A`) et auto-committer cet état existant comme commit initial (plutôt qu'un commit vide). Cela permet la création de branches et de worktrees sans transformer le code existant de l'utilisateur en dirty state non géré.
 - Vérifier que `canonicalRepositoryRoot` correspond a la racine Git reelle.
 - Vérifier que `projectRoot`, s'il existe, est sous la racine Git.
 - Détecter `baseBranch`.
@@ -123,6 +123,10 @@ figer le point de depart Git et de creer le worktree prive.
 Les bootstrap tasks de discovery qui ont lu le checkout source avant la creation du
 worktree doivent etre finalises contre ce `WorkSession` avant de produire un
 `ProjectDiscovery` autoritatif.
+
+### 5.7 Resolution des symlinks
+
+Pour toutes les opérations Git liées au worktree (notamment `git worktree add`), `workspace-setup` doit utiliser la forme résolue (`realpath`) de `worktreeRoot` (`canonicalRepositoryRoot` étant par définition déjà résolu). Ceci garantit que Git n'écrit pas de chemins contenant des symlinks dans ses pointeurs internes, évitant ainsi la corruption du worktree privé.
 
 ---
 
