@@ -47,7 +47,7 @@ project-discovery-finalize
 - checkout source ;
 - `artefactRoot` reserve par `run-init` ;
 - `WorkflowPolicy.discovery` ;
-- `projectRoot` (optionnel, sous-périmètre de projet cible issu de `RepositoryLaunchContext`).
+- `projectRoot` (optionnel, sous-périmètre de projet cible issu de `RepoCapture`).
 
 ---
 
