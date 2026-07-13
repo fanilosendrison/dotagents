@@ -125,7 +125,7 @@ reviews quand la demande porte sur un sous-projet precis.
 Regles :
 
 - `canonicalRepositoryRoot` est toujours la racine Git ;
-- `projectRoot` est déduit automatiquement : si `realpath(invocationDirectory)` ≠ `realpath(canonicalRepositoryRoot)` et que `realpath(invocationDirectory)` est un sous-dossier de `realpath(canonicalRepositoryRoot)`, alors `projectRoot` = `invocationDirectory` (les deux chemins doivent être résolus via `realpath` pour toute comparaison ou vérification de sous-dossier, évitant ainsi les échecs dus aux gateways ou liaisons symboliques) ;
+- `projectRoot` est déduit automatiquement : si `realpath(invocationDirectory)` ≠ `realpath(canonicalRepositoryRoot)` et que `realpath(invocationDirectory)` est un sous-dossier de `realpath(canonicalRepositoryRoot)`, alors `projectRoot` = `realpath(invocationDirectory)` (les deux chemins doivent être résolus via `realpath` pour toute comparaison, vérification de sous-dossier ou assignation finale, évitant ainsi la propagation de liaisons symboliques non résolues dans le payload `WorkflowState`) ;
 - `projectRoot` doit etre sous `canonicalRepositoryRoot` ;
 - `workspace-setup` cree le worktree pour le repo entier ;
 - `project-discovery-finalize` peut produire des commandes dont le
@@ -181,7 +181,7 @@ Regles :
 - `invocationDirectory` peut rester le chemin visible par la session ;
 - `canonicalRepositoryRoot` doit pointer vers la racine Git canonique ;
 - `symlinkResolved` indique si la resolution a traverse un symlink ;
-- un gateway non Git ne doit pas etre accepte comme `canonicalRepositoryRoot`. Pour identifier et rejeter un gateway non-Git au niveau du répertoire d'invocation (CWD), le système doit vérifier la présence de fichiers sentinelles ou de dossiers spécifiques (par exemple : `AGENTS.md`, `SKILL.md` ou un sous-dossier `.agents/`) directement au niveau de `realpath(invocationDirectory)`. Si l'un de ces marqueurs est détecté et qu'aucun dépôt `.git` n'est présent dans le répertoire ou ses parents, le dossier est identifié comme un gateway et la résolution échoue avec `failed`, invitant l'utilisateur à se positionner dans un répertoire projet valide.
+- un gateway non Git ne doit pas etre accepte comme `canonicalRepositoryRoot`. Pour identifier et rejeter un gateway non-Git au niveau du répertoire d'invocation (CWD), le système doit vérifier la présence de fichiers sentinelles ou de dossiers spécifiques directement au niveau de `realpath(invocationDirectory)`. Les dossiers sentinelles reconnus incluent `.agents/`, `.codex/`, `.pi/` et `.gravity/` ; les fichiers sentinelles incluent `AGENTS.md`, `SKILL.md`, `CODEX.md` et `GRAVITY.md`. Si l'un de ces marqueurs est détecté et qu'aucun dépôt `.git` n'est présent dans le répertoire ou ses parents, le dossier est identifié comme un gateway et la résolution échoue avec `failed`, invitant l'utilisateur à se positionner dans un répertoire projet valide.
 
 ---
 

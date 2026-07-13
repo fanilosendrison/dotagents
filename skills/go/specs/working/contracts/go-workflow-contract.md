@@ -230,7 +230,7 @@ Turnlock execute et persiste cette phase, mais ne l'implemente pas. Le code de
 generique de Turnlock et n'est pas obligatoire pour tous les orchestrateurs
 Turnlock.
 
-Au début de `run-init`, le contexte est résolu en `RepoCapture` : repo Git cible, sous-projet optionnel, et symlinks. Si ce contexte est absent ou si la résolution cible un répertoire "gateway" non-Git (identifié par la présence de fichiers sentinelles comme `AGENTS.md`, `SKILL.md` ou `.agents/` sans dépôt Git parent), `/go` échoue. Les chemins du répertoire d'invocation et de la racine Git doivent être comparés et résolus via `realpath` pour toute comparaison ou vérification de sous-dossier (monorepo).
+Au début de `run-init`, le contexte est résolu en `RepoCapture` : repo Git cible, sous-projet optionnel, et symlinks. Si ce contexte est absent ou si la résolution cible un répertoire "gateway" non-Git (identifié par la présence de dossiers sentinelles comme `.agents/`, `.codex/`, `.pi/`, `.gravity/` ou de fichiers sentinelles comme `AGENTS.md`, `SKILL.md`, `CODEX.md`, `GRAVITY.md` sans dépôt Git parent), `/go` échoue. Les chemins du répertoire d'invocation et de la racine Git doivent être comparés et résolus via `realpath` pour toute comparaison, vérification de sous-dossier (monorepo) ou assignation finale.
 
 Turnlock cree `StateFile<RuntimeState>` contenant `BootstrapState`, `runDir`,
 lock runtime, horloges, logger et ecritures atomiques. `run-init` remplace
@@ -284,7 +284,7 @@ avant la delegation `implementation`.
 
 #### 4.1.2 `workspace-setup`
 
-Prépare le terrain isolé du run. En mode `execute` (nominal), elle crée le worktree Git physique privé, enregistre `WorkSession`, et fixe `baseHeadSha` (supportant le cas d'un HEAD non né pour un dépôt initialisé sans commit). En mode `validate` (retry/resume), elle valide le worktree sans reconstruction en utilisant un contrôle d'ancêtre (`git merge-base --is-ancestor`) au lieu de l'égalité stricte de HEAD, et en filtrant les vérifications porcelain sur les fichiers du patch d'adoption (via `git apply --numstat`).
+Prépare le terrain isolé du run. En mode `execute` (nominal), elle crée le worktree Git physique privé, enregistre `WorkSession`, et fixe `baseHeadSha` (les dépôts sans commit / HEAD non né étant initialisés avec un premier commit vide pour établir `baseHeadSha` en toute sécurité). En mode `validate` (retry/resume), elle valide le worktree sans reconstruction (vérifiant uniquement les chemins d'intégrité) en utilisant un contrôle d'ancêtre (`git merge-base --is-ancestor`) au lieu de l'égalité stricte de HEAD, et en filtrant les vérifications porcelain sur les fichiers du patch d'adoption (via `git apply --numstat`).
 
 Cette bootstrap task est la frontière de départ de toutes les preuves de diff.
 

@@ -75,10 +75,9 @@ Si `ProviderConfig` est absent alors qu'un `git init` est necessaire, echec
 
 ### 4.3 Point de depart Git
 
-- `baseHeadSha` : `git rev-parse --verify HEAD^{commit}`. Si la commande echoue (exit code 128, tête non nee / aucun commit), alors `baseHeadSha` vaut `null`.
+- `baseHeadSha` : `git rev-parse --verify HEAD^{commit}`. Si la commande echoue (exit code 128, tete non nee / aucun commit), initialiser le depot avec un premier commit vide (`git commit --allow-empty -m "initial"`), puis relancer la commande pour obtenir le SHA du commit initial comme `baseHeadSha`.
 - `baseBranch` : `git rev-parse --abbrev-ref HEAD`
   - Si HEAD est detache, `baseBranch` = `"(detached)"`
-  - Si HEAD est non ne / aucun commit, `baseBranch` = `"(unborn)"`
 - `defaultTargetBranch` : `git symbolic-ref refs/remotes/origin/HEAD`
   - Extraire le nom court (ex: `refs/remotes/origin/main` → `main`)
   - Si `origin/HEAD` n'est pas configure, tenter d'utiliser `main` puis `master` comme fallback. Si aucun des deux n'existe sur le remote, emettre un avertissement et laisser `defaultTargetBranch` indefini ; l'echec sera leve uniquement par la suite si cette information s'avere indispensable (ex: packaging/PR).
@@ -102,7 +101,7 @@ Si `ProviderConfig` est absent alors qu'un `git init` est necessaire, echec
 
 ### 4.5 Creation du worktree
 
-1. Creer la branche `work/<runId>` depuis `baseHeadSha`. Si `baseHeadSha` est `null` (depot vide sans commit), creer la branche en mode orphelin (`git checkout --orphan work/<runId>`).
+1. Creer la branche `work/<runId>` depuis `baseHeadSha`.
 2. Verifier que le chemin `worktreeRoot` est libre ou adoptable
 3. `git worktree add <worktreeRoot> work/<runId>` — utiliser la forme
    `realpath` de `worktreeRoot` (voir invariant 5.8)
@@ -128,7 +127,7 @@ Le comportement de cette etape depend de la valeur de `mode` fournie en input :
 #### 4.8.1 Mode `validate`
 Si `mode` vaut `"validate"`, le pipeline est execute pour verifier l'integrite sans recreer le worktree depuis zero :
 - Les etapes 4.2 (initialisation) et 4.5 (creation du worktree) sont ignorees.
-- L'etape 4.1 est executee avec des verifications assouplies.
+- L'etape 4.1 est executee avec des verifications assouplies : verifier uniquement que le chemin `worktreeRoot` est bien contenu dans le dossier du run et ne rentre pas en conflit avec un autre run, sans imposer que la racine Git de la source y soit resolue ou accessible.
 - Si le worktree ou la branche `work/<runId>` n'existe pas, ou si des incoherences majeures de configuration sont detectees, lever une erreur sans tenter de suppression ou reconstruction.
 
 #### 4.8.2 Mode `execute` (avec `worktreeRoot` preexistant)
