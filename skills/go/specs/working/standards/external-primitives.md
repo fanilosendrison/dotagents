@@ -108,8 +108,15 @@ le decrire.
 Primitives externes :
 
 - API provider pour PRs, diffs, commits, checks et statuses ;
+- API provider pour la creation de repos distants (utilisee par `workspace-setup`
+  quand elle initialise un nouveau depot) ;
 - diff provider reel expose par l'API ;
 - identifiants provider pour runs CI et checks.
+
+Configuration `/go` associee :
+
+- [`ProviderConfig`](../run-init/provider-config.md) : token, username et
+  preferences fournisseur configures une fois a l'installation de `/go`.
 
 Role de `/go` :
 
