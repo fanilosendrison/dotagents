@@ -82,11 +82,11 @@ l'interieur de `run-init`, tant qu'ils ne modifient pas directement
 ### Startup: `run-init`
 
 Le workflow commence par une phase Turnlock de bootstrap/onboarding. Turnlock
-cree l'enveloppe runtime : `StateFile<GoRuntimeState>` contenant
-`GoBootstrapState`, `runId`, `runDir`, lock, logger, horloges et persistance
+cree l'enveloppe runtime : `StateFile<RuntimeState>` contenant
+`BootstrapState`, `runId`, `runDir`, lock, logger, horloges et persistance
 atomique.
 
-`run-init` remplace ensuite `GoBootstrapState` par `WorkflowState` dans
+`run-init` remplace ensuite `BootstrapState` par `WorkflowState` dans
 `StateFile.data` : `RepoCapture`, `WorkflowPolicy`, hashes JCS des
 inputs JSON, `artefactRoot`, marqueur d'ownership, chemin de worktree reserve et
 bootstrap task records initiaux.

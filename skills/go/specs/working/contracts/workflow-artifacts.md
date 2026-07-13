@@ -7,26 +7,26 @@ sont des artefacts métier typés validés avant projection dans `WorkflowState`
 
 ---
 
-## 1. `GoRuntimeState` et `WorkflowState`
+## 1. `RuntimeState` et `WorkflowState`
 
-Payload metier `/go` stocke par Turnlock dans `StateFile<GoRuntimeState>`.
+Payload metier `/go` stocke par Turnlock dans `StateFile<RuntimeState>`.
 
 Turnlock fournit le fichier d'etat durable (`StateFile<State>`). `/go` fournit
 la forme de `StateFile.data`.
 
 ```ts
-type GoRuntimeState = GoBootstrapState | WorkflowState;
+type RuntimeState = BootstrapState | WorkflowState;
 ```
 
 ```ts
-type GoBootstrapState = {
+type BootstrapState = {
   schema: "go.bootstrap-state.v1";
   invocationDirectory: string;
   policy: WorkflowPolicy;
 };
 ```
 
-`GoBootstrapState` est l'etat initial minimal donne a Turnlock avant
+`BootstrapState` est l'etat initial minimal donne a Turnlock avant
 `run-init`. Il contient seulement les inputs parent deja resolus (le CWD). Il ne contient
 pas `runId`, car `runId` appartient a `StateFile.runId`, ni `runInit`, car
 `run-init` ne l'a pas encore produit.
@@ -63,7 +63,7 @@ type WorkflowState = {
 `WorkflowState` existe seulement apres le snapshot stable emis par `run-init`.
 Toutes les bootstrap tasks internes projetees par `run-init` et tous les stages
 apres la delegation `implementation` exigent `WorkflowState`; seul `run-init`
-accepte `GoBootstrapState`.
+accepte `BootstrapState`.
 
 `currentStage` represente le chemin metier principal. Il vaut `null` tant que
 le run est encore dans le noyau bootstrap, puis peut valoir `"implementation"`
@@ -144,7 +144,7 @@ type RepoCapture = {
 ```
 
 `RepoCapture` est produit par `run-init` depuis le `invocationDirectory` fourni dans le
-`GoBootstrapState`. `run-init` le stocke sans discovery Git complète.
+`BootstrapState`. `run-init` le stocke sans discovery Git complète.
 `workspace-setup` le verifie ensuite contre l'etat Git reel.
 
 ```ts
@@ -231,7 +231,7 @@ type BootstrapTaskCheckpoint = {
 `BootstrapTaskCheckpoint` est ecrit atomiquement sous
 `artefactRoot/startup/<task>/task-record.json`. Il sert a `run-init` pour
 adopter, relancer, annuler ou refuser une bootstrap task au retry. Il ne remplace
-pas `StateFile<GoRuntimeState>`.
+pas `StateFile<RuntimeState>`.
 
 ```ts
 type WorkflowExecutionRecord = {
@@ -559,11 +559,32 @@ type WorkflowExecutionRecord = {
 };
 ```
 
+Schéma Zod de validation (utilisé par `run-init` avant projection) :
+
+```ts
+export const workflowExecutionRecordSchema = z.object({
+  id: z.string().min(1),
+  unit: z.string().min(1),
+  envelopeKind: z.enum(["stage-output", "startup-output", "turnlock-transition"]),
+  startedAt: z.string().datetime(),
+  endedAt: z.string().datetime(),
+  artefactDir: z.string().min(1),
+  outputJsonPath: z.string().min(1),
+  status: z.enum(["passed", "failed", "skipped", "errored"]),
+  evidenceRefs: z.array(z.string()),
+  businessArtifactIds: z.array(z.string()),
+  errors: z.array(stageErrorSchema),
+  headShaAfter: z.nullable(z.string()),
+  trackedWorktreeHash: z.nullable(z.string()),
+  worktreeClean: z.nullable(z.boolean()),
+}).strict();
+```
+
 Un `WorkflowExecutionRecord` peut pointer vers un `StageOutput` canonique, mais
 il peut aussi representer une bootstrap task ou une transition Turnlock apres
 `run-init`. La transition bootstrap `run-init` est l'exception : elle est
 prouvee par `RunInitRecord`, `RunInitOwnershipMarker` et la transition stable
-Turnlock qui remplace `GoBootstrapState` par `WorkflowState`.
+Turnlock qui remplace `BootstrapState` par `WorkflowState`.
 
 ---
 
@@ -610,6 +631,37 @@ schéma le permet.
 `executionRecordId` est obligatoire pour relier l'artefact a l'execution qui l'a
 produit. `stageOutputId` est present seulement si cette execution a produit un
 `StageOutput` du stage harness.
+
+Schéma Zod de validation :
+
+```ts
+export const businessArtifactRecordSchema = z.object({
+  id: z.string().min(1),
+  unit: z.string().min(1),
+  kind: z.enum([
+    "run-capture",
+    "repository-discovery-draft",
+    "work-session",
+    "project-discovery",
+    "implementation-evidence",
+    "change-snapshot",
+    "conduct-evidence",
+    "review-findings",
+    "review-report",
+    "mechanical-check-results",
+    "remediation-attempt",
+    "package-plan",
+    "package-verification",
+    "pull-request-publication",
+    "pr-ci-review"
+  ]),
+  schema: z.string().min(1),
+  ref: z.string().min(1),
+  executionRecordId: z.string().min(1),
+  stageOutputId: z.string().optional(),
+  validationStatus: z.enum(["passed", "failed", "errored"]),
+}).strict();
+```
 
 ---
 

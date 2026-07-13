@@ -90,15 +90,15 @@ que le workflow metier commence ?**
 
 Turnlock cree l'enveloppe runtime :
 
-- `StateFile<GoRuntimeState>` ;
-- `GoBootstrapState` initial ;
+- `StateFile<RuntimeState>` ;
+- `BootstrapState` initial ;
 - `runId` ;
 - `runDir` ;
 - lock runtime ;
 - horloges et logger runtime ;
 - ecritures atomiques de `state.json`.
 
-`run-init` lit `GoBootstrapState`, publie `WorkflowState`, execute le
+`run-init` lit `BootstrapState`, publie `WorkflowState`, execute le
 bootstrap/onboarding, puis s'arrete sur la delegation `implementation` :
 
 - `runId` ;

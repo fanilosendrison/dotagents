@@ -47,9 +47,9 @@ Le workflow doit échouer fermé dès qu'il ne peut plus prouver l'état courant
 `WorkflowState` est la source de vérité de l'avancement apres `run-init`. Les
 logs, messages agentiques et commentaires PR sont dérivés.
 
-Turnlock persiste le payload `/go` comme `StateFile<GoRuntimeState>`, ou
-`GoRuntimeState = GoBootstrapState | WorkflowState`. Avant `run-init`,
-`StateFile.data` contient `GoBootstrapState`. Apres le snapshot stable emis par
+Turnlock persiste le payload `/go` comme `StateFile<RuntimeState>`, ou
+`RuntimeState = BootstrapState | WorkflowState`. Avant `run-init`,
+`StateFile.data` contient `BootstrapState`. Apres le snapshot stable emis par
 `run-init`, `StateFile.data` contient `WorkflowState`.
 
 ### 2.2 Policy-authoritative
@@ -94,7 +94,7 @@ Chaque workflow unit qui produit un artefact durable produit aussi un
 `WorkflowExecutionRecord`.
 
 `run-init` est l'exception bootstrap : sa reussite est prouvee par le snapshot
-stable Turnlock qui remplace `GoBootstrapState` par `WorkflowState`, ajoute
+stable Turnlock qui remplace `BootstrapState` par `WorkflowState`, ajoute
 `RunInitRecord` et `RunInitOwnershipMarker`, puis emet la delegation
 `implementation` avec `resumeAt: "implementation-settlement"`.
 
@@ -234,7 +234,7 @@ Au début de `run-init`, le contexte est résolu en `RepoCapture` :
 repo Git cible, sous-projet optionnel, et symlinks. Si ce contexte est absent ou ambigu, `/go` echoue
 avant Turnlock.
 
-Turnlock cree `StateFile<GoRuntimeState>` contenant `GoBootstrapState`, `runDir`,
+Turnlock cree `StateFile<RuntimeState>` contenant `BootstrapState`, `runDir`,
 lock runtime, horloges, logger et ecritures atomiques. `run-init` remplace
 `state.data` par `WorkflowState` initialise, execute le bootstrap/onboarding
 interne, puis s'arrete sur une delegation agentique :
@@ -565,7 +565,7 @@ Un finding sans preuve peut être `Minor` ou `Notable`, mais ne peut pas être
 
 Turnlock porte la mécanique :
 
-- `StateFile<GoRuntimeState>` ;
+- `StateFile<RuntimeState>` ;
 - etats atomiques ;
 - persistance de `state.json` ;
 - reprise ;

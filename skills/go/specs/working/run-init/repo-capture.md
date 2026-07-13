@@ -25,7 +25,7 @@ discovery. `run-init` reste purement mecanique :
 
 ```text
 parent process provides invocationDirectory
--> parent process starts Turnlock with GoBootstrapState
+-> parent process starts Turnlock with BootstrapState
 -> run-init resolves RepoCapture from invocationDirectory
 -> workspace-setup verifies it against real Git state
 ```
@@ -38,7 +38,7 @@ Le parent process (l'agent ou le harness) qui recoit le `/go` ne fournit qu'une 
 
 - le repertoire courant ou workspace courant (`invocationDirectory`).
 
-`run-init` lit ce CWD depuis le `GoBootstrapState`, puis résout le `RepoCapture` complet.
+`run-init` lit ce CWD depuis le `BootstrapState`, puis résout le `RepoCapture` complet.
 
 Inputs typiques de la résolution interne de `run-init` :
 
