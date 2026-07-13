@@ -17,7 +17,7 @@ pas au runtime Turnlock.
 - une phase obligatoire pour tous les orchestrateurs Turnlock.
 
 Elle est obligatoire seulement pour le workflow `/go`, parce que `/go` doit
-transformer `GoBootstrapState` en `WorkflowState`, executer le
+transformer `BootstrapState` en `WorkflowState`, executer le
 bootstrap/onboarding, puis emettre la premiere delegation agentique.
 
 Le principe central : le bootstrap n'est pas un stage metier et les travaux de
@@ -57,7 +57,7 @@ run-init
 ### 1.1 Resolution du repo capture
 
 `run-init` resout le `RepoCapture` comme sa toute premiere
-bootstrap task, depuis le CWD fourni dans `GoBootstrapState`. Le contrat
+bootstrap task, depuis le CWD fourni dans `BootstrapState`. Le contrat
 detaille vit dans [`repo-capture.md`](./repo-capture.md).
 
 Cette etape est sequentielle : `workspace-setup` a besoin de
@@ -76,12 +76,14 @@ Les trois bootstrap tasks suivantes s'executent en parallele une fois
 - **`run-capture`** : capture les preuves du moment `/go` (prompt, extrait de
   session). Contrat dans [`run-capture.md`](./run-capture.md). Elle ne depend
   pas du worktree, seulement du `CaptureContext` fourni dans
-  `GoBootstrapState`. Pour v1, `run-init` ne delegue pas `implementation`
+  `BootstrapState`. Pour v1, `run-init` ne delegue pas `implementation`
   tant que `RunCaptureArtifact` n'est pas terminal, et Turnlock termine le
   process apres `io.delegate` : un mode sidecar ou ensure-before-review
   pourra etre ajoute plus tard.
 - **`workspace-setup`** : prepare le worktree Git prive et produit
   `WorkSession`. Contrat dans [`workspace-setup.md`](./workspace-setup.md).
+  Si le depot n'existe pas encore, l'initialise et le connecte a un
+  repo distant via [`ProviderConfig`](./provider-config.md).
 - **`repo-discovery-draft`** : lit le checkout source pour decouvrir les
   commandes et capacites du repo, pendant que le worktree est cree. Ce
   resultat n'est qu'un brouillon.
@@ -165,16 +167,16 @@ implementation delegation requires:
 
 ---
 
-## 2. Entree : `GoBootstrapState`
+## 2. Entree : `BootstrapState`
 
-Avant `run-init`, le parent process fournit a Turnlock un `GoBootstrapState`
+Avant `run-init`, le parent process fournit a Turnlock un `BootstrapState`
 minimal. Ce bootstrap state contient seulement les inputs que le parent process
 connait deja, sans aucune discovery Git.
 
 ### 2.1 Structure
 
 ```ts
-type GoBootstrapState = {
+type BootstrapState = {
   schema: "go.bootstrap-state.v1";
   invocationDirectory: string;
   policy: WorkflowPolicy;
@@ -248,7 +250,7 @@ transmet tel quel.
 ## 3. Sortie : `WorkflowState` et delegation
 
 `run-init` produit le premier `WorkflowState` complet, que Turnlock persiste
-par transition atomique en remplacement du `GoBootstrapState`.
+par transition atomique en remplacement du `BootstrapState`.
 
 ### 3.1 Structure du `WorkflowState` initial
 
@@ -403,8 +405,8 @@ Tout ce qui suit `run-init` est une mutation tracee de ce payload initial.
 `run-init` ne produit pas de `StageOutput`, car ce n'est pas un stage. La
 reussite de `run-init` est prouvee par quatre elements :
 
-- le snapshot stable Turnlock qui remplace `GoBootstrapState` par
-  `WorkflowState` dans `StateFile<GoRuntimeState>` ;
+- le snapshot stable Turnlock qui remplace `BootstrapState` par
+  `WorkflowState` dans `StateFile<RuntimeState>` ;
 - `RunInitRecord` dans `WorkflowState.runInit` ;
 - `RunInitOwnershipMarker` pour les refs reservees par `/go` ;
 - `pendingDelegation` Turnlock pour `label: "implementation"` et
@@ -425,11 +427,11 @@ Sequence normative :
 
 ```text
 Turnlock creates runtime envelope
-Turnlock persists StateFile<GoRuntimeState> with GoBootstrapState
+Turnlock persists StateFile<RuntimeState> with BootstrapState
 Turnlock dispatches run-init
-run-init reads GoBootstrapState
+run-init reads BootstrapState
 run-init resolves RepoCapture from invocationDirectory
-run-init validates WorkflowPolicy shape from GoBootstrapState
+run-init validates WorkflowPolicy shape from BootstrapState
 run-init hashes canonical launch inputs
 run-init creates or reserves /go artefact refs
 run-init reserves worktreeRoot path
@@ -442,7 +444,7 @@ run-init joins run-capture
 run-init prepares implementation delegation input
 run-init returns io.delegate(label=implementation, resumeAt=implementation-settlement)
 Turnlock validates state schema
-Turnlock atomically writes StateFile<GoRuntimeState> with WorkflowState and
+Turnlock atomically writes StateFile<RuntimeState> with WorkflowState and
 pendingDelegation
 Turnlock emits delegation protocol and exits
 ```
@@ -612,6 +614,10 @@ comme OpenTelemetry, pas par un second systeme de tracing `/go`.
 [`external-primitives.md`](../standards/external-primitives.md) : il ne definit
 pas un second runtime de lock, journal, retry, resume, logger, horloge ou
 persistance atomique. Turnlock est la primitive autoritative.
+
+`ProviderConfig` est une configuration statique fournie a l'installation de
+`/go` et non une primitive runtime. Contrat dans
+[`provider-config.md`](./provider-config.md).
 
 ---
 
@@ -825,7 +831,7 @@ retry, et aucune ref n'est derivee d'un input utilisateur brut sans validation.
 ```text
 Turnlock runtime envelope
 │
-├─ StateFile<GoRuntimeState>
+├─ StateFile<RuntimeState>
 ├─ runDir
 │  ├─ state.json
 │  ├─ events.ndjson
@@ -837,7 +843,7 @@ Turnlock runtime envelope
 /go run-init payload
 │
 ├─ runId from StateFile
-├─ GoBootstrapState input
+├─ BootstrapState input
 │  ├─ invocationDirectory
 │  ├─ WorkflowPolicy
 │  └─ CaptureContext
