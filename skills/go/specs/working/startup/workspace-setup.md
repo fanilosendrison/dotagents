@@ -21,7 +21,7 @@ Cette startup task ne produit aucun code applicatif.
 - `RepositoryLaunchContext` stocke par `run-init`
 - repository source
 - `WorkflowPolicy.dirtyState`
-- éventuelle branche cible demandée
+
 - `artefactRoot` reserve par `run-init`
 - `worktreeRoot` reserve par `run-init`
 
@@ -105,7 +105,7 @@ par `WorkflowPolicy.dirtyState.mode`.
 
 ### 5.4 No direct main work
 
-L'agent n'implémente pas directement sur `main` ou la branche cible par défaut.
+L'agent n'implémente pas directement sur la branche par défaut.
 
 ### 5.5 Independance de `run-capture`
 
@@ -153,8 +153,7 @@ persist-execution-record
 - `RepositoryLaunchContext` absent ou invalide : `errored`.
 - Racine Git reelle differente de `canonicalRepositoryRoot` : `failed`.
 - `projectRoot` hors repo : `failed`.
-- Hint de branche cible incompatible avec l'etat Git et non corrigeable :
-  `failed`.
+
 - Dirty state non adopté : `failed`.
 - Dirty state adopte mais patch irrejouable dans le worktree prive : `failed`.
 - Branche `work/<runId>` déjà existante sans checkpoint valide ou après échec de validation : nettoyée et recréée (au lieu d'échouer directement).

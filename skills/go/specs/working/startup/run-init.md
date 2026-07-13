@@ -107,64 +107,62 @@ Avant `run-init`, le parent process doit resoudre un
 
 Ce contexte contient :
 
-- le repertoire d'invocation de la session ;
+- le répertoire d'invocation de la session ;
 - la racine Git canonique cible ;
-- le sous-perimetre projet optionnel ;
-- les hints provider et branche cible ;
-- l'information indiquant si un symlink gateway a ete resolu.
+- le sous-périmètre projet optionnel ;
+- l'information de résolution des symlinks.
 
-Le contrat detaille vit dans
+Le contrat détaillé vit dans
 [`launch-context.md`](./launch-context.md).
 
 Le parent process stocke ce contexte dans `GoBootstrapState`. `run-init` le
 valide en forme, le hash, puis le recopie dans `WorkflowState`, mais ne le
-verifie pas contre Git. Il ne doit pas appeler `git rev-parse`, choisir entre
+vérifie pas contre Git. Il ne doit pas appeler `git rev-parse`, choisir entre
 `main` et `master`, suivre des symlinks, ou corriger un repo cible.
 
-Si `RepositoryLaunchContext` est absent, incomplet ou mal forme, `run-init`
-echoue avant que les startup tasks internes ne puissent produire une evidence
+Si `RepositoryLaunchContext` est absent, incomplet ou mal formé, `run-init`
+échoue avant que les startup tasks internes ne puissent produire une évidence
 autoritative.
 
-`workspace-setup` est la premiere startup task qui verifie ce contexte contre
-le repo Git reel.
+`workspace-setup` est la première startup task qui vérifie ce contexte contre
+le repo Git réel.
 
 #### 2.1.1 `WorkflowPolicy`
 
 Avant `run-init`, le parent process ou la configuration `/go` doit aussi fournir
 un `WorkflowPolicy`.
 
-Cette policy fige les decisions qui ne doivent pas etre improvisees par une
+Cette policy fige les décisions qui ne doivent pas être improvisées par une
 startup task :
 
 - adoption ou refus du dirty state initial ;
-- correction autorisee ou non des hints parent ;
-- rerun autorise ou non de la discovery depuis le worktree ;
-- comportement si aucune gate fiable n'est detectee ;
-- comportement des delegations agentiques et remediations ;
+- rerun autorisé ou non de la discovery depuis le worktree ;
+- comportement si aucune gate fiable n'est détectée ;
+- comportement des délégations agentiques et remédiations ;
 - obligation de `RunCaptureArtifact` pour les reviews ;
 - conditions de packaging et de publication ;
-- comportement de retention des runs incomplets.
+- comportement de rétention des runs incomplets.
 
 Le parent process stocke cette policy dans `GoBootstrapState`. `run-init` valide
 seulement sa forme et la recopie dans `WorkflowState`. Il ne choisit pas les
 modes de policy et ne les modifie pas.
 
-La validation de forme inclut les invariants minimaux necessaires a un hash JCS
-stable : champs obligatoires presents, schemas connus, valeurs enum reconnues,
-timestamps deja materialises, chemins deja resolus par le parent process, et
-absence de champs non declares. Elle n'inclut pas la verification Git, la
-discovery repo ou la correction des hints parent.
+La validation de forme inclut les invariants minimaux nécessaires à un hash JCS
+stable : champs obligatoires présents, schémas connus, valeurs enum reconnues,
+timestamps déjà matérialisés, chemins déjà résolus par le parent process, et
+absence de champs non déclarés. Elle n'inclut pas la vérification Git, la
+discovery repo.
 
 ### 2.2 `runId`
 
-`runId` est l'identifiant unique du run Turnlock. `/go` ne genere pas un second
-identifiant. `WorkflowState.runId` doit etre identique a `StateFile.runId`.
+`runId` est l'identifiant unique du run Turnlock. `/go` ne génère pas un second
+identifiant. `WorkflowState.runId` doit être identique à `StateFile.runId`.
 
-Il sert de namespace a tout ce qui appartient au workflow :
+Il sert de namespace à tout ce qui appartient au workflow :
 
 - startup tasks ;
 - stages ;
-- artefacts metier ;
+- artefacts métier ;
 - evidence files ;
 - logs ;
 - branches de travail ;
@@ -178,46 +176,46 @@ Forme normative pour `/go` :
 ```
 
 Cette forme est le `runId` Turnlock nominal : un ULID Crockford base32 de 26
-caracteres, genere par Turnlock quand le parent process ne fournit pas
+caractères, généré par Turnlock quand le parent process ne fournit pas
 `--run-id`.
 
-Le profil `/go` exige que Turnlock valide `runId` avant de creer `runDir`. Cette
-validation est une precondition de l'enveloppe runtime, pas une responsabilite
+Le profil `/go` exige que Turnlock valide `runId` avant de créer `runDir`. Cette
+validation est une précondition de l'enveloppe runtime, pas une responsabilité
 de `run-init`. En mode initial :
 
-- le comportement nominal est de laisser Turnlock generer le `runId` ;
+- le comportement nominal est de laisser Turnlock générer le `runId` ;
 - si un parent process fournit explicitement `--run-id`, cette valeur doit
-  deja matcher le format ULID Turnlock
+  déjà matcher le format ULID Turnlock
   `/^[0-9A-HJKMNP-TV-Z]{26}$/` ;
-- un `--run-id` externe non conforme doit etre refuse avant la creation de
+- un `--run-id` externe non conforme doit être refusé avant la création de
   `runDir`, sans tentative de slugification ni de correction implicite ;
-- si `run-init` observe malgre tout un `StateFile.runId` non conforme, il echoue
+- si `run-init` observe malgré tout un `StateFile.runId` non conforme, il échoue
   ferme et signale une violation du profil runtime `/go`.
 
 Les invariants sont :
 
-- `runId` est genere une seule fois par Turnlock ;
-- `runId` est immuable apres creation ;
-- tout artefact durable `/go` reference le meme `runId` ;
-- deux runs simultanes ne peuvent pas partager le meme `runId` ;
+- `runId` est généré une seule fois par Turnlock ;
+- `runId` est immuable après création ;
+- tout artefact durable `/go` référence le même `runId` ;
+- deux runs simultanés ne peuvent pas partager le même `runId` ;
 - `runId` est directement utilisable dans les chemins locaux, refs Git et
   namespaces distants du workflow `/go`, parce que `/go` exige le format ULID
   Turnlock ;
-- `/go` ne definit pas de `runSlug` parallele a `runId`.
+- `/go` ne définit pas de `runSlug` parallèle à `runId`.
 
 ### 2.3 `runDir`
 
-`runDir` est cree par Turnlock avant `run-init`. `/go` le reference comme racine
-runtime, mais ne le cree pas et ne le verrouille pas.
+`runDir` est créé par Turnlock avant `run-init`. `/go` le référence comme racine
+runtime, mais ne le crée pas et ne le verrouille pas.
 
-Il doit etre hors du repo cible pour que les artefacts, logs et etats internes
+Il doit être hors du repo cible pour que les artefacts, logs et états internes
 ne rendent jamais le repo dirty.
 
 Cette garantie est fournie avant le lancement de Turnlock : le parent process
 doit configurer `runDirRoot` hors de `RepositoryLaunchContext.canonicalRepositoryRoot`.
-`run-init` verifie ensuite par containment path que `runDir` n'est pas sous le
-repo cible. Si cette verification echoue, `run-init` echoue ferme ; il ne tente
-pas de deplacer `runDir`.
+`run-init` vérifie ensuite par containment path que `runDir` n'est pas sous le
+repo cible. Si cette vérification échoue, `run-init` échoue ferme ; il ne tente
+pas de déplacer `runDir`.
 
 Disposition locale normative :
 
@@ -226,85 +224,85 @@ Disposition locale normative :
 ├── state.json
 ├── events.ndjson
 ├── artefactRoot/
-├── worktree/        (chemin reserve ; checkout cree par workspace-setup)
+├── worktree/        (chemin réservé ; checkout créé par workspace-setup)
 ├── logs/
 │   ├── turnlock.log
 │   └── stages/
 └── .lock
 ```
 
-Les implementations peuvent remplacer certains chemins par des references vers
+Les implémentations peuvent remplacer certains chemins par des références vers
 un stockage distant, mais `runDir` reste le conteneur logique du run. Les
-references doivent conserver les memes proprietes :
+références doivent conserver les mêmes propriétés :
 
 - isolation entre runs ;
-- evidence hors worktree ;
-- reprise possible apres interruption ;
-- chemins ou references derivables depuis `runId`.
+- évidence hors worktree ;
+- reprise possible après interruption ;
+- chemins ou références dérivables depuis `runId`.
 
 `state.json`, `events.ndjson`, le lock runtime et les logs Turnlock sont
-proprietes de Turnlock. `artefactRoot/`, `worktree/` et les sous-dossiers de
-preuves sont des references metier `/go` placees sous ou a cote de cette
+propriétés de Turnlock. `artefactRoot/`, `worktree/` et les sous-dossiers de
+preuves sont des références métier `/go` placées sous ou à côté de cette
 enveloppe runtime selon la configuration de stockage du run.
 
-### 2.4 Frontieres de responsabilite
+### 2.4 Frontières de responsabilité
 
 `run-init` initialise le payload `/go`, orchestre le bootstrap/onboarding
-interne, puis delegue l'implementation. Il ne cree pas l'enveloppe runtime
+interne, puis délègue l'implémentation. Il ne crée pas l'enveloppe runtime
 Turnlock.
 
-Responsabilites du parent process avant Turnlock :
+Responsabilités du parent process avant Turnlock :
 
-- resoudre `RepositoryLaunchContext` ;
+- résoudre `RepositoryLaunchContext` ;
 - fournir `WorkflowPolicy` ;
 - configurer `runDirRoot` hors du repo cible ;
-- ne pas fournir de `--run-id` externe sauf s'il est deja un ULID valide ;
+- ne pas fournir de `--run-id` externe sauf s'il est déjà un ULID valide ;
 - fournir `GoBootstrapState` comme `initialState` du run Turnlock.
 
-Responsabilites de Turnlock avant `run-init` :
+Responsabilités de Turnlock avant `run-init` :
 
-- creer `runDir` ;
-- acquerir le lock runtime exclusif ;
-- creer ou charger `StateFile<GoRuntimeState>` ;
+- créer `runDir` ;
+- acquérir le lock runtime exclusif ;
+- créer ou charger `StateFile<GoRuntimeState>` ;
 - fournir `StateFile.runId` ;
 - garantir que `StateFile.runId` respecte le format ULID du profil `/go` ;
 - fournir les horloges runtime ;
 - fournir le logger runtime ;
 - fournir le journal d'events runtime ;
-- persister les transitions stables par ecriture atomique de `state.json`.
+- persister les transitions stables par écriture atomique de `state.json`.
 
-Responsabilites de `run-init` :
+Responsabilités de `run-init` :
 
 - lire `GoBootstrapState` ;
 - valider la forme du `RepositoryLaunchContext` parent ;
 - valider la forme du `WorkflowPolicy` du run ;
 - calculer et stocker les hashes JCS de ces inputs ;
-- enregistrer une reference vers le run Turnlock ;
-- verifier que `runDir` est hors du repo cible ;
-- creer l'unique `artefactRoot` du run ;
-- reserver ou referencer `workflowLogRoot` si le workflow a besoin de logs
-  metier separes ;
-- reserver `worktreeRoot` comme chemin logique du run ;
-- ecrire ou verifier le marqueur d'ownership de `run-init` ;
+- enregistrer une référence vers le run Turnlock ;
+- vérifier que `runDir` est hors du repo cible ;
+- créer l'unique `artefactRoot` du run ;
+- réserver ou référencer `workflowLogRoot` si le workflow a besoin de logs
+  métier séparés ;
+- réserver `worktreeRoot` comme chemin logique du run ;
+- écrire ou vérifier le marqueur d'ownership de `run-init` ;
 - initialiser `startupTasks` ;
-- executer ou coordonner les startup tasks internes ;
+- exécuter ou coordonner les startup tasks internes ;
 - joindre `workspace-setup` et `repo-discovery-draft` via
   `project-discovery-finalize` ;
 - projeter les artefacts de startup valides dans `WorkflowState` ;
-- preparer l'input de delegation agentique ;
-- retourner a Turnlock une delegation `implementation` avec
+- préparer l'input de délégation agentique ;
+- retourner à Turnlock une délégation `implementation` avec
   `resumeAt: "implementation-settlement"` et un `WorkflowState` complet en
   remplacement du `GoBootstrapState`.
 
-Responsabilites de `workspace-setup` :
+Responsabilités de `workspace-setup` :
 
-- verifier que `canonicalRepositoryRoot` est un repo Git ;
-- verifier ou corriger les hints parent selon
-  `WorkflowPolicy.launchContextMismatch` ;
-- verifier que le chemin `worktreeRoot` reserve est utilisable ;
-- creer le checkout Git physique prive ;
-- creer la branche `work/<runId>` ;
-- ecrire son propre sous-dossier d'artefacts sous `artefactRoot` ;
+- vérifier que `canonicalRepositoryRoot` est un repo Git ;
+- vérifier `WorkflowPolicy.discovery` ;
+- vérifier `WorkflowPolicy.gates` ;
+- vérifier que le chemin `worktreeRoot` réservé est utilisable ;
+- créer le checkout Git physique privé ;
+- créer la branche `work/<runId>` ;
+- écrire son propre sous-dossier d'artefacts sous `artefactRoot` ;
 - produire `WorkSession`.
 
 `run-init` ne doit pas creer de checkout Git a `worktreeRoot`. Si
@@ -467,10 +465,6 @@ Exemple conceptuel avant `run-init` :
       "invocationDirectory": "<session-cwd>",
       "canonicalRepositoryRoot": "<canonical-repository-root>",
       "projectRoot": "<optional-project-root>",
-      "providerHint": "github",
-      "remoteNameHint": "origin",
-      "defaultTargetBranchHint": "main",
-      "resolutionSource": "active-path",
       "symlinkResolved": true,
       "resolvedAt": "2026-07-12T14:30:00.000Z"
     },
@@ -520,10 +514,6 @@ reprise fourni par Turnlock, pas dependra de champs internes non documentes.
         "invocationDirectory": "<session-cwd>",
         "canonicalRepositoryRoot": "<canonical-repository-root>",
         "projectRoot": "<optional-project-root>",
-        "providerHint": "github",
-        "remoteNameHint": "origin",
-        "defaultTargetBranchHint": "main",
-        "resolutionSource": "active-path",
         "symlinkResolved": true,
         "resolvedAt": "2026-07-12T14:30:00.000Z"
       },
@@ -548,12 +538,6 @@ reprise fourni par Turnlock, pas dependra de champs internes non documentes.
         "mode": "require-clean",
         "adoptionRequiresPatchEvidence": true,
         "adoptionRequiresWorktreeReplay": true
-      },
-      "launchContextMismatch": {
-        "repositoryRootMismatch": "fail",
-        "projectRootOutsideRepository": "fail",
-        "defaultTargetBranchMismatch": "correct-and-record",
-        "providerMismatch": "correct-and-record"
       },
       "discovery": {
         "allowSourceCheckoutDraft": true,
@@ -652,7 +636,7 @@ Tout ce qui suit `run-init` est une mutation tracee de ce payload initial.
 
 Le champ `repository` est initialise depuis le `RepositoryLaunchContext`. Il
 n'est pas encore une preuve Git autoritative. `workspace-setup` le verifie,
-corrige selon `WorkflowPolicy.launchContextMismatch`, ou echoue ferme.
+ou echoue ferme.
 
 ### 2.8 Publication atomique
 

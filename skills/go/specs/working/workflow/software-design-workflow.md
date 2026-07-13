@@ -66,8 +66,7 @@ Le cycle n'est pas linéaire dès qu'une correction est appliquée. Toute mutati
 retourne à `change-snapshot`.
 
 Avant le startup, le parent process resout le `RepositoryLaunchContext` : repo
-Git cible, sous-projet optionnel, symlinks et hints de provider
-ou branche cible. Si cette cible est absente ou ambigue, `/go` echoue avant
+Git cible, sous-projet optionnel, et symlinks. Si cette cible est absente ou ambigue, `/go` echoue avant
 Turnlock.
 
 Le demarrage n'est pas lineaire non plus. Ce n'est pas un stage : c'est le

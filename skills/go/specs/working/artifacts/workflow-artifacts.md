@@ -136,15 +136,8 @@ type RunInitRecord = {
 type RepositoryLaunchContext = {
   schema: "go.repository-launch-context.v1";
   invocationDirectory: string;
-  repositoryRootHint?: string;
   canonicalRepositoryRoot: string;
   projectRoot?: string;
-  providerHint?: "github" | "gitlab" | "local-only";
-  remoteNameHint?: string;
-  defaultTargetBranchHint?: string;
-  resolutionSource:
-    | "invocation-directory"
-    | "parent-session";
   symlinkResolved: boolean;
   resolvedAt: string;
 };
@@ -286,7 +279,6 @@ type TurnlockStateRecord = {
 type WorkflowPolicy = {
   schema: "go.workflow-policy.v1";
   dirtyState: DirtyStatePolicy;
-  launchContextMismatch: LaunchContextMismatchPolicy;
   discovery: DiscoveryPolicy;
   gates: GatePolicy;
   delegation: DelegationPolicy;
@@ -301,15 +293,6 @@ type DirtyStatePolicy = {
   mode: "require-clean" | "adopt-as-input" | "human-gate-if-dirty";
   adoptionRequiresPatchEvidence: boolean;
   adoptionRequiresWorktreeReplay: boolean;
-};
-```
-
-```ts
-type LaunchContextMismatchPolicy = {
-  repositoryRootMismatch: "fail";
-  projectRootOutsideRepository: "fail";
-  defaultTargetBranchMismatch: "correct-and-record" | "fail";
-  providerMismatch: "correct-and-record" | "fail";
 };
 ```
 
@@ -461,8 +444,7 @@ type RepositoryContext = {
 ```
 
 `RepositoryContext` est initialise depuis `RepositoryLaunchContext`, puis
-verifie ou corrige par `workspace-setup` selon
-`WorkflowPolicy.launchContextMismatch`.
+verifie par `workspace-setup`.
 
 ---
 

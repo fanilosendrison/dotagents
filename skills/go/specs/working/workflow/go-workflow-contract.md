@@ -231,8 +231,7 @@ generique de Turnlock et n'est pas obligatoire pour tous les orchestrateurs
 Turnlock.
 
 Avant `run-init`, le parent process resout un `RepositoryLaunchContext` :
-repo Git cible, sous-projet optionnel, symlinks et hints de
-provider ou branche cible. Si ce contexte est absent ou ambigu, `/go` echoue
+repo Git cible, sous-projet optionnel, et symlinks. Si ce contexte est absent ou ambigu, `/go` echoue
 avant Turnlock.
 
 Turnlock cree `StateFile<GoRuntimeState>` contenant `GoBootstrapState`, `runDir`,

@@ -51,7 +51,7 @@ Il contient notamment :
 - repertoire d'invocation ;
 - racine Git canonique cible ;
 - sous-projet optionnel ;
-- hints provider et branche cible ;
+
 - information de resolution des symlinks.
 
 Le launch context n'est pas une startup task, pas un stage et pas une phase

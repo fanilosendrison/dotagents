@@ -53,8 +53,6 @@ Turnlock, puis lancer Turnlock avec :
 Inputs typiques :
 
 - `invocationDirectory` : repertoire courant de la session (l'unique source de verite pour la cible) ;
-- hints provider : `github`, `gitlab`, `local-only` ;
-- hint de branche cible : branche courante du checkout source (`HEAD`).
 
 Si le parent process ne peut pas prouver un repo Git cible unique, `/go` echoue
 avant `run-init`.
@@ -73,8 +71,6 @@ runtime deja creee.
 - le repertoire d'invocation ;
 - la racine Git canonique cible ;
 - le sous-perimetre projet optionnel ;
-- les hints provider et branche cible ;
-- la methode de resolution ;
 - l'horodatage de resolution.
 
 Forme conceptuelle :
@@ -83,15 +79,8 @@ Forme conceptuelle :
 type RepositoryLaunchContext = {
   schema: "go.repository-launch-context.v1";
   invocationDirectory: string;
-  repositoryRootHint?: string;
   canonicalRepositoryRoot: string;
   projectRoot?: string;
-  providerHint?: "github" | "gitlab" | "local-only";
-  remoteNameHint?: string;
-  defaultTargetBranchHint?: string;
-  resolutionSource:
-    | "invocation-directory"
-    | "parent-session";
   symlinkResolved: boolean;
   resolvedAt: string;
 };
@@ -115,14 +104,7 @@ Le parent process resout le contexte en utilisant strictement le repertoire cour
 
 Les demandes explicites de l'utilisateur ne doivent jamais court-circuiter cette regle. Le repo cible est **toujours** defini par le CWD.
 
-Le parent process peut extraire les hints par heuristique legere sans bloquer s'il ne trouve rien :
-- `remoteNameHint` : nom du premier remote Git (ex: `origin`).
-- `providerHint` : infere depuis l'URL du remote, ou depuis les variables d'environnement du harness (ex: `GITHUB_REPOSITORY`).
-- `defaultTargetBranchHint` : branche courante du checkout source (`HEAD`), ou omis si non determinable sans operation reseau. Cela donne a l'utilisateur le controle de son point de depart en faisant simplement un `git checkout` avant `/go`.
-
-Aucun de ces hints n'est autoritatif. Leur absence ne doit jamais faire echouer le parent process. Ils servent a initialiser l'etat du run et a produire une trace.
-
-`workspace-setup` est la premiere startup task qui verifie ces hints contre le
+`workspace-setup` est la premiere startup task qui verifie l'etat du
 repo Git reel.
 
 ---
@@ -228,7 +210,6 @@ Le noyau bootstrap de `run-init` ne doit pas :
 
 - appeler `git rev-parse` ;
 - verifier que `canonicalRepositoryRoot` existe ;
-- verifier que `defaultTargetBranchHint` est vraie ;
 - choisir entre `main` et `master` ;
 - resoudre un sous-projet ;
 - suivre des symlinks.
@@ -252,22 +233,8 @@ Responsabilites :
 - verifier que la racine Git reelle correspond au contexte parent ;
 - detecter `baseBranch` ;
 - detecter `baseHeadSha` ;
-- detecter ou corriger `defaultTargetBranch` selon
-  `WorkflowPolicy.launchContextMismatch` ;
+- detecter `defaultTargetBranch` ;
 - verifier que `projectRoot`, s'il existe, est sous le repo ;
-- refuser si les hints parent contredisent l'etat Git et ne peuvent pas etre
-  corriges proprement.
-
-Exemple :
-
-```text
-parent hint: defaultTargetBranch = "main"
-real repo:   defaultTargetBranch = "master"
-
-workspace-setup either:
-- records the correction and continues if `WorkflowPolicy` allows it
-  - fails closed if the mismatch is unsafe
-```
 
 ---
 
