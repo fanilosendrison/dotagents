@@ -48,6 +48,7 @@ stage harness, ce record reference le `StageOutput` canonique.
 ## 4. Responsabilités
 
 - Résoudre `repositoryRoot`.
+- Si `RepositoryLaunchContext.isNewRepository` est `true` et qu'aucun dépôt Git n'existe à `canonicalRepositoryRoot`, initialiser le dépôt (`git init`) et créer un commit initial (éventuellement vide) pour permettre la création de branches et de worktrees.
 - Vérifier que `canonicalRepositoryRoot` correspond a la racine Git reelle.
 - Vérifier que `projectRoot`, s'il existe, est sous la racine Git.
 - Détecter `baseBranch`.
@@ -129,6 +130,7 @@ worktree doivent etre finalises contre ce `WorkSession` avant de produire un
 
 ```text
 resolve-repository
+if-is-new-repository-initialize-git-repo
 verify-launch-context-against-git
 validate-dirty-state-policy
 record-base-ref
@@ -147,7 +149,7 @@ persist-execution-record
 
 ## 7. Failure modes
 
-- Repository introuvable : `errored`.
+- Repository introuvable (sauf si `isNewRepository` est `true` et que l'initialisation réussit) : `errored`.
 - `RepositoryLaunchContext` absent ou invalide : `errored`.
 - Racine Git reelle differente de `canonicalRepositoryRoot` : `failed`.
 - `projectRoot` hors repo : `failed`.
