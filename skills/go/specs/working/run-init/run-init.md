@@ -345,6 +345,7 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
     "repository": {
       "repositoryRoot": "<canonical-repository-root>",
       "projectRoot": "<optional-project-root>",
+      "worktreeProjectRoot": "<optional-worktree-relative-path>",
       "provider": "github",
       "remoteName": "origin",
       "defaultTargetBranch": "main"
@@ -769,6 +770,8 @@ Chaque bootstrap branch doit pouvoir etre reprise independamment (non demarree,
 en cours, terminee avec artefact valide, terminee avec artefact invalide,
 echouee). Cette information vit dans les records de bootstrap task et les
 `WorkflowExecutionRecord`.
+
+*Note de securite sur la reconstruction du worktree* : La reconstruction ou restauration du worktree physique apres la finalisation de `run-init` (par exemple suite a la perte ou suppression accidentelle du dossier du worktree en cours d'implementation) releve de la responsabilite de l'orchestrateur ou du runtime Turnlock lors du resume de la phase correspondante. La bootstrap task `workspace-setup` ne doit en aucun cas etre re-invoquee en dehors de la phase `run-init` pour regenerer ou valider l'etat du worktree en cours d'implementation, afin d'eviter toute destruction accidentelle de modifications de code actives.
 
 ### 5.4 Retention
 
