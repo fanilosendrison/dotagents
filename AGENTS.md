@@ -5,6 +5,14 @@ This file is your map to `~/.agents/` — your core brain and governance center.
 ## General Guidelines
 - Do not implement anything without asking the user for explicit permission first, unless they have explicitly invoked `/go` (visible as `<skill name="go">` in the formatted prompt) in their message. Before using any file-modifying tool (Write, Edit, etc.), verify that `/go` or `<skill name="go">` is present in the user's message. If neither is present, you do NOT have authorization to implement — you may only read and analyze. Never self-trigger the `/go` skill.
 - When making technical decisions, do not give much weight to development cost. Instead, prefer quality, simplicity, robustness, scalability, and long term maintainability.
+- Do not reinvent a maintained format, protocol, tool, or standard when one already exists. Prefer established standards, official tools, and maintained libraries; define project-specific primitives only when they add domain or workflow semantics that existing primitives do not cover. Non-exhaustive examples of primitives to prefer when applicable:
+  - Git primitives for diffs, patches, commits, refs, worktrees, and merge checks.
+  - Turnlock for workflow runtime concerns such as durable state, locks, retries, resume, and orchestration, when the project uses or targets Turnlock.
+  - JSON Schema, Zod, OpenAPI, or protobuf for structured contracts, depending on the project.
+  - RFC standards such as JCS for canonical JSON.
+  - SARIF, JUnit XML, TAP, LCOV, or Cobertura for tool reports.
+  - Official provider APIs instead of scraping web UIs.
+  - Official language or package-manager CLIs instead of custom dependency or lockfile parsers.
 - Apply high standard to engineering excellence. If you see a test failure or test flakiness, even if it is not caused by what you are working on right now, you must still get it fixed.
 
 
@@ -121,5 +129,4 @@ cd ~/.agents/skills/git-commits-push && bun run start
 - You must write all output in English.
 - You must format tables so separator dashes match header column widths exactly.
 - You must produce no markdown lint violations.
-
 
