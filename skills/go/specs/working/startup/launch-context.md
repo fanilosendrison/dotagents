@@ -160,7 +160,7 @@ workspace/
 
 La cible normative est le premier repo Git trouve en remontant depuis le repertoire courant de la session (`invocationDirectory`).
 
-Meme si le fichier actif dans l'IDE se trouve dans `vendor/nested-repo/`, si le terminal de la session (CWD) est dans `workspace/`, c'est `workspace/` qui devient le `canonicalRepositoryRoot`. A l'inverse, si le terminal est positionne dans `workspace/vendor/nested-repo/`, la resolution s'arretera sur `nested-repo/`. Le terminal a toujours raison.
+Si le terminal de la session (CWD) est dans `workspace/`, c'est `workspace/` qui devient le `canonicalRepositoryRoot`. A l'inverse, si le terminal est positionne dans `workspace/vendor/nested-repo/`, la resolution s'arretera sur `nested-repo/`. Le terminal a toujours raison.
 
 Regles :
 
