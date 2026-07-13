@@ -93,6 +93,7 @@ type RepositoryLaunchContext = {
   activePathRefs: string[];
   repositoryRootHint?: string;
   canonicalRepositoryRoot: string;
+  isNewRepository?: boolean;
   projectRoot?: string;
   providerHint?: "github" | "gitlab" | "local-only";
   remoteNameHint?: string;
@@ -107,11 +108,12 @@ type RepositoryLaunchContext = {
 };
 ```
 
-`canonicalRepositoryRoot` est la racine Git cible. Elle doit etre utilisable par
-`workspace-setup` pour creer une branche et un worktree.
+`canonicalRepositoryRoot` est la racine Git cible (ou le dossier cible si `isNewRepository` est vrai). Elle doit etre utilisable par `workspace-setup` pour creer une branche et un worktree.
+
+`activePathRefs` doit conserver les chemins logiques originaux (tels que vus par l'utilisateur ou l'IDE, sans resolution des symlinks). Ces chemins portent le contexte semantique de l'invocation qui est necessaire au `RunCaptureArtifact` pour comprendre l'intention de l'utilisateur.
 
 `projectRoot` est optionnel. Il represente le sous-dossier metier vise dans un
-monorepo. Il ne remplace jamais `canonicalRepositoryRoot`.
+monorepo. Il ne remplace jamais `canonicalRepositoryRoot`. S'il est absent, cela signifie qu'il n'y a pas de restriction de sous-perimetre (on travaille a la racine).
 
 ---
 
@@ -125,11 +127,14 @@ Le parent process resout le contexte dans cet ordre :
 4. Normaliser les symlinks connus avant de valider la racine Git.
 5. Appeler l'equivalent de `git rev-parse --show-toplevel` depuis le chemin
    cible normalise.
-6. Refuser si aucune racine Git unique ne peut etre prouvee.
+6. Refuser si aucune racine Git unique ne peut etre prouvee, sauf si l'intention de creer un nouveau projet est explicite (`isNewRepository: true`).
 
-Le parent process peut transmettre des hints non verifies comme
-`defaultTargetBranchHint`. Ces hints ne sont pas autoritatifs. Ils servent a
-initialiser l'etat du run et a produire une trace.
+Le parent process peut extraire les hints par heuristique legere sans bloquer s'il ne trouve rien :
+- `remoteNameHint` : nom du premier remote Git (ex: `origin`).
+- `providerHint` : infere depuis l'URL du remote, ou depuis les variables d'environnement du harness (ex: `GITHUB_REPOSITORY`).
+- `defaultTargetBranchHint` : branche courante du checkout source (`HEAD`), ou omis si non determinable sans operation reseau.
+
+Aucun de ces hints n'est autoritatif. Leur absence ne doit jamais faire echouer le parent process. Ils servent a initialiser l'etat du run et a produire une trace.
 
 `workspace-setup` est la premiere startup task qui verifie ces hints contre le
 repo Git reel.
@@ -294,7 +299,7 @@ workspace-setup either:
 ## 10. Failure modes
 
 - Aucun chemin cible exploitable : `/go` echoue avant `run-init`.
-- Aucun repo Git trouve : `/go` echoue avant `run-init`.
+- Aucun repo Git trouve : `/go` echoue avant `run-init`, sauf si l'intention de creer un nouveau projet est explicite (`isNewRepository: true`).
 - Plusieurs repos Git candidats : `/go` echoue avant `run-init`.
 - `projectRoot` hors repo : `/go` echoue avant `run-init`.
 - Gateway non Git pris comme repo : `/go` echoue avant `run-init`.
