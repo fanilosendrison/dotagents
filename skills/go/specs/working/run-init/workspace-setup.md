@@ -22,6 +22,7 @@ Cette bootstrap task ne produit aucun code applicatif.
 - `WorkflowPolicy.dirtyState`
 - `artefactRoot` reserve par `run-init`
 - `worktreeRoot` reserve par `run-init`
+- `mode` ("execute" | "validate", default: "execute")
 
 ---
 
@@ -35,6 +36,7 @@ type WorkspaceSetupEvidence = {
   sourceStatusBeforeSetup: string;
   dirtyStateAdoption?: DirtyStateAdoption;
   createdDirectories: string[];
+  worktreeProjectRoot?: string;
 };
 ```
 
@@ -49,8 +51,7 @@ Les etapes s'enchainent dans cet ordre. Chaque etape depend de la precedente.
 
 ### 4.1 Resolution du depot
 
-`canonicalRepositoryRoot` provient du `RepoCapture`. Verifier qu'il correspond
-a la racine Git reelle.
+`canonicalRepositoryRoot` provient du `RepoCapture`. Si aucun depot Git n'existe a `canonicalRepositoryRoot` (par exemple si le dossier est vide ou nouvellement cree), ignorer la verification de la racine Git reelle et passer directement a l'etape 4.2. Sinon, verifier qu'il correspond a la racine Git reelle.
 
 Si `projectRoot` est present dans le `RepoCapture`, verifier qu'il est bien un
 sous-dossier de `canonicalRepositoryRoot`.
@@ -74,9 +75,10 @@ Si `ProviderConfig` est absent alors qu'un `git init` est necessaire, echec
 
 ### 4.3 Point de depart Git
 
-- `baseHeadSha` : `git rev-parse HEAD`
+- `baseHeadSha` : `git rev-parse --verify HEAD^{commit}`. Si la commande echoue (exit code 128, tête non nee / aucun commit), alors `baseHeadSha` vaut `null`.
 - `baseBranch` : `git rev-parse --abbrev-ref HEAD`
   - Si HEAD est detache, `baseBranch` = `"(detached)"`
+  - Si HEAD est non ne / aucun commit, `baseBranch` = `"(unborn)"`
 - `defaultTargetBranch` : `git symbolic-ref refs/remotes/origin/HEAD`
   - Extraire le nom court (ex: `refs/remotes/origin/main` → `main`)
   - Si `origin/HEAD` n'est pas configure, tenter d'utiliser `main` puis `master` comme fallback. Si aucun des deux n'existe sur le remote, emettre un avertissement et laisser `defaultTargetBranch` indefini ; l'echec sera leve uniquement par la suite si cette information s'avere indispensable (ex: packaging/PR).
@@ -100,7 +102,7 @@ Si `ProviderConfig` est absent alors qu'un `git init` est necessaire, echec
 
 ### 4.5 Creation du worktree
 
-1. Creer la branche `work/<runId>` depuis `baseHeadSha`
+1. Creer la branche `work/<runId>` depuis `baseHeadSha`. Si `baseHeadSha` est `null` (depot vide sans commit), creer la branche en mode orphelin (`git checkout --orphan work/<runId>`).
 2. Verifier que le chemin `worktreeRoot` est libre ou adoptable
 3. `git worktree add <worktreeRoot> work/<runId>` — utiliser la forme
    `realpath` de `worktreeRoot` (voir invariant 5.8)
@@ -119,22 +121,32 @@ Si le patch ne s'applique pas proprement → `failed`.
 2. Ecrire `WorkSession` (artefact metier valide par schema)
 3. Persister `WorkflowExecutionRecord`
 
-### 4.8 Retry
+### 4.8 Retry & Validation Mode
 
-Si `worktreeRoot` existe deja (relance apres interruption) :
+Le comportement de cette etape depend de la valeur de `mode` fournie en input :
 
-1. Verifier que le lien `.git` dans le worktree est valide
-2. Verifier que la branche `work/<runId>` existe dans Git
-3. Verifier que le HEAD du worktree correspond a `baseHeadSha`
+#### 4.8.1 Mode `validate`
+Si `mode` vaut `"validate"`, le pipeline est execute pour verifier l'integrite sans recreer le worktree depuis zero :
+- Les etapes 4.2 (initialisation) et 4.5 (creation du worktree) sont ignorees.
+- L'etape 4.1 est executee avec des verifications assouplies.
+- Si le worktree ou la branche `work/<runId>` n'existe pas, ou si des incoherences majeures de configuration sont detectees, lever une erreur sans tenter de suppression ou reconstruction.
+
+#### 4.8.2 Mode `execute` (avec `worktreeRoot` preexistant)
+Si `worktreeRoot` existe deja lors d'un retry en mode `"execute"` :
+
+1. Verifier que le lien `.git` dans le worktree est valide.
+2. Verifier que la branche `work/<runId>` existe dans Git.
+3. Verifier que `baseHeadSha` (si non nul) est un ancetre du HEAD actuel du worktree (`git merge-base --is-ancestor <baseHeadSha> HEAD`), garantissant ainsi la continuite de l'historique sans imposer une egalite stricte de HEAD.
 4. Si la `WorkSession` contient un `dirtyStateAdoption` :
-   - Tenter `git apply --reverse --check <patch>` sur le worktree. Si ce dry-run reverse reussit, alors le patch a deja ete applique. Verifier alors que `git status --porcelain` du worktree correspond exactement a l'etat attendu dans le `dirtyStateAdoption`.
+   - Extraire la liste des fichiers modifies par le patch (via `git apply --numstat` ou en analysant les en-têtes du patch).
+   - Tenter `git apply --reverse --check <patch>` sur le worktree. Si ce dry-run reverse reussit, alors le patch a deja ete applique. Verifier alors que l'etat porcelain (`git status --porcelain`), filtre uniquement sur la liste des fichiers extraits du patch, correspond exactement a l'etat attendu dans le `dirtyStateAdoption` (ignorant ainsi tout fichier untracked ou modifie etranger au patch, comme `.DS_Store` ou des caches locaux).
    - Sinon, tenter `git apply --check <patch>` (forward). Si ce dry-run forward reussit, alors le patch n'a pas encore ete applique (le worktree est propre depuis `baseHeadSha`). Le patch sera re-applique a l'etape 4.6.
    - Si aucun des deux dry-runs ne reussit, le worktree est considere comme corrompu.
-5. Si tout est valide et correspond au `WorkSession` existant → adopter sans
-   modification
-6. Si corrompu ou inconsistent (l'une des verifications ci-dessus echoue) → `git worktree remove --force`, `git worktree
-   prune`, supprimer la branche locale, puis recreer depuis zero (etapes
-   4.5-4.7)
+5. Si tout est valide et correspond au `WorkSession` existant → adopter sans modification.
+6. Si corrompu ou inconsistent (l'une des verifications ci-dessus echoue) :
+   - Tenter de nettoyer proprement via `git worktree remove --force` et `git worktree prune`.
+   - Si les commandes Git echouent (par exemple si le worktree n'est pas enregistre), forcer la suppression du dossier physique `worktreeRoot` (`rm -rf`) et executer `git worktree prune`.
+   - Supprimer la branche locale, puis recreer depuis zero (etapes 4.5-4.7).
 
 ---
 
