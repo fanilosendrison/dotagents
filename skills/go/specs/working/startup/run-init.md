@@ -102,8 +102,7 @@ persiste un snapshot stable contenant `WorkflowState` et la delegation
 
 ### 2.1 `RepositoryLaunchContext`
 
-Avant `run-init`, le parent process doit resoudre un
-`RepositoryLaunchContext`.
+`run-init` résout le `RepositoryLaunchContext` comme sa toute première opération interne.
 
 Ce contexte contient :
 
@@ -115,12 +114,11 @@ Ce contexte contient :
 Le contrat détaillé vit dans
 [`launch-context.md`](./launch-context.md).
 
-Le parent process stocke ce contexte dans `GoBootstrapState`. `run-init` le
-valide en forme, le hash, puis le recopie dans `WorkflowState`, mais ne le
-vérifie pas contre Git. Il ne doit pas appeler `git rev-parse`, choisir entre
-`main` et `master`, suivre des symlinks, ou corriger un repo cible.
+`run-init` produit ce contexte depuis l'environnement d'invocation, le
+hash, puis le recopie dans `WorkflowState`. Il ne le
+vérifie pas contre Git pour valider des branches, mais utilise le système de fichiers (realpath, découverte de `.git`) pour trouver la racine canonique.
 
-Si `RepositoryLaunchContext` est absent, incomplet ou mal formé, `run-init`
+Si le `RepositoryLaunchContext` ne peut pas être résolu (par exemple si on ne trouve aucun dépôt Git parent), `run-init`
 échoue avant que les startup tasks internes ne puissent produire une évidence
 autoritative.
 
@@ -212,9 +210,9 @@ Il doit être hors du repo cible pour que les artefacts, logs et états internes
 ne rendent jamais le repo dirty.
 
 Cette garantie est fournie avant le lancement de Turnlock : le parent process
-doit configurer `runDirRoot` hors de `RepositoryLaunchContext.canonicalRepositoryRoot`.
+utilise un `runDirRoot` générique (ex: `~/.go-runs/` ou le répertoire par défaut Turnlock) garanti hors de tout repo projet, puisqu'il ne connaît plus la racine du repo.
 `run-init` vérifie ensuite par containment path que `runDir` n'est pas sous le
-repo cible. Si cette vérification échoue, `run-init` échoue ferme ; il ne tente
+repo cible fraîchement résolu. Si cette vérification échoue, `run-init` échoue ferme ; il ne tente
 pas de déplacer `runDir`.
 
 Disposition locale normative :
@@ -253,9 +251,9 @@ Turnlock.
 
 Responsabilités du parent process avant Turnlock :
 
-- résoudre `RepositoryLaunchContext` ;
+- fournir le répertoire d'invocation de la session (`invocationDirectory` ou CWD) ;
 - fournir `WorkflowPolicy` ;
-- configurer `runDirRoot` hors du repo cible ;
+- configurer un `runDirRoot` global hors des repos cibles ;
 - ne pas fournir de `--run-id` externe sauf s'il est déjà un ULID valide ;
 - fournir `GoBootstrapState` comme `initialState` du run Turnlock.
 
@@ -274,7 +272,7 @@ Responsabilités de Turnlock avant `run-init` :
 Responsabilités de `run-init` :
 
 - lire `GoBootstrapState` ;
-- valider la forme du `RepositoryLaunchContext` parent ;
+- résoudre le `RepositoryLaunchContext` depuis le CWD, puis le hasher ;
 - valider la forme du `WorkflowPolicy` du run ;
 - calculer et stocker les hashes JCS de ces inputs ;
 - enregistrer une référence vers le run Turnlock ;
@@ -306,8 +304,8 @@ Responsabilités de `workspace-setup` :
 - produire `WorkSession`.
 
 `run-init` ne doit pas creer de checkout Git a `worktreeRoot`. Si
-l'implementation Git exige que le dossier cible n'existe pas avant
-`git worktree add`, `run-init` doit seulement persister le chemin reserve. Si
+`RepositoryLaunchContext.invocationDirectory` ou `runDir` devient inaccessible, `/go` echoue,
+mais `run-init` ne tente jamais de deplacer l'enveloppe runtime. Si
 elle autorise un dossier vide, ce dossier reste un placeholder, pas un worktree
 autoritatif.
 
@@ -460,14 +458,7 @@ Exemple conceptuel avant `run-init` :
   "currentPhase": "run-init",
   "data": {
     "schema": "go.bootstrap-state.v1",
-    "launchContext": {
-      "schema": "go.repository-launch-context.v1",
-      "invocationDirectory": "<session-cwd>",
-      "canonicalRepositoryRoot": "<canonical-repository-root>",
-      "projectRoot": "<optional-project-root>",
-      "symlinkResolved": true,
-      "resolvedAt": "2026-07-12T14:30:00.000Z"
-    },
+    "invocationDirectory": "<session-cwd>",
     "policy": {
       "schema": "go.workflow-policy.v1",
       "...": "<policy-fields>"
@@ -648,18 +639,6 @@ run et tant que Turnlock n'a pas persiste un snapshot stable contenant le
 Sequence normative :
 
 ```text
-Turnlock creates runtime envelope
-Turnlock persists StateFile<GoRuntimeState> with GoBootstrapState
-Turnlock dispatches run-init
-run-init reads GoBootstrapState
-run-init validates RepositoryLaunchContext shape from GoBootstrapState
-run-init validates WorkflowPolicy shape from GoBootstrapState
-run-init hashes canonical launch inputs
-run-init creates or reserves /go artefact refs
-run-init reserves worktreeRoot path
-run-init writes or verifies ownership marker
-run-init starts startup branches
-run-init runs workspace-setup
 run-init runs or finalizes repo discovery
 run-init joins project-discovery-finalize
 run-init joins run-capture
