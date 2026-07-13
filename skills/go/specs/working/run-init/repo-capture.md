@@ -124,6 +124,7 @@ reviews quand la demande porte sur un sous-projet precis.
 Regles :
 
 - `canonicalRepositoryRoot` est toujours la racine Git ;
+- `projectRoot` est déduit automatiquement : si `invocationDirectory` ≠ `canonicalRepositoryRoot` et que `invocationDirectory` est un sous-dossier de `canonicalRepositoryRoot`, alors `projectRoot` = `invocationDirectory` ;
 - `projectRoot` doit etre sous `canonicalRepositoryRoot` ;
 - `workspace-setup` cree le worktree pour le repo entier ;
 - `project-discovery-finalize` peut produire des commandes dont le
