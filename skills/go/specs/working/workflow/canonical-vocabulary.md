@@ -8,24 +8,32 @@ Turnlock, les délégations agentiques, et le contrat de sortie du stage harness
 
 ## 1. Principe
 
-Le workflow `/go` distingue trois niveaux.
+Le workflow `/go` distingue quatre niveaux.
 
 Avant ces niveaux, le parent process produit un **launch context**. Ce n'est
 pas une unite Turnlock : c'est l'input resolu qui indique quel repo et quel
 sous-perimetre projet le run cible.
 
-Le premier niveau est le **startup**. Il amorce le run : identifiant, lock,
-artefacts, capture de session, worktree prive et discovery projet.
+Le premier niveau est la **phase Turnlock**. Elle décrit l'unité runtime
+persistée, reprenable et bornée par un `transition`, une `delegation`, un
+`done` ou un `fail`.
 
-Le deuxieme niveau est le **stage**. Il décrit ce que le workflow fait du point
+Le deuxieme niveau est le **startup**. Il amorce le run : identifiant, lock,
+artefacts, capture de session, worktree prive et discovery projet. Dans `/go`,
+le startup est realise a l'interieur de la phase Turnlock `run-init`.
+
+Le troisieme niveau est le **stage**. Il décrit ce que le workflow fait du point
 de vue produit : implémenter, vérifier, reviewer, corriger, publier.
 
-Le troisieme niveau est la **phase Turnlock**. Elle décrit l'unité atomique,
-persistée, reprenable et validable qui exécute une partie mécanique du stage.
+Le quatrieme niveau est la **délégation**. Elle décrit le travail externe,
+agentique ou LLM, que Turnlock ne rend pas déterministe mais qu'il encadre par
+des snapshots stables avant et apres.
 
-Une startup task ou un stage peut contenir plusieurs phases Turnlock. Un stage
-peut aussi contenir une délégation agentique, mais cette délégation doit
-toujours être encadrée par des phases Turnlock déterministes avant et après.
+Une phase Turnlock peut executer plusieurs startup tasks ou plusieurs operations
+mecaniques avant de s'arreter sur une delegation. Une startup task n'est pas une
+phase Turnlock separee. Un stage peut etre realise par une delegation, mais
+cette delegation doit toujours avoir une phase Turnlock de reprise qui collecte,
+valide et projette le resultat.
 
 ---
 
@@ -68,7 +76,8 @@ Un stage répond à la question : **quel travail est accompli dans le
 cycle logiciel ?**
 
 Il ne garantit pas à lui seul l'atomicité de reprise. Cette atomicité appartient
-aux phases Turnlock internes.
+aux phases Turnlock qui le dispatchent, le reprennent ou projettent ses
+résultats.
 
 Un stage appartient au chemin metier principal. Les travaux de demarrage ne sont
 pas des stages.
@@ -82,14 +91,16 @@ que le workflow metier commence ?**
 
 Turnlock cree l'enveloppe runtime :
 
-- `StateFile<WorkflowState>` ;
+- `StateFile<GoRuntimeState>` ;
+- `GoBootstrapState` initial ;
 - `runId` ;
 - `runDir` ;
 - lock runtime ;
 - horloges et logger runtime ;
 - ecritures atomiques de `state.json`.
 
-`run-init` initialise dans `WorkflowState` :
+`run-init` lit `GoBootstrapState`, publie `WorkflowState`, execute le
+bootstrap/onboarding, puis s'arrete sur la delegation `implementation` :
 
 - `runId` ;
 - `RepositoryLaunchContext` ;
@@ -101,17 +112,27 @@ Turnlock cree l'enveloppe runtime :
 - chemin de worktree reserve, sans checkout Git ;
 - etat initial minimal ;
 - schema/version de l'etat ;
-- startup task records initiaux.
+- startup task records ;
+- `WorkSession` ;
+- `ProjectDiscovery` ;
+- delegation `implementation` avec `resumeAt: "implementation-settlement"`.
 
 `run-init` est idempotent seulement dans le perimetre d'un meme `runId`
 Turnlock. Un retry doit reutiliser les refs deja prouvees par l'ownership
 marker, ou echouer ferme.
 
-Le startup n'est pas un stage.
+`run-init` est la premiere phase de l'orchestrateur Turnlock configure pour
+`/go`, mais elle est implementee par le consommateur `/go`. Elle n'est pas une
+primitive generique fournie par Turnlock et elle n'est pas obligatoire pour tous
+les orchestrateurs Turnlock.
+
+Le startup n'est pas un stage. Les travaux `run-capture`, `workspace-setup`,
+`repo-discovery-draft` et `project-discovery-finalize` sont des sous-taches de
+la phase Turnlock `run-init`, pas des phases Turnlock separees.
 
 ### Startup task
 
-Une startup task est un travail d'amorcage lance apres `run-init`.
+Une startup task est un travail d'amorcage execute a l'interieur de `run-init`.
 
 Exemples :
 
@@ -121,20 +142,26 @@ Exemples :
 - `project-discovery-finalize`
 
 Une startup task repond a la question :
-**quel travail preparatoire peut avancer sans bloquer le worktree prive ?**
+**quel travail preparatoire peut avancer sans bloquer inutilement le reste du
+bootstrap ?**
 
 Elle doit toujours avoir :
 
 - un espace d'artefacts reserve par `run-init` ;
+- un checkpoint terminal `task-record.json` ecrit atomiquement ;
 - un artefact metier typé ou un `StageOutput` validable ;
-- aucun acces en ecriture au `WorkflowState` ;
+- aucune ecriture concurrente directe dans `WorkflowState` ;
 - un point de join explicite ;
 - un comportement fail-closed si le join ne peut pas prouver l'artefact.
+
+`run-init` peut projeter les resultats valides de ces tasks dans le
+`WorkflowState` qu'il passe a Turnlock au moment de la delegation. Une startup
+task ne publie jamais seule une transition Turnlock.
 
 ### Startup branch
 
 Une startup branch est une startup task qui peut avancer en parallele d'autres
-startup tasks.
+startup tasks a l'interieur de `run-init`.
 
 Exemples :
 
@@ -145,7 +172,7 @@ Exemples :
 ### Startup join
 
 Un startup join est une startup task qui synchronise des resultats de startup
-avant le premier stage metier.
+avant la delegation `implementation`.
 
 Exemples :
 
@@ -159,26 +186,27 @@ ferme.
 ### Phase Turnlock
 
 Une phase Turnlock est une unité mécanique, persistée, reprenable et validable.
+Elle peut executer plusieurs operations deterministes avant de retourner un
+`PhaseResult`.
 
 Exemples :
 
-- `prepare-input`
-- `run-preflight`
-- `create-artefact-dir`
-- `delegate-agent`
-- `wait-human-gate`
-- `collect-snapshot`
-- `validate-json`
-- `persist-state`
-- `decide-transition`
+- `run-init`
+- `implementation-settlement`
+- `pre-package-review-dispatch`
+- `pre-package-review-settlement`
+- `package-and-publish`
 
-Une phase Turnlock répond à la question : **quelle action atomique peut être
-reprise sans ambiguïté après interruption ?**
+Une phase Turnlock répond à la question : **quel segment mécanique peut avancer
+jusqu'au prochain point stable sans ambiguïté après interruption ?**
+
+Une phase Turnlock s'arrete en appelant exactement un resultat Turnlock :
+`io.transition`, `io.delegate`, `io.delegateBatch`, `io.done` ou `io.fail`.
 
 ### Délégation
 
-Une délégation est un trou contrôlé dans un stage où un agent non déterministe
-travaille.
+Une délégation est un trou contrôlé où un agent, un skill ou un appel LLM non
+déterministe travaille hors du process Turnlock.
 
 La délégation n'est jamais autoritaire par elle-même. Elle produit des fichiers,
 des artefacts ou une proposition. Les phases Turnlock suivantes collectent,
@@ -188,6 +216,8 @@ Une délégation doit toujours avoir :
 
 - un input structuré ;
 - un périmètre explicite ;
+- un `label` stable, par exemple `implementation` ;
+- une phase de reprise `resumeAt`, par exemple `implementation-settlement` ;
 - un artefact de sortie attendu ;
 - une validation déterministe après retour ;
 - un snapshot de repo si elle peut modifier le worktree.
@@ -269,21 +299,32 @@ Stage :
 implementation
 ```
 
-Phases Turnlock internes typiques :
+Dans le demarrage nominal, `implementation` est le label de delegation emis par
+la phase Turnlock `run-init`, pas le nom de la phase Turnlock suivante.
+
+Phase Turnlock qui emet la delegation :
 
 ```text
-validate-implementation-inputs
-prepare-implementation-artefacts
-delegate-implementation-agent
-collect-agent-result
-collect-change-snapshot
-validate-implementation-output
-persist-stage-output
-decide-next-stage
+run-init
+  validates bootstrap/onboarding
+  prepares implementation delegation input
+  delegates label: implementation
+  resumeAt: implementation-settlement
 ```
 
-Le stage est donc bien un stage `/go`, mais son coeur de travail est une
-délégation agentique.
+Phase Turnlock de reprise :
+
+```text
+implementation-settlement
+  consumes pending delegation result
+  validates implementation evidence
+  captures or routes to ChangeSnapshot
+  decides next mechanical segment
+```
+
+Le stage est donc bien un stage metier `/go`, mais son coeur de travail est une
+délégation agentique. Le nom du stage et le nom de la phase Turnlock ne doivent
+pas etre confondus.
 
 ---
 
@@ -295,7 +336,7 @@ Stage :
 review-remediation
 ```
 
-Phases Turnlock internes typiques :
+Segments Turnlock typiques :
 
 ```text
 classify-open-findings
@@ -308,21 +349,25 @@ decide-return-to-gates
 ```
 
 La décision humaine, la délégation agentique, et la mutation du worktree ne sont
-pas confondues. Elles appartiennent à le même stage, mais pas au même
-phase Turnlock.
+pas confondues. Elles appartiennent au meme stage logique, mais pas
+necessairement a la meme phase Turnlock.
 
 ---
 
 ## 5. Règles de rédaction des specs
 
-- Utiliser **startup** pour parler de l'amorcage du run avant le premier stage
-  metier.
+- Utiliser **startup** pour parler de l'amorcage du run porte par la phase
+  Turnlock `run-init`.
 - Utiliser **startup task**, **startup branch** et **startup join** pour les
-  travaux de demarrage hors stages.
+  sous-operations de demarrage internes a `run-init`.
 - Utiliser **stage** pour parler du workflow metier humain.
 - Utiliser **phase Turnlock** pour parler de reprise, atomicité, retry et
   persistance mécanique.
 - Utiliser **délégation** pour tout travail agentique non déterministe.
+- Utiliser **label de delegation** pour nommer le travail externe, par exemple
+  `implementation`.
+- Utiliser **resumeAt** pour nommer la phase Turnlock qui reprendra apres le
+  travail externe, par exemple `implementation-settlement`.
 - Utiliser **stage harness** uniquement pour le contrat `StageInput ->
   StageOutput`.
 - Utiliser **artefact métier typé** pour les payloads JSON durables produits par
@@ -340,8 +385,11 @@ phase Turnlock.
   fige des preuves, la review interprete l'intention.
 - Ne jamais appeler `run-capture`, `workspace-setup`,
   `repo-discovery-draft` ou `project-discovery-finalize` des stages.
+- Ne jamais appeler `run-capture`, `workspace-setup`,
+  `repo-discovery-draft` ou `project-discovery-finalize` des phases Turnlock
+  separees du workflow `/go`; ce sont des startup tasks internes a `run-init`.
 - Ne jamais faire ecrire une startup branch directement dans `WorkflowState`;
-  la projection passe par une transition Turnlock deterministe.
+  la projection passe par le snapshot stable que `run-init` remet a Turnlock.
 
 ---
 

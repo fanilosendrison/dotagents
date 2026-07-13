@@ -108,8 +108,8 @@ Créer les branches PR depuis leurs bases déclarées et appliquer les paquets.
 
 ### Règles de branch-materialize
 
-- Créer uniquement des branches `pr/<run-id>/<slug>`.
-- Ne jamais partir de `work/<run-id>` directement.
+- Créer uniquement des branches `pr/<runId>/<slug>`.
+- Ne jamais partir de `work/<runId>` directement.
 - Appliquer les paquets depuis les artefacts vérifiés.
 - Refuser une branche cible qui existe déjà avec une PR ouverte.
 
@@ -140,8 +140,8 @@ Push les branches PR et ouvrir les pull requests.
 
 ### Règles de publish-pr
 
-- Push uniquement `pr/<run-id>/<slug>`.
-- Ne pas push `work/<run-id>` dans le flux nominal.
+- Push uniquement `pr/<runId>/<slug>`.
+- Ne pas push `work/<runId>` dans le flux nominal.
 - Chaque PR référence :
   - `runId`;
   - package ids ;
@@ -162,8 +162,8 @@ Un paquet dépendant cible la branche du paquet dont il dépend.
 
 ```text
 main
-  -> pr/<run-id>/base-package
-       -> pr/<run-id>/dependent-package
+  -> pr/<runId>/base-package
+       -> pr/<runId>/dependent-package
 ```
 
 Après merge d'une PR de base, les PRs dépendantes doivent être observées,
@@ -172,7 +172,7 @@ retargetées ou rebasées selon l'état réel du provider, puis repasser par
 
 ---
 
-## 8. Phases Turnlock typiques
+## 8. Operations internes typiques
 
 ```text
 package-plan:

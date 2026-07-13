@@ -33,11 +33,14 @@ run-init
        ↓
 project-discovery-finalize
        ↓
-implementation
+delegate implementation
+       ↓ resumeAt
+implementation-settlement
 ```
 
 `repo-discovery-draft` peut commencer avant `workspace-setup`, mais
-`project-discovery-finalize` ne peut finaliser qu'apres `WorkSession`.
+`project-discovery-finalize` ne peut finaliser qu'apres `WorkSession`. Toute
+cette sequence est interne a la phase Turnlock `run-init`.
 
 ---
 
@@ -191,7 +194,7 @@ Les primitives externes attendues sont listees dans
 
 ---
 
-## 9. Phases Turnlock typiques
+## 9. Operations internes typiques
 
 ```text
 load-work-session

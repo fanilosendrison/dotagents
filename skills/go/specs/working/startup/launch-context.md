@@ -25,6 +25,7 @@ discovery. `run-init` reste purement mecanique :
 
 ```text
 parent process resolves RepositoryLaunchContext
+-> parent process starts Turnlock with GoBootstrapState
 -> run-init stores it without Git verification
 -> workspace-setup verifies it against real Git state
 ```
@@ -44,7 +45,12 @@ Il connait deja :
 - les gateways et symlinks connus du harness.
 
 Le parent process doit resoudre un `RepositoryLaunchContext` avant d'appeler
-Turnlock.
+Turnlock, puis lancer Turnlock avec :
+
+- un `GoBootstrapState` contenant `RepositoryLaunchContext` et
+  `WorkflowPolicy` ;
+- un `runDirRoot` hors du repo cible ;
+- aucun `--run-id` externe, sauf s'il est deja un ULID Turnlock valide.
 
 Inputs typiques :
 
@@ -58,6 +64,11 @@ Inputs typiques :
 
 Si le parent process ne peut pas prouver un repo Git cible unique, `/go` echoue
 avant `run-init`.
+
+Si le parent process ne peut pas configurer un `runDirRoot` hors de
+`canonicalRepositoryRoot`, `/go` echoue avant Turnlock. `run-init` verifiera
+encore le containment de `runDir`, mais il ne peut pas deplacer une enveloppe
+runtime deja creee.
 
 ---
 
@@ -229,7 +240,11 @@ Regles :
 `run-init` recoit le `RepositoryLaunchContext` et le persiste dans
 `WorkflowState`.
 
-`run-init` ne doit pas :
+Plus precisement, `RepositoryLaunchContext` arrive dans `GoBootstrapState`.
+`run-init` lit ce bootstrap snapshot durable, valide sa forme, calcule les hashes
+JCS, puis produit le `WorkflowState` complet.
+
+Le noyau bootstrap de `run-init` ne doit pas :
 
 - appeler `git rev-parse` ;
 - verifier que `canonicalRepositoryRoot` existe ;
@@ -238,10 +253,12 @@ Regles :
 - resoudre un sous-projet ;
 - suivre des symlinks.
 
-Ces decisions sont hors de son perimetre.
+Ces decisions sont hors de son perimetre direct. Elles sont verifiees plus tard
+par la startup task interne `workspace-setup`.
 
 Si le contexte fourni est absent, incomplet, ou mal forme, `run-init` echoue
-avant que Turnlock ne publie une transition stable vers les startup tasks.
+avant que les startup tasks internes ne puissent produire une evidence
+autoritative.
 
 ---
 

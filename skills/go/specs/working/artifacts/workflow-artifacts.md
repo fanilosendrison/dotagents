@@ -7,12 +7,29 @@ sont des artefacts métier typés validés avant projection dans `WorkflowState`
 
 ---
 
-## 1. `WorkflowState`
+## 1. `GoRuntimeState` et `WorkflowState`
 
-Payload metier `/go` stocke par Turnlock dans `StateFile<WorkflowState>`.
+Payload metier `/go` stocke par Turnlock dans `StateFile<GoRuntimeState>`.
 
 Turnlock fournit le fichier d'etat durable (`StateFile<State>`). `/go` fournit
 la forme de `StateFile.data`.
+
+```ts
+type GoRuntimeState = GoBootstrapState | WorkflowState;
+```
+
+```ts
+type GoBootstrapState = {
+  schema: "go.bootstrap-state.v1";
+  launchContext: RepositoryLaunchContext;
+  policy: WorkflowPolicy;
+};
+```
+
+`GoBootstrapState` est l'etat initial minimal donne a Turnlock avant
+`run-init`. Il contient seulement les inputs parent deja resolus. Il ne contient
+pas `runId`, car `runId` appartient a `StateFile.runId`, ni `runInit`, car
+`run-init` ne l'a pas encore produit.
 
 ```ts
 type WorkflowState = {
@@ -43,15 +60,22 @@ type WorkflowState = {
 };
 ```
 
+`WorkflowState` existe seulement apres le snapshot stable emis par `run-init`.
+Toutes les startup tasks internes projetees par `run-init` et tous les stages
+apres la delegation `implementation` exigent `WorkflowState`; seul `run-init`
+accepte `GoBootstrapState`.
+
 `currentStage` represente le chemin metier principal. Il vaut `null` tant que
-le run est encore dans le startup.
+le run est encore dans le noyau bootstrap, puis peut valoir `"implementation"`
+pendant que Turnlock attend le resultat de la delegation du meme nom.
 
 `policy` est un snapshot durable des decisions d'autorisation et de securite du
 run. Les docs peuvent dire "selon policy" seulement si la decision correspond a
 un champ de `WorkflowPolicy`.
 
 Les startup tasks sont representees par `startupTasks` et leurs artefacts
-metier, puis projetees dans `WorkflowState` par Turnlock apres validation.
+metier. Elles sont executees comme sous-taches de `run-init`, puis projetees
+dans le `WorkflowState` donne a Turnlock avec la delegation `implementation`.
 
 ---
 
@@ -82,6 +106,11 @@ type WorkflowStage =
   | "pr-ci-review"
   | "post-merge-tracking";
 ```
+
+`implementation-settlement` n'est pas un `WorkflowStage`. C'est une phase
+Turnlock de reprise qui consomme le resultat de la delegation
+`implementation`, valide les evidences et route vers le prochain stage
+mecanique.
 
 ```ts
 type WorkflowUnitName = StartupTaskName | WorkflowStage;
@@ -124,9 +153,9 @@ type RepositoryLaunchContext = {
 };
 ```
 
-`RepositoryLaunchContext` est fourni par le parent process avant `run-init`.
-`run-init` le stocke sans discovery Git. `workspace-setup` le verifie ensuite
-contre l'etat Git reel.
+`RepositoryLaunchContext` est fourni par le parent process dans
+`GoBootstrapState` avant `run-init`. `run-init` le stocke sans discovery Git.
+`workspace-setup` le verifie ensuite contre l'etat Git reel.
 
 ```ts
 type TurnlockRunRef = {
@@ -145,7 +174,7 @@ definit pas le lock runtime, le schema de `StateFile`, ni l'ecriture atomique de
 type RunInitOwnershipMarker = {
   schema: "go.run-init-ownership.v1";
   runId: string;
-  turnlockRunId: string;
+  turnlockRun: TurnlockRunRef;
   artefactRootRef: string;
   workflowLogRootRef?: string;
   worktreeRootReservedPath: string;
@@ -159,17 +188,60 @@ type RunInitOwnershipMarker = {
 de distinguer une reference deja creee par le meme run d'un chemin occupe par un
 autre run ou par un etat inconnu.
 
+Le marker embarque le `TurnlockRunRef` complet, pas seulement `runId`, afin de
+prouver quel `runDir`, `stateFileRef` et `eventsRef` sont lies aux refs reservees
+par `run-init`. C'est necessaire pour adopter prudemment une ref locale ou
+distante deja existante lors d'un retry.
+
+`/go` n'a pas de `runSlug` separe. Le `runId` stocke ici est le `runId`
+Turnlock nominal au format ULID, et il est directement utilisable dans les
+chemins locaux, refs Git et prefixes distants du workflow. Un `--run-id`
+externe non conforme doit etre refuse avant creation de `runDir`, au lieu
+d'etre transforme en identifiant derive.
+
+`RunInitOwnershipMarker.createdAt` doit etre identique a
+`RunInitRecord.initializedAt`. Un timestamp physique d'ecriture du marker, si
+necessaire, appartient aux metadata d'evidence non autoritatives.
+
 ```ts
 type StartupTaskRecord = {
   task: StartupTaskName;
-  status: "not-started" | "running" | "passed" | "failed" | "errored";
+  status:
+    | "not-started"
+    | "running"
+    | "passed"
+    | "failed"
+    | "errored"
+    | "cancelled";
   startedAt?: string;
   endedAt?: string;
+  checkpointRef?: string;
   executionRecordId?: string;
   businessArtifactIds: string[];
   requiredBefore: WorkflowUnitName[];
 };
 ```
+
+```ts
+type StartupTaskCheckpointRecord = {
+  schema: "go.startup-task-checkpoint.v1";
+  runId: string;
+  task: StartupTaskName;
+  status: "passed" | "failed" | "errored" | "cancelled";
+  inputHash: string;
+  launchContextHash: string;
+  workflowPolicyHash: string;
+  businessArtifactIds: string[];
+  evidenceRefs: string[];
+  startedAt: string;
+  endedAt: string;
+};
+```
+
+`StartupTaskCheckpointRecord` est ecrit atomiquement sous
+`artefactRoot/startup/<task>/task-record.json`. Il sert a `run-init` pour
+adopter, relancer, annuler ou refuser une startup task au retry. Il ne remplace
+pas `StateFile<GoRuntimeState>`.
 
 ```ts
 type WorkflowExecutionRecord = {
@@ -509,7 +581,10 @@ type WorkflowExecutionRecord = {
 ```
 
 Un `WorkflowExecutionRecord` peut pointer vers un `StageOutput` canonique, mais
-il peut aussi representer une startup task ou une transition Turnlock.
+il peut aussi representer une startup task ou une transition Turnlock apres
+`run-init`. La transition bootstrap `run-init` est l'exception : elle est
+prouvee par `RunInitRecord`, `RunInitOwnershipMarker` et la transition stable
+Turnlock qui remplace `GoBootstrapState` par `WorkflowState`.
 
 ---
 

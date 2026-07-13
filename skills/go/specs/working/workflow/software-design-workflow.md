@@ -29,7 +29,11 @@ des hashes.
           ↓
         project-discovery-finalize
           ↓
-        premier stage: implementation
+        join run-capture
+          ↓
+        delegate implementation
+          ↓ resumeAt
+        implementation-settlement
           ↓
         change-snapshot
           ↓
@@ -67,9 +71,10 @@ ou branche cible. Si cette cible est absente ou ambigue, `/go` echoue avant
 Turnlock.
 
 Le demarrage n'est pas lineaire non plus. Ce n'est pas un stage : c'est le
-startup du run. `run-capture`, `repo-discovery-draft` et `workspace-setup`
-peuvent avancer en parallele apres `run-init`, tant qu'ils ne modifient pas
-directement `WorkflowState`.
+startup du run porte par la phase Turnlock `run-init`. `run-capture`,
+`repo-discovery-draft` et `workspace-setup` peuvent avancer en parallele a
+l'interieur de `run-init`, tant qu'ils ne modifient pas directement
+`WorkflowState`.
 
 ---
 
@@ -77,26 +82,30 @@ directement `WorkflowState`.
 
 ### Startup: `run-init`
 
-Le workflow commence par une initialisation mecanique minimale. Turnlock cree
-l'enveloppe runtime : `StateFile<WorkflowState>`, `runId`, `runDir`, lock,
-logger, horloges et persistance atomique.
+Le workflow commence par une phase Turnlock de bootstrap/onboarding. Turnlock
+cree l'enveloppe runtime : `StateFile<GoRuntimeState>` contenant
+`GoBootstrapState`, `runId`, `runDir`, lock, logger, horloges et persistance
+atomique.
 
-`run-init` initialise ensuite le payload `/go` dans `StateFile.data` :
-`RepositoryLaunchContext`, `WorkflowPolicy`, hashes JCS des inputs JSON,
-`artefactRoot`, marqueur d'ownership, chemin de worktree reserve et startup task
-records initiaux.
+`run-init` remplace ensuite `GoBootstrapState` par `WorkflowState` dans
+`StateFile.data` : `RepositoryLaunchContext`, `WorkflowPolicy`, hashes JCS des
+inputs JSON, `artefactRoot`, marqueur d'ownership, chemin de worktree reserve et
+startup task records initiaux.
 
-`run-init` stocke le `RepositoryLaunchContext`, mais ne le decouvre pas et ne le
-verifie pas contre Git. Il ne cree pas non plus le checkout Git physique ni
-l'enveloppe runtime Turnlock. Il produit un `WorkflowState` complet ou il ne
-laisse aucune startup branch demarrer.
+`run-init` stocke le `RepositoryLaunchContext`, mais ne le decouvre pas lui-meme
+et ne cree pas l'enveloppe runtime Turnlock. Il orchestre ensuite les startup
+tasks internes, dont `workspace-setup` pour materialiser le worktree et
+`project-discovery-finalize` pour produire le `ProjectDiscovery` autoritatif.
+Il delegue `implementation` seulement si le bootstrap/onboarding requis est
+prouve.
 
 Si Turnlock rejoue `run-init` pour le meme `runId`, le retry doit produire le
 meme payload initialise ou echouer ferme. Cette idempotence ne traverse jamais
 deux invocations `/go` distinctes.
 
 Ce n'est pas une analyse de la demande. C'est la condition de securite qui
-permet aux startup branches d'ecrire leurs preuves au bon endroit.
+permet aux startup branches d'ecrire leurs preuves au bon endroit et a l'agent
+de travailler dans le bon worktree.
 
 ### Startup branch: `run-capture`
 
@@ -148,14 +157,25 @@ relance la discovery depuis le worktree ou echoue ferme selon
 Le resultat autoritatif est `ProjectDiscovery`, qui fixe la matrice de gates
 mecaniques.
 
-### Premier stage: `implementation`
+### Delegation: `implementation`
 
-L'implémentation est un stage agentique. Elle peut recevoir un
+L'implémentation est un stage agentique delegue. Elle peut recevoir un
 prompt, le contexte de session courant, des NIB-S, NIB-M, NIB-T, des contrats
 de dépendance, ou des consignes utilisateur.
 
 Turnlock ne rend pas l'agent déterministe. Turnlock rend le contour de la
 délégation déterministe.
+
+Dans le chemin nominal, la delegation `implementation` est emise par `run-init`
+avec `resumeAt: "implementation-settlement"`.
+
+### `implementation-settlement`
+
+Apres l'agent, Turnlock reprend dans `implementation-settlement`. Cette phase
+consomme le resultat de delegation, verifie les evidences attendues, confirme
+que le worktree prive est toujours celui du run, puis route vers
+`change-snapshot`, une HumanGate, une remediation immediate autorisee, ou un
+echec ferme.
 
 ### `change-snapshot`
 

@@ -39,9 +39,9 @@ Ces cas doivent avoir leur propre algorithme metier explicite.
 
 ---
 
-## 2. Pipeline normatif
+## 2. Flux normatif
 
-Le hash canonique `/go` d'un objet JSON suit toujours ce pipeline :
+Le hash canonique `/go` d'un objet JSON suit toujours ce flux :
 
 ```text
 domain object

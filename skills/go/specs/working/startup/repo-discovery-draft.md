@@ -23,6 +23,9 @@ Produire un `RepositoryDiscoveryDraft` contenant :
 
 ## 2. Position dans le demarrage
 
+`repo-discovery-draft` est une startup branch interne a la phase Turnlock
+`run-init`.
+
 ```text
 run-init
 ├─ run-capture
@@ -111,7 +114,7 @@ discovery depuis `worktreeRoot` ou echoue ferme selon
 
 ---
 
-## 7. Phases Turnlock typiques
+## 7. Operations internes typiques
 
 ```text
 inspect-source-manifests

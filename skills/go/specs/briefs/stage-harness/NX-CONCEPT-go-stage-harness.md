@@ -2,9 +2,11 @@
 
 ## Goal
 
-Every stage in the `/go` workflow (workspace-setup, lint, typecheck, tests,
-review, commit-push-pr, etc.) must conform to a single shared contract so they
-can be chained, verified, and eventually orchestrated by a Turnlock FSM.
+Every standalone stage in the `/go` workflow (lint, typecheck, tests, review,
+commit-push-pr, etc.) must conform to a single shared contract so they can be
+chained, verified, and eventually orchestrated by a Turnlock FSM. Startup tasks
+such as `workspace-setup` may reuse the harness shape, but they are not stages
+just because they emit a `StageOutput`-compatible envelope.
 
 We start with a **standalone harness** — no FSM, no `@@TURNLOCK@@` protocol, no
 resume. Just a standard way to invoke a stage, capture its result, and validate
@@ -85,7 +87,7 @@ type JsonObject = { [key: string]: JsonValue };
 
 type StageInput = {
   runId: string;
-  workDir: string; // root of the per-run work/<run-id> checkout
+  workDir: string; // root of the per-run work/<runId> checkout
   artefactDir: string; // created by the harness, stage writes evidence here
   baseSha: string; // exact commit object ID for HEAD before any
   // stage ran. Not used by the

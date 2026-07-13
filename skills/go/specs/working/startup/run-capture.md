@@ -25,8 +25,8 @@ pas de criteres d'acceptation, et ne decide pas si la demande est faisable.
 
 ## 2. Position dans le workflow
 
-`run-capture` est lance apres `run-init`, en parallele des autres startup
-tasks :
+`run-capture` est lance a l'interieur de la phase Turnlock `run-init`, en
+parallele des autres startup tasks :
 
 ```text
 run-init
@@ -35,12 +35,15 @@ run-init
 └─ workspace-setup
 ```
 
-Il ne bloque pas `workspace-setup`, `repo-discovery-draft`,
-`project-discovery-finalize` ou `implementation`.
+Il ne bloque pas `workspace-setup`, `repo-discovery-draft` ou
+`project-discovery-finalize`. Pour v1, il bloque toutefois la sortie finale de
+`run-init` : la delegation `implementation` ne doit pas etre emise tant que
+`RunCaptureArtifact` n'est pas terminal, schema-valide et hash-verifie.
 
-Il devient bloquant seulement aux stages de review :
+Il reste aussi bloquant aux stages de review :
 
 ```text
+implementation delegation requires RunCaptureArtifact
 pre-package-review requires RunCaptureArtifact
 pr-ci-review requires RunCaptureArtifact
 ```
@@ -122,8 +125,8 @@ par le profil JCS dans
 - relire tout l'historique de session si un extrait minimal est fourni ;
 - modifier le repo cible ;
 - modifier le worktree prive ;
-- bloquer l'implementation tant que la capture peut encore etre validee avant
-  la review.
+- bloquer `workspace-setup`, `repo-discovery-draft` ou
+  `project-discovery-finalize`.
 
 Ces operations appartiennent soit au parent process qui fournit le contexte,
 soit aux stages de review qui analysent le diff reel.
@@ -149,17 +152,18 @@ referencable via `sessionRef`, mais le run doit rester reviewable avec
 
 ## 8. Regles de parallelisme
 
-`run-capture` peut s'executer en parallele avec des startup tasks et stages qui
-ne consomment pas ses sorties.
+`run-capture` peut s'executer en parallele avec les startup tasks qui ne
+consomment pas ses sorties. Pour v1, `run-init` doit tout de meme joindre
+`run-capture` avant de deleguer `implementation`.
 
 Les startup branches ne doivent pas ecrire directement dans `WorkflowState`.
 Chaque branche produit son artefact dans son propre espace d'evidence et un
-`WorkflowExecutionRecord`. Turnlock projette ensuite les artefacts valides dans
-`WorkflowState` via une transition deterministe.
+`WorkflowExecutionRecord`. `run-init` projette ensuite les artefacts valides
+dans le `WorkflowState` donne a Turnlock avec la delegation `implementation`.
 
 ---
 
-## 9. Phases Turnlock typiques
+## 9. Operations internes typiques
 
 ```text
 resolve-run-capture-inputs

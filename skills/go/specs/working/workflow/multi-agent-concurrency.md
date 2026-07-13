@@ -11,7 +11,7 @@ Chaque run possède :
 
 - un `runId` stable ;
 - un worktree Git physique privé ;
-- une branche `work/<run-id>` ;
+- une branche `work/<runId>` ;
 - un `artefactDir` privé ;
 - un `WorkflowState` privé ;
 - des branches PR namespacées.
@@ -49,12 +49,12 @@ checkout, cette hypothèse est fausse.
   ...
 
 <repo-parent>/.go-worktrees/
-  <run-id-a>/
-  <run-id-b>/
+  <runId-a>/
+  <runId-b>/
 
 <repo-parent>/.go-artifacts/
-  <run-id-a>/
-  <run-id-b>/
+  <runId-a>/
+  <runId-b>/
 ```
 
 Les chemins exacts peuvent évoluer, mais les invariants restent :
@@ -70,16 +70,16 @@ Les chemins exacts peuvent évoluer, mais les invariants restent :
 Branches réservées :
 
 ```text
-work/<run-id>
-pr/<run-id>/<slug>
-review-bot/<run-id>/<slug>
+work/<runId>
+pr/<runId>/<slug>
+review-bot/<runId>/<slug>
 ```
 
-`work/<run-id>` est la branche brute locale du run.
+`work/<runId>` est la branche brute locale du run.
 
-`pr/<run-id>/<slug>` est une branche de PR publiée.
+`pr/<runId>/<slug>` est une branche de PR publiée.
 
-`review-bot/<run-id>/<slug>` est réservée aux corrections post-PR si elles sont
+`review-bot/<runId>/<slug>` est réservée aux corrections post-PR si elles sont
 autorisées par `WorkflowPolicy.delegation`.
 
 Toute branche créée par `/go` hors de ces patterns doit être rejetée.
@@ -121,14 +121,14 @@ uniquement la PR en attente.
 
 Le nettoyage doit être conservateur.
 
-Supprimer `work/<run-id>` seulement si :
+Supprimer `work/<runId>` seulement si :
 
 - les branches PR nécessaires existent ;
 - la preuve de reconstruction du diff final est persistée ;
 - aucun rollback ou handoff humain ne dépend du diff brut ;
 - le run est clos ou explicitement abandonné.
 
-Supprimer `pr/<run-id>/<slug>` seulement après merge, fermeture explicite, ou
+Supprimer `pr/<runId>/<slug>` seulement après merge, fermeture explicite, ou
 abandon documenté.
 
 ---

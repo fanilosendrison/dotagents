@@ -1,7 +1,9 @@
 # Stage `implementation`
 
-`implementation` est le stage qui délègue la création du changement à un agent.
-Elle peut recevoir un prompt simple ou un ensemble complet de specs NIB.
+`implementation` est le stage logique qui délègue la création du changement à
+un agent. Dans le chemin nominal, il est lance par la phase Turnlock `run-init`
+via une delegation `label: "implementation"` et repris par
+`implementation-settlement`.
 
 ---
 
@@ -14,10 +16,9 @@ Son contour est déterministe :
 - valider les inputs ;
 - préparer les artefacts ;
 - déléguer ;
-- collecter ;
-- snapshotter ;
-- valider ;
-- persister.
+- reprendre dans `implementation-settlement` ;
+- collecter et valider les evidences ;
+- router vers `change-snapshot`, HumanGate, remediation ou fail-closed.
 
 Son coeur est non déterministe : l'agent raisonne, édite, teste, itère.
 
@@ -74,16 +75,20 @@ officielles s'exécutent après `change-snapshot`.
 
 ---
 
-## 5. Phases Turnlock typiques
+## 5. Segments Turnlock typiques
 
 ```text
-validate-implementation-inputs
-prepare-implementation-artefacts
-delegate-implementation-agent
-collect-agent-result
-collect-change-snapshot
-validate-implementation-evidence
-persist-stage-output
+run-init
+  validate implementation inputs
+  prepare implementation artefacts
+  delegate label: implementation
+  resumeAt: implementation-settlement
+
+implementation-settlement
+  consume implementation result
+  validate implementation evidence
+  verify worktree still belongs to run
+  route to change-snapshot, HumanGate, remediation, or fail
 ```
 
 ---

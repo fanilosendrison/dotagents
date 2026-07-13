@@ -120,7 +120,7 @@ un artefact métier typé, puis projetés dans `WorkflowState.findings`.
 
 ---
 
-## 6. Phases Turnlock typiques
+## 6. Operations internes typiques
 
 ```text
 load-pr-record

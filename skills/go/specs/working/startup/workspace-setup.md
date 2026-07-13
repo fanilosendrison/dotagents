@@ -1,7 +1,8 @@
 # Startup task `workspace-setup`
 
 `workspace-setup` prépare le terrain isolé d'un run `/go`. Elle doit s'exécuter
-avant toute délégation agentique qui modifie le code.
+avant toute délégation agentique qui modifie le code. Elle est une startup task
+interne a la phase Turnlock `run-init`, pas une phase Turnlock separee.
 
 ---
 
@@ -57,7 +58,7 @@ stage harness, ce record reference le `StageOutput` canonique.
 - Si `WorkflowPolicy.dirtyState.mode` autorise l'adoption, capturer le dirty
   state comme patch, hasher ce patch, puis le rejouer dans le worktree prive
   avant toute delegation agentique.
-- Créer la branche `work/<run-id>`.
+- Créer la branche `work/<runId>`.
 - Vérifier que le chemin `worktreeRoot` reserve est utilisable.
 - Créer le worktree physique privé associé à cette branche.
 - Créer le sous-dossier `workspace-setup/` sous l'`artefactRoot`.
@@ -120,7 +121,7 @@ worktree doivent etre finalises contre ce `WorkSession` avant de produire un
 
 ---
 
-## 6. Phases Turnlock typiques
+## 6. Operations internes typiques
 
 ```text
 resolve-repository
@@ -148,7 +149,7 @@ persist-execution-record
   `failed`.
 - Dirty state non adopté : `failed`.
 - Dirty state adopte mais patch irrejouable dans le worktree prive : `failed`.
-- Branche `work/<run-id>` déjà existante : `errored`.
+- Branche `work/<runId>` déjà existante : `errored`.
 - Worktree cible déjà occupé ou non contenu dans l'espace reserve : `errored`.
 - Création du worktree impossible : `errored`.
 - Sous-dossier d'artefacts `workspace-setup/` déjà occupé : `errored`.

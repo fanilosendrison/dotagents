@@ -84,7 +84,7 @@ delegate-fix
 
 ---
 
-## 7. Phases Turnlock typiques
+## 7. Operations internes typiques
 
 ```text
 load-gate-matrix

@@ -15,8 +15,8 @@ Documents compagnons :
   du cycle `/go`.
 - [`launch-context.md`](../startup/launch-context.md) - contexte parent resolu
   avant `run-init`.
-- [`run-init.md`](../startup/run-init.md) - startup du run, startup branches
-  et joins fail-closed.
+- [`run-init.md`](../startup/run-init.md) - phase Turnlock de
+  bootstrap/onboarding, startup tasks internes et premiere delegation.
 - [`multi-agent-concurrency.md`](./multi-agent-concurrency.md) - isolation et
   concurrence multi-run.
 - [`workflow-artifacts.md`](../artifacts/workflow-artifacts.md) - types JSON
@@ -44,12 +44,13 @@ Le workflow doit échouer fermé dès qu'il ne peut plus prouver l'état courant
 
 ### 2.1 State-authoritative
 
-`WorkflowState` est la source de vérité de l'avancement. Les logs, messages
-agentiques et commentaires PR sont dérivés.
+`WorkflowState` est la source de vérité de l'avancement apres `run-init`. Les
+logs, messages agentiques et commentaires PR sont dérivés.
 
-Turnlock persiste cet etat comme `StateFile<WorkflowState>`. Turnlock fournit
-l'enveloppe durable ; `/go` fournit le payload metier stocke dans
-`StateFile.data`.
+Turnlock persiste le payload `/go` comme `StateFile<GoRuntimeState>`, ou
+`GoRuntimeState = GoBootstrapState | WorkflowState`. Avant `run-init`,
+`StateFile.data` contient `GoBootstrapState`. Apres le snapshot stable emis par
+`run-init`, `StateFile.data` contient `WorkflowState`.
 
 ### 2.2 Policy-authoritative
 
@@ -91,6 +92,11 @@ diff ou SHAs Git, restent des algorithmes metier explicites.
 
 Chaque workflow unit qui produit un artefact durable produit aussi un
 `WorkflowExecutionRecord`.
+
+`run-init` est l'exception bootstrap : sa reussite est prouvee par le snapshot
+stable Turnlock qui remplace `GoBootstrapState` par `WorkflowState`, ajoute
+`RunInitRecord` et `RunInitOwnershipMarker`, puis emet la delegation
+`implementation` avec `resumeAt: "implementation-settlement"`.
 
 Chaque stage standalone produit un `StageOutput` canonique via le stage harness.
 Ce `StageOutput` est l'enveloppe d'exécution du stage : statut, evidence refs,
@@ -167,13 +173,13 @@ des états intermédiaires invalides.
 
 ### 2.14 Startup branches sans ecriture concurrente d'etat
 
-Le startup peut lancer des startup branches de demarrage, mais ces branches
-ne modifient pas directement `WorkflowState`.
+Le startup lance des startup branches de demarrage a l'interieur de `run-init`,
+mais ces branches ne modifient pas directement `WorkflowState`.
 
 Chaque branche produit des artefacts, evidence refs et un
-`WorkflowExecutionRecord` sous l'`artefactRoot` du run. Turnlock projette
-ensuite les artefacts valides dans `WorkflowState` via une transition
-deterministe.
+`WorkflowExecutionRecord` sous l'`artefactRoot` du run. `run-init` projette
+ensuite les artefacts valides dans le `WorkflowState` qu'il donne a Turnlock au
+moment de la delegation `implementation`.
 
 ### 2.15 Capture mecanique, analyse semantique tardive
 
@@ -216,21 +222,34 @@ contexte explicite.
 
 ### 4.1 `run-init`
 
-`run-init` n'est pas un stage metier. C'est le startup mecanique du run.
+`run-init` n'est pas un stage metier. C'est la premiere phase de l'orchestrateur
+Turnlock configure pour `/go` et le startup mecanique du workflow `/go`.
+
+Turnlock execute et persiste cette phase, mais ne l'implemente pas. Le code de
+`run-init` appartient au consommateur `/go`. Cette phase n'est pas une primitive
+generique de Turnlock et n'est pas obligatoire pour tous les orchestrateurs
+Turnlock.
 
 Avant `run-init`, le parent process resout un `RepositoryLaunchContext` :
 repo Git cible, chemins actifs, sous-projet optionnel, symlinks et hints de
 provider ou branche cible. Si ce contexte est absent ou ambigu, `/go` echoue
 avant Turnlock.
 
-Turnlock cree `StateFile<WorkflowState>`, `runDir`, lock runtime, horloges,
-logger et ecritures atomiques. `run-init` initialise `state.data` :
-`WorkflowState.runInit`, `artefactRoot`, chemin de worktree reserve et
-`startupTasks` initiales.
+Turnlock cree `StateFile<GoRuntimeState>` contenant `GoBootstrapState`, `runDir`,
+lock runtime, horloges, logger et ecritures atomiques. `run-init` remplace
+`state.data` par `WorkflowState` initialise, execute le bootstrap/onboarding
+interne, puis s'arrete sur une delegation agentique :
 
-Il ne decouvre pas le repo, ne cree pas l'enveloppe runtime Turnlock, et ne
-cree pas le checkout Git physique. Ces responsabilites appartiennent
-respectivement au parent process, a Turnlock et a `workspace-setup`.
+```text
+delegate label: implementation
+resumeAt: implementation-settlement
+```
+
+`run-init` ne cree pas l'enveloppe runtime Turnlock et ne resout pas le repo
+cible. Ces responsabilites appartiennent respectivement a Turnlock et au parent
+process. En revanche, les startup tasks `workspace-setup`,
+`repo-discovery-draft`, `project-discovery-finalize` et `run-capture` font bien
+partie de la phase Turnlock `run-init`.
 
 ```text
 run-init
@@ -240,11 +259,16 @@ run-init
        ↓
 project-discovery-finalize
        ↓
-implementation
+join run-capture
+       ↓
+delegate implementation
+       ↓ resumeAt
+implementation-settlement
 ```
 
-Les sous-sections `4.1.x` ne sont pas des stages canoniques. Elles decrivent le
-startup du run.
+Les sous-sections `4.1.x` ne sont pas des stages canoniques et ne sont pas des
+phases Turnlock separees. Elles decrivent les startup tasks internes de
+`run-init`.
 
 #### 4.1.1 `run-capture`
 
@@ -252,7 +276,8 @@ Fige le prompt `/go`, une reference de session, un extrait minimal de session
 et leurs hashes.
 
 Cette startup branch ne modifie pas le repo cible, ne lit pas le worktree, et
-ne produit aucune interpretation semantique.
+ne produit aucune interpretation semantique. Pour v1, elle doit etre jointe
+avant la delegation `implementation`.
 
 #### 4.1.2 `workspace-setup`
 
@@ -283,32 +308,52 @@ mecaniques à executer.
 
 ### 4.2 `implementation`
 
-Délègue le travail de création ou modification à l'agent principal, à partir du
-contexte de session courant, du worktree prive, des specs disponibles et du
-`ProjectDiscovery`.
+`implementation` est le label de delegation qui confie la création ou
+modification à l'agent principal, à partir du contexte de session courant, du
+worktree prive, des specs disponibles et du `ProjectDiscovery`.
 
 Le stage est sémantique et encadré par Turnlock, mais son coeur est agentique.
+Dans le chemin nominal, la delegation est emise par `run-init` et reprise par
+`implementation-settlement`.
 
-### 4.3 `change-snapshot`
+### 4.3 `implementation-settlement`
+
+Consomme le resultat de la delegation `implementation`, verifie que les
+evidences attendues existent, controle que le worktree prive est toujours le
+worktree du run, puis route vers le prochain segment mecanique.
+
+Cette phase ne juge pas encore la conformite semantique finale du changement.
+Elle reconcilie seulement :
+
+- le resultat JSON de delegation ;
+- l'etat reel du worktree ;
+- les fichiers modifies ;
+- les evidences produites par l'agent ;
+- les conditions necessaires pour capturer un snapshot.
+
+Elle peut ensuite transitionner vers `change-snapshot`, ouvrir une HumanGate,
+deleguer une remediation immediate autorisee, ou echouer ferme.
+
+### 4.4 `change-snapshot`
 
 Capture le diff courant, le périmètre des fichiers modifiés, `StageOutput`, et
 les empreintes d'etat apres une mutation.
 
 Ce stage rend le travail agentique vérifiable par les gates suivantes.
 
-### 4.4 `conduct-settled`
+### 4.5 `conduct-settled`
 
 Vérifie les traces de processus après mutation : secrets, fichiers temporaires,
 permissions dangereuses, staging area, debug persistants.
 
-### 4.5 `mechanical-gates`
+### 4.6 `mechanical-gates`
 
 Exécute les checks mécaniques ordonnés pour le repo : format, lint, typecheck,
 tests, build, scans, generated drift, API compat si disponibles.
 
 Ce stage peut contenir plusieurs `CheckRun`.
 
-### 4.6 `pre-package-review`
+### 4.7 `pre-package-review`
 
 Review hybride du résultat global final avant découpage en paquets.
 
@@ -337,26 +382,26 @@ les conflits de merge, ni les effets du split en paquets.
 
 Elle cherche zéro risque bloquant, pas zéro remarque.
 
-### 4.7 `review-remediation`
+### 4.8 `review-remediation`
 
 Résout les findings ouverts via HumanGate, dismissal justifié, defer autorisé,
 ou délégation de correction.
 
 Toute correction retourne à `change-snapshot`.
 
-### 4.8 `final-change-snapshot`
+### 4.9 `final-change-snapshot`
 
 Capture l'état final validé qui servira d'entrée au packaging.
 
 Le hash de cet état devient la référence contre laquelle le split doit prouver
 sa reconstruction.
 
-### 4.9 `package-plan`
+### 4.10 `package-plan`
 
 Découpe le diff final en paquets logiques de PR, avec dépendances, branches
 cibles, et preuve de reconstruction attendue.
 
-### 4.10 `package-verify`
+### 4.11 `package-verify`
 
 Vérifie que les paquets reconstruisent exactement le diff final et que chaque
 branche ou stack intermédiaire est mécaniquement valide selon son scope.
@@ -364,22 +409,22 @@ branche ou stack intermédiaire est mécaniquement valide selon son scope.
 Ce stage est obligatoire parce que la review globale ne prouve pas la
 validité des états partiels.
 
-### 4.11 `branch-materialize`
+### 4.12 `branch-materialize`
 
-Crée les branches `pr/<run-id>/<slug>` depuis leur base déclarée et applique les
+Crée les branches `pr/<runId>/<slug>` depuis leur base déclarée et applique les
 paquets vérifiés.
 
-### 4.12 `commit-package`
+### 4.13 `commit-package`
 
 Crée les commits atomiques pour chaque paquet via le chemin Git de confiance.
 
 Ce stage est le seul stage autorisé à produire des commits.
 
-### 4.13 `publish-pr`
+### 4.14 `publish-pr`
 
 Push les branches PR autorisées et ouvre les PRs avec les artefacts de preuve.
 
-### 4.14 `pr-ci-review`
+### 4.15 `pr-ci-review`
 
 Rejoue les gates mécaniques et la review structurée sur le diff réellement
 poussé. Ce stage consomme aussi `RunCaptureArtifact` pour verifier que le diff
@@ -407,7 +452,7 @@ introduits apres la review globale : split invalide, commit manquant, push
 incorrect, drift de base, CI distante differente, conflit de merge ou diff PR
 qui ne correspond plus aux artefacts locaux.
 
-### 4.15 `post-merge-tracking`
+### 4.16 `post-merge-tracking`
 
 Suit les merges, retarget/rebase les PRs dépendantes, enregistre les statuts, et
 nettoie les branches quand les preuves nécessaires sont conservées.
@@ -416,13 +461,13 @@ nettoie les branches quand les preuves nécessaires sont conservées.
 
 ## 5. Règles de transition
 
-`run-init` est une initialisation mecanique obligatoire, pas un stage metier. Il
+`run-init` est une phase Turnlock mecanique obligatoire, pas un stage metier. Il
 stocke le `RepositoryLaunchContext` fourni par le parent process dans
-`WorkflowState`, puis initialise les refs `/go` : `artefactRoot`, chemin de
-worktree reserve et startup task records. L'enveloppe runtime est fournie par
+`WorkflowState`, initialise les refs `/go`, execute le bootstrap/onboarding, puis
+emet la delegation `implementation`. L'enveloppe runtime est fournie par
 Turnlock.
 
-Apres `run-init`, le demarrage nominal est parallele :
+Dans `run-init`, le demarrage nominal est parallele :
 
 ```text
 run-init
@@ -431,12 +476,14 @@ run-init
 └─ workspace-setup
 ```
 
-Le startup joint ensuite les branches necessaires avant le premier stage
-metier :
+Le startup joint ensuite les branches necessaires avant la premiere delegation
+agentique :
 
 ```text
 project-discovery-finalize
--> implementation
+-> join run-capture
+-> delegate implementation
+-> resumeAt implementation-settlement
 -> change-snapshot
 -> conduct-settled
 -> mechanical-gates
@@ -455,9 +502,15 @@ project-discovery-finalize
 `project-discovery-finalize` exige `WorkSession` et soit un `RepositoryDiscoveryDraft`
 valide, soit l'autorisation de relancer la discovery depuis `worktreeRoot`.
 
-`pre-package-review` exige un `RunCaptureArtifact` valide. `run-capture` peut
-donc s'executer en parallele des autres startup tasks, mais son absence bloque
-la review.
+Pour v1, la delegation `implementation` exige aussi un `RunCaptureArtifact`
+valide. `run-capture` peut s'executer en parallele des autres startup tasks, mais
+son absence bloque la sortie finale de `run-init`.
+
+`implementation-settlement` exige un resultat de delegation `implementation`
+valide et un worktree toujours rattache au run. Elle ne remplace pas
+`change-snapshot` : elle decide seulement comment reprendre apres l'agent.
+
+`pre-package-review` exige toujours un `RunCaptureArtifact` valide et projeté.
 
 `review-remediation` peut retourner à `change-snapshot`.
 
@@ -513,7 +566,7 @@ Un finding sans preuve peut être `Minor` ou `Notable`, mais ne peut pas être
 
 Turnlock porte la mécanique :
 
-- `StateFile<WorkflowState>` ;
+- `StateFile<GoRuntimeState>` ;
 - etats atomiques ;
 - persistance de `state.json` ;
 - reprise ;
