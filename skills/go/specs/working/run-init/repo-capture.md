@@ -86,7 +86,8 @@ Le sous-système de résolution de `run-init` produit le contexte en utilisant s
 1. Utiliser le repertoire courant de la session comme unique point de depart.
 2. Normaliser les symlinks connus.
 3. Chercher le répertoire `.git` le plus proche en remontant depuis ce chemin cible normalisé.
-4. Si un dépôt est trouvé, `canonicalRepositoryRoot` est ce dépôt. Sinon, `canonicalRepositoryRoot` devient le répertoire d'invocation (CWD).
+4. Si un dépôt est trouvé, `canonicalRepositoryRoot` est ce dépôt.
+5. Si aucun dépôt n'est trouvé, vérifier si le répertoire résolu via `realpath(invocationDirectory)` est un répertoire "gateway" (voir critères à la Section 7). Si c'est le cas, la résolution échoue immédiatement. Sinon, `canonicalRepositoryRoot` devient le répertoire d'invocation (CWD) et la création du dépôt est déléguée à `workspace-setup`.
 
 Les demandes explicites de l'utilisateur ne doivent jamais court-circuiter cette regle. Le repo cible est **toujours** defini par le CWD.
 
@@ -124,7 +125,7 @@ reviews quand la demande porte sur un sous-projet precis.
 Regles :
 
 - `canonicalRepositoryRoot` est toujours la racine Git ;
-- `projectRoot` est déduit automatiquement : si `invocationDirectory` ≠ `canonicalRepositoryRoot` et que `invocationDirectory` est un sous-dossier de `canonicalRepositoryRoot`, alors `projectRoot` = `invocationDirectory` ;
+- `projectRoot` est déduit automatiquement : si `realpath(invocationDirectory)` ≠ `realpath(canonicalRepositoryRoot)` et que `realpath(invocationDirectory)` est un sous-dossier de `realpath(canonicalRepositoryRoot)`, alors `projectRoot` = `invocationDirectory` (les deux chemins doivent être résolus via `realpath` pour toute comparaison ou vérification de sous-dossier, évitant ainsi les échecs dus aux gateways ou liaisons symboliques) ;
 - `projectRoot` doit etre sous `canonicalRepositoryRoot` ;
 - `workspace-setup` cree le worktree pour le repo entier ;
 - `project-discovery-finalize` peut produire des commandes dont le
@@ -180,7 +181,7 @@ Regles :
 - `invocationDirectory` peut rester le chemin visible par la session ;
 - `canonicalRepositoryRoot` doit pointer vers la racine Git canonique ;
 - `symlinkResolved` indique si la resolution a traverse un symlink ;
-- un gateway non Git ne doit pas etre accepte comme `canonicalRepositoryRoot`.
+- un gateway non Git ne doit pas etre accepte comme `canonicalRepositoryRoot`. Pour identifier et rejeter un gateway non-Git au niveau du répertoire d'invocation (CWD), le système doit vérifier la présence de fichiers sentinelles ou de dossiers spécifiques (par exemple : `AGENTS.md`, `SKILL.md` ou un sous-dossier `.agents/`) directement au niveau de `realpath(invocationDirectory)`. Si l'un de ces marqueurs est détecté et qu'aucun dépôt `.git` n'est présent dans le répertoire ou ses parents, le dossier est identifié comme un gateway et la résolution échoue avec `failed`, invitant l'utilisateur à se positionner dans un répertoire projet valide.
 
 ---
 
