@@ -54,14 +54,12 @@ cd ~/.agents/skills/git-commits-push && bun run start
 │   ├── CONTEXT.md                    ← Index of all enforcers
 │   ├── git-commits-push-enforcer.md  ← Forces you to push after you commit
 │   ├── path-guard.md                ← Shows you how to operate in symlink folders
-│   ├── permission-enforcer.md       ← Manages authorization state (/go)
-│   └── post-write-linter.md          ← Forces you to lint the code you write
+│   └── permission-enforcer.md       ← Manages authorization state (/go)
 ├── agent-enforcers/          ← Core logic of your enforcers
 │   ├── command-validator/
 │   ├── git-commits-push-enforcer/
 │   ├── path-guard/
 │   ├── permission-enforcer/
-│   ├── post-write-linter/
 │   └── shared/               ← Hook protocol helpers (stdin JSON parsing, allow/deny responses)
 ├── specs/                    ← Future specs and workflow drafts
 ├── memory/                   ← Core memory and historical lessons (e.g., known-bug-fixes.md, session-locations.md)
@@ -96,7 +94,6 @@ cd ~/.agents/skills/git-commits-push && bun run start
 | Know about code modification permission (/go)       | `docs/permission-enforcer.md`                |
 | Know about how you enforce git commit and push      | `docs/git-commits-push-enforcer.md`          |
 | Know how to operate in symlink folders              | `docs/path-guard.md`                         |
-| Know about the way you lint the code you write      | `docs/post-write-linter.md`                  |
 | See all agent enforcers                             | `docs/CONTEXT.md`                            |
 
 
