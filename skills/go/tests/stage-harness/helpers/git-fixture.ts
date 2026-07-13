@@ -52,7 +52,7 @@ export async function createCommittedRepo(
     await writeFileInRepo(workDir, relativePath, bytes);
   }
   await runGit(workDir, ["add", "."]);
-  await runGit(workDir, ["commit", "-m", "initial"]);
+  await runGit(workDir, ["commit", "-m", "initial", "--no-verify"]);
   const baseSha = trimOneLineEnding(
     (await runGit(workDir, ["rev-parse", "HEAD"])).stdout.toString("utf8"),
   );
@@ -90,7 +90,7 @@ export async function createCommittedRepoFromEntries(
   }
 
   await runGit(workDir, ["add", "."]);
-  await runGit(workDir, ["commit", "-m", "initial"]);
+  await runGit(workDir, ["commit", "-m", "initial", "--no-verify"]);
   const baseSha = trimOneLineEnding(
     (await runGit(workDir, ["rev-parse", "HEAD"])).stdout.toString("utf8"),
   );
@@ -125,11 +125,11 @@ export async function createMergeConflictRepo(): Promise<CommittedRepo> {
   await runGit(repo.workDir, ["checkout", "-b", "left"]);
   await writeFileInRepo(repo.workDir, "src/a.txt", "left\n");
   await runGit(repo.workDir, ["add", "."]);
-  await runGit(repo.workDir, ["commit", "-m", "left"]);
+  await runGit(repo.workDir, ["commit", "-m", "left", "--no-verify"]);
   await runGit(repo.workDir, ["checkout", "-b", "right", repo.baseSha]);
   await writeFileInRepo(repo.workDir, "src/a.txt", "right\n");
   await runGit(repo.workDir, ["add", "."]);
-  await runGit(repo.workDir, ["commit", "-m", "right"]);
+  await runGit(repo.workDir, ["commit", "-m", "right", "--no-verify"]);
   await runGit(repo.workDir, ["merge", "left"], { allowFailure: true });
   return repo;
 }
@@ -169,8 +169,12 @@ async function runCommand(
   options: { env?: NodeJS.ProcessEnv } = {},
 ): Promise<GitCommandResult> {
   return await new Promise((resolve, reject) => {
+    const cleanPath = (process.env.PATH || "")
+      .split(":")
+      .filter((p) => !p.includes(".gravity/wrappers") && !p.includes("git-commits-push-enforcer"))
+      .join(":");
     const child = childProcess.spawn(command, args, {
-      env: { ...process.env, ...options.env },
+      env: { ...process.env, PATH: cleanPath, ...options.env },
       stdio: ["ignore", "pipe", "pipe"],
     });
     const stdoutChunks: Buffer[] = [];
