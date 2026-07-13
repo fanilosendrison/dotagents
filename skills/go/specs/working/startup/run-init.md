@@ -743,7 +743,9 @@ Regles :
 
 Sur retry de `run-init` :
 
-- checkpoint terminal valide et hashes compatibles : adopter ;
+- checkpoint terminal valide et hashes compatibles :
+  - Pour `workspace-setup` : déléguer systématiquement la tâche en mode `validate` pour vérifier la validité de l'état physique du dépôt Git (et réparer/pruner si nécessaire).
+  - Pour les autres startup tasks (`run-capture`, `repo-discovery-draft`) : adopter directement.
 - checkpoint absent : relancer la startup task ;
 - checkpoint partiel ou temporaire : ignorer ou mettre en quarantaine, puis
   relancer si la task est idempotente ;
@@ -847,13 +849,8 @@ Regles de retry :
 - si `artefactRootRef` existe sans ownership marker verifiable, `run-init`
   echoue ferme ou demande une quarantaine explicite au runtime ;
 - si `worktreeRootReservedPath` existe deja comme checkout Git physique,
-  `run-init` peut l'adopter seulement si le checkpoint `workspace-setup` est
-  terminal et valide, si `WorkSession` reference exactement ce chemin, si la
-  branche `work/<runId>` existe, si `baseHeadSha` et les hashes d'inputs
-  matchent, et si l'ownership marker lie ce worktree au meme run ;
-- si `worktreeRootReservedPath` existe deja comme checkout Git physique sans
-  checkpoint `workspace-setup` adoptable, `run-init` echoue ferme ou met le
-  chemin en quarantaine explicite ;
+  son adoption depend du diagnostic de la tache `workspace-setup` relancee en mode `validate` (qui verifie l'existence de la branche, le lien `.git`, et le `baseHeadSha`) ; le noyau `run-init` lui-meme n'effectue pas d'appel Git direct ;
+- si `worktreeRootReservedPath` existe deja comme checkout Git physique sans checkpoint `workspace-setup` adoptable ou diagnostique valide par la tache en mode `validate`, il est nettoye et recree par `workspace-setup` ;
 - si `worktreeRootReservedPath` existe comme placeholder vide et qu'il est
   prouvablement reference par l'ownership marker du meme `runId`, `run-init`
   peut l'adopter ;

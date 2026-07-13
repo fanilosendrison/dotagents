@@ -63,6 +63,10 @@ stage harness, ce record reference le `StageOutput` canonique.
 - Créer le worktree physique privé associé à cette branche.
 - Créer le sous-dossier `workspace-setup/` sous l'`artefactRoot`.
 - Persister `WorkSession`.
+- En cas de relance au retry (si `worktreeRoot` existe déjà) :
+  - Valider l'intégrité physique du worktree existant (vérifier que le lien `.git` est valide, que la branche `work/<runId>` existe dans Git, et que le HEAD correspond à `baseHeadSha`).
+  - Si le worktree est valide et correspond à la `WorkSession` existante, l'adopter sans modification.
+  - Si le worktree ou les métadonnées Git sont corrompus ou inconsistants, nettoyer le dépôt (`git worktree remove --force` ou `git worktree prune`, suppression de la branche locale) avant de recréer la branche et le worktree depuis zéro.
 
 ---
 
@@ -129,9 +133,11 @@ verify-launch-context-against-git
 validate-dirty-state-policy
 record-base-ref
 resolve-default-target-branch
-create-work-branch
+if-retry-validate-existing-worktree (verify .git file link, branch existence, baseHeadSha alignment)
+if-invalid-execute-prune-and-rebuild (git worktree remove/prune, delete work-branch)
+create-work-branch (skip if adopting valid worktree)
 validate-reserved-worktree-path
-create-physical-worktree
+create-physical-worktree (skip if adopting valid worktree)
 create-workspace-setup-artefact-dir
 write-work-session-evidence
 persist-execution-record
@@ -149,8 +155,9 @@ persist-execution-record
   `failed`.
 - Dirty state non adopté : `failed`.
 - Dirty state adopte mais patch irrejouable dans le worktree prive : `failed`.
-- Branche `work/<runId>` déjà existante : `errored`.
-- Worktree cible déjà occupé ou non contenu dans l'espace reserve : `errored`.
+- Branche `work/<runId>` déjà existante sans checkpoint valide ou après échec de validation : nettoyée et recréée (au lieu d'échouer directement).
+- Worktree cible déjà occupé par un dossier incomplet ou corrompu : nettoyé et recréé (au lieu d'échouer directement).
+- Échec du nettoyage ou de la recréation du worktree corrompu : `errored`.
 - Création du worktree impossible : `errored`.
 - Sous-dossier d'artefacts `workspace-setup/` déjà occupé : `errored`.
 
