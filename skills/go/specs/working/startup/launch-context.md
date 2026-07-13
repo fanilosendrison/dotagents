@@ -85,7 +85,6 @@ type RepositoryLaunchContext = {
   invocationDirectory: string;
   repositoryRootHint?: string;
   canonicalRepositoryRoot: string;
-  isNewRepository?: boolean;
   projectRoot?: string;
   providerHint?: "github" | "gitlab" | "local-only";
   remoteNameHint?: string;
@@ -98,7 +97,7 @@ type RepositoryLaunchContext = {
 };
 ```
 
-`canonicalRepositoryRoot` est la racine Git cible (ou le dossier cible si `isNewRepository` est vrai). Elle doit etre utilisable par `workspace-setup` pour creer une branche et un worktree.
+`canonicalRepositoryRoot` est la racine Git cible (ou le dossier cible si aucun dépôt n'existait). Elle doit etre utilisable par `workspace-setup` pour creer une branche et un worktree.
 
 `projectRoot` est optionnel. Il represente le sous-dossier metier vise dans un
 monorepo. Il ne remplace jamais `canonicalRepositoryRoot`. S'il est absent, cela signifie qu'il n'y a pas de restriction de sous-perimetre (on travaille a la racine).
@@ -110,9 +109,9 @@ monorepo. Il ne remplace jamais `canonicalRepositoryRoot`. S'il est absent, cela
 Le parent process resout le contexte en utilisant strictement le repertoire courant (`invocationDirectory`) :
 
 1. Utiliser le repertoire courant de la session comme unique point de depart.
-2. Normaliser les symlinks connus avant de valider la racine Git.
-3. Appeler l'equivalent de `git rev-parse --show-toplevel` depuis ce chemin cible normalise.
-4. Refuser si aucune racine Git unique ne peut etre prouvee, sauf si l'intention de creer un nouveau projet est explicite (`isNewRepository: true`).
+2. Normaliser les symlinks connus.
+3. Chercher le répertoire `.git` le plus proche en remontant depuis ce chemin cible normalisé.
+4. Si un dépôt est trouvé, `canonicalRepositoryRoot` est ce dépôt. Sinon, `canonicalRepositoryRoot` devient le répertoire d'invocation (CWD).
 
 Les demandes explicites de l'utilisateur ne doivent jamais court-circuiter cette regle. Le repo cible est **toujours** defini par le CWD.
 
@@ -275,7 +274,7 @@ workspace-setup either:
 ## 10. Failure modes
 
 - Aucun chemin cible exploitable : `/go` echoue avant `run-init`.
-- Aucun repo Git trouve : `/go` echoue avant `run-init`, sauf si l'intention de creer un nouveau projet est explicite (`isNewRepository: true`).
+- Aucun repo Git trouve : Le parent process assigne le CWD comme `canonicalRepositoryRoot` et délègue l'initialisation à `workspace-setup`.
 - Plusieurs repos Git candidats : `/go` echoue avant `run-init`.
 - `projectRoot` hors repo : `/go` echoue avant `run-init`.
 - Gateway non Git pris comme repo : `/go` echoue avant `run-init`.
