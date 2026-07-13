@@ -65,7 +65,7 @@ n'a pas ete finalisee contre le worktree prive, le stage echoue ferme.
 
 `CheckRun` est l'enveloppe workflow du resultat. Il ne remplace pas les formats
 standard emis par les outils. Voir
-[`external-primitives.md`](../workflow/external-primitives.md).
+[`external-primitives.md`](../standards/external-primitives.md).
 
 ---
 

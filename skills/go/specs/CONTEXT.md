@@ -12,7 +12,7 @@ Les documents actifs distinguent maintenant :
 - **artefact métier typé** : payload JSON durable validé avant projection dans
   `WorkflowState`.
 
-Voir [`working/workflow/canonical-vocabulary.md`](./working/workflow/canonical-vocabulary.md).
+Voir [`working/standards/canonical-vocabulary.md`](./working/standards/canonical-vocabulary.md).
 
 ---
 
@@ -46,40 +46,40 @@ Ces documents sont normatifs pour construction RED/GREEN.
 Ces documents sont les specs de conception en cours. Ils seront promus en NIB
 quand leur niveau de détail sera suffisant pour construction.
 
-### Workflow
+### Standards
 
-- [`canonical-vocabulary.md`](./working/workflow/canonical-vocabulary.md)
+- [`canonical-vocabulary.md`](./working/standards/canonical-vocabulary.md)
   - Vocabulaire canonique.
-- [`canonical-hashing.md`](./working/workflow/canonical-hashing.md)
+- [`canonical-hashing.md`](./working/standards/canonical-hashing.md)
   - Profil RFC 8785 / JCS pour les hashes JSON metier.
-- [`external-primitives.md`](./working/workflow/external-primitives.md)
+- [`external-primitives.md`](./working/standards/external-primitives.md)
   - Standards, formats et outils a reutiliser au lieu de primitives maison.
-- [`go-workflow-contract.md`](./working/workflow/go-workflow-contract.md)
-  - Contrat central du workflow.
-- [`software-design-workflow.md`](./working/workflow/software-design-workflow.md)
+- [`software-design-workflow.md`](./working/standards/software-design-workflow.md)
   - Cycle complet `/go`.
-- [`multi-agent-concurrency.md`](./working/workflow/multi-agent-concurrency.md)
+- [`multi-agent-concurrency.md`](./working/standards/multi-agent-concurrency.md)
   - Concurrence multi-run et worktrees physiques.
 
-### Startup
+### Contrats
 
-- [`repo-capture.md`](./working/startup/repo-capture.md)
-  - Resolution parent process du repo cible avant `run-init`.
-- [`run-init.md`](./working/startup/run-init.md)
-  - Startup du run, startup branches, joins et projection fail-closed.
-- [`run-capture.md`](./working/startup/run-capture.md)
-  - Capture mecanique du prompt `/go`, de l'extrait de session et des hashes.
-- [`workspace-setup.md`](./working/startup/workspace-setup.md)
-  - Creation du worktree physique et `WorkSession`.
-- [`repo-discovery-draft.md`](./working/startup/repo-discovery-draft.md)
-  - Discovery repo non autoritative depuis le checkout source.
-- [`project-discovery-finalize.md`](./working/startup/project-discovery-finalize.md)
-  - Finalisation de la discovery repo contre le worktree prive.
-
-### Artefacts
-
-- [`workflow-artifacts.md`](./working/artifacts/workflow-artifacts.md)
+- [`go-workflow-contract.md`](./working/contracts/go-workflow-contract.md)
+  - Contrat central du workflow.
+- [`workflow-artifacts.md`](./working/contracts/workflow-artifacts.md)
   - Types JSON partagés du workflow, dont artefacts métier typés.
+
+### Phase `run-init`
+
+- [`run-init.md`](./working/run-init/run-init.md)
+  - Phase Turnlock de bootstrap : startup tasks, joins et projection fail-closed.
+- [`repo-capture.md`](./working/run-init/repo-capture.md)
+  - Resolution mecanique du repo cible depuis le CWD.
+- [`run-capture.md`](./working/run-init/run-capture.md)
+  - Capture du prompt `/go`, extrait de session et hashes.
+- [`workspace-setup.md`](./working/run-init/workspace-setup.md)
+  - Creation du worktree physique et `WorkSession`.
+- [`repo-discovery-draft.md`](./working/run-init/repo-discovery-draft.md)
+  - Discovery repo non autoritative depuis le checkout source.
+- [`project-discovery-finalize.md`](./working/run-init/project-discovery-finalize.md)
+  - Finalisation de la discovery repo contre le worktree prive.
 
 ### Stages
 
@@ -91,18 +91,12 @@ quand leur niveau de détail sera suffisant pour construction.
   - Format, lint, typecheck, tests, build, scans.
 - [`review-remediation.md`](./working/stages/review-remediation.md)
   - HumanGate, remediation, dismiss, defer, abort.
-
-### Packaging
-
-- [`package-and-publish.md`](./working/packaging/package-and-publish.md)
-  - `package-plan`, `package-verify`, branches, commits, PRs.
-
-### Review
-
-- [`ideal-review.md`](./working/review/ideal-review.md)
+- [`ideal-review.md`](./working/stages/ideal-review.md)
   - Dimensions, sévérités, preuves, boucle de remediation.
-- [`pr-ci-review.md`](./working/review/pr-ci-review.md)
+- [`pr-ci-review.md`](./working/stages/pr-ci-review.md)
   - Gate CI autoritative sur la PR publiee.
+- [`package-and-publish.md`](./working/stages/package-and-publish.md)
+  - `package-plan`, `package-verify`, branches, commits, PRs.
 
 ---
 
