@@ -20,7 +20,7 @@ Reference normative :
 
 Ce document s'applique aux hashes de payloads JSON metier, par exemple :
 
-- `RepositoryLaunchContext` ;
+- `RepoCapture` ;
 - `WorkflowPolicy` ;
 - ownership markers ;
 - objets de policy ou d'intent figes ;
@@ -112,11 +112,11 @@ decision.
 Exemple :
 
 ```text
-RepositoryLaunchContext resolvedAt = 2026-07-13T10:00:00.000Z
+RepoCapture resolvedAt = 2026-07-13T10:00:00.000Z
 ```
 
 `resolvedAt` fait partie du snapshot et donc du hash. Sur resume, le parent
-process ne doit pas recalculer un nouveau `RepositoryLaunchContext` avec un
+process ne doit pas recalculer un nouveau `RepoCapture` avec un
 nouveau timestamp. Turnlock doit fournir le snapshot initial au retry, ou le
 retry doit echouer ferme.
 
@@ -132,7 +132,7 @@ sha256:<lowercase-hex>
 
 Exemples de champs :
 
-- `launchContextHash` ;
+- `repoCaptureHash` ;
 - `workflowPolicyHash` ;
 - hash d'un objet de review intent si un futur stage en introduit un.
 

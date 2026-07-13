@@ -120,8 +120,8 @@ type WorkflowUnitName = StartupTaskName | WorkflowStage;
 type RunInitRecord = {
   schema: "go.run-init.v1";
   runId: string;
-  launchContext: RepositoryLaunchContext;
-  launchContextHash: string;
+  RepoCapture: RepoCapture;
+  repoCaptureHash: string;
   workflowPolicyHash: string;
   turnlockRun: TurnlockRunRef;
   artefactRootRef: string;
@@ -133,8 +133,8 @@ type RunInitRecord = {
 ```
 
 ```ts
-type RepositoryLaunchContext = {
-  schema: "go.repository-launch-context.v1";
+type RepoCapture = {
+  schema: "go.repo-capture.v1";
   invocationDirectory: string;
   canonicalRepositoryRoot: string;
   projectRoot?: string;
@@ -143,7 +143,7 @@ type RepositoryLaunchContext = {
 };
 ```
 
-`RepositoryLaunchContext` est produit par `run-init` depuis le `invocationDirectory` fourni dans le
+`RepoCapture` est produit par `run-init` depuis le `invocationDirectory` fourni dans le
 `GoBootstrapState`. `run-init` le stocke sans discovery Git complète.
 `workspace-setup` le verifie ensuite contre l'etat Git reel.
 
@@ -168,7 +168,7 @@ type RunInitOwnershipMarker = {
   artefactRootRef: string;
   workflowLogRootRef?: string;
   worktreeRootReservedPath: string;
-  launchContextHash: string;
+  repoCaptureHash: string;
   workflowPolicyHash: string;
   createdAt: string;
 };
@@ -219,7 +219,7 @@ type StartupTaskCheckpointRecord = {
   task: StartupTaskName;
   status: "passed" | "failed" | "errored" | "cancelled";
   inputHash: string;
-  launchContextHash: string;
+  repoCaptureHash: string;
   workflowPolicyHash: string;
   businessArtifactIds: string[];
   evidenceRefs: string[];
@@ -443,7 +443,7 @@ type RepositoryContext = {
 };
 ```
 
-`RepositoryContext` est initialise depuis `RepositoryLaunchContext`, puis
+`RepositoryContext` est initialise depuis `RepoCapture`, puis
 verifie par `workspace-setup`.
 
 ---

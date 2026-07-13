@@ -18,7 +18,7 @@ Cette startup task ne produit aucun code applicatif.
 ## 2. Inputs
 
 - `runId`
-- `RepositoryLaunchContext` stocke par `run-init`
+- `RepoCapture` stocke par `run-init`
 - repository source
 - `WorkflowPolicy.dirtyState`
 
@@ -131,7 +131,7 @@ worktree doivent etre finalises contre ce `WorkSession` avant de produire un
 ```text
 verify-canonical-repository (déjà résolu par run-init)
 if-is-new-repository-initialize-git-repo
-verify-launch-context-against-git
+verify-repo-capture-against-git
 validate-dirty-state-policy
 record-base-ref
 resolve-default-target-branch
@@ -150,7 +150,7 @@ persist-execution-record
 ## 7. Failure modes
 
 - Repository introuvable à l'issue de l'initialisation : `errored`.
-- `RepositoryLaunchContext` absent ou invalide : `errored`.
+- `RepoCapture` absent ou invalide : `errored`.
 - Racine Git reelle differente de `canonicalRepositoryRoot` : `failed`.
 - `projectRoot` hors repo : `failed`.
 

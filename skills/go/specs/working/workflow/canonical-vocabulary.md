@@ -10,7 +10,7 @@ Turnlock, les délégations agentiques, et le contrat de sortie du stage harness
 
 Le workflow `/go` distingue quatre niveaux.
 
-Avant ces niveaux, `run-init` produit un **launch context**. Ce n'est
+Avant ces niveaux, `run-init` produit un **repo capture**. Ce n'est
 pas une unite Turnlock : c'est l'input resolu qui indique quel repo et quel
 sous-perimetre projet le run cible.
 
@@ -41,7 +41,7 @@ valide et projette le resultat.
 
 ### Launch context
 
-Le launch context est produit par `run-init` depuis le CWD de la session.
+Le repo capture est produit par `run-init` depuis le CWD de la session.
 
 Il repond a la question : **quel repo Git et quel sous-perimetre projet ce run
 `/go` cible-t-il ?**
@@ -54,7 +54,7 @@ Il contient notamment :
 
 - information de resolution des symlinks.
 
-Le launch context n'est pas une startup task, pas un stage et pas une phase
+Le repo capture n'est pas une startup task, pas un stage et pas une phase
 Turnlock. `run-init` le stocke. `workspace-setup` le verifie.
 
 ### Stage
@@ -102,7 +102,7 @@ Turnlock cree l'enveloppe runtime :
 bootstrap/onboarding, puis s'arrete sur la delegation `implementation` :
 
 - `runId` ;
-- `RepositoryLaunchContext` ;
+- `RepoCapture` ;
 - `WorkflowPolicy` ;
 - hashes JCS des inputs JSON de lancement ;
 - reference vers le run Turnlock ;

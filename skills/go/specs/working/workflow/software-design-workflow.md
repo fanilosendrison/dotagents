@@ -65,7 +65,7 @@ des hashes.
 Le cycle n'est pas linéaire dès qu'une correction est appliquée. Toute mutation
 retourne à `change-snapshot`.
 
-Lors du startup, `run-init` resout le `RepositoryLaunchContext` : repo
+Lors du startup, `run-init` resout le `RepoCapture` : repo
 Git cible, sous-projet optionnel, et symlinks. Si cette cible est absente ou ambigue, `/go` echoue avant
 Turnlock.
 
@@ -87,11 +87,11 @@ cree l'enveloppe runtime : `StateFile<GoRuntimeState>` contenant
 atomique.
 
 `run-init` remplace ensuite `GoBootstrapState` par `WorkflowState` dans
-`StateFile.data` : `RepositoryLaunchContext`, `WorkflowPolicy`, hashes JCS des
+`StateFile.data` : `RepoCapture`, `WorkflowPolicy`, hashes JCS des
 inputs JSON, `artefactRoot`, marqueur d'ownership, chemin de worktree reserve et
 startup task records initiaux.
 
-`run-init` stocke le `RepositoryLaunchContext`, mais ne le decouvre pas lui-meme
+`run-init` stocke le `RepoCapture`, mais ne le decouvre pas lui-meme
 et ne cree pas l'enveloppe runtime Turnlock. Il orchestre ensuite les startup
 tasks internes, dont `workspace-setup` pour materialiser le worktree et
 `project-discovery-finalize` pour produire le `ProjectDiscovery` autoritatif.

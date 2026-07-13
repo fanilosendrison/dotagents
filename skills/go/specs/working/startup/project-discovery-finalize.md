@@ -57,7 +57,7 @@ Inputs obligatoires :
 Inputs optionnels :
 
 - `RepositoryDiscoveryDraft`
-- `projectRoot` (sous-périmètre de projet issu de `WorkSession` ou du launch context)
+- `projectRoot` (sous-périmètre de projet issu de `WorkSession` ou du repo capture)
 - fichiers manifeste du projet
 - scripts declares par le projet
 - lockfiles

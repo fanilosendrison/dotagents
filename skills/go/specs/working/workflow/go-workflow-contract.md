@@ -13,7 +13,7 @@ Documents compagnons :
   outils a reutiliser au lieu de primitives maison.
 - [`software-design-workflow.md`](./software-design-workflow.md) - récit complet
   du cycle `/go`.
-- [`launch-context.md`](../startup/launch-context.md) - contexte parent resolu
+- [`repo-capture.md`](../startup/repo-capture.md) - contexte parent resolu
   avant `run-init`.
 - [`run-init.md`](../startup/run-init.md) - phase Turnlock de
   bootstrap/onboarding, startup tasks internes et premiere delegation.
@@ -122,7 +122,7 @@ produire le meme `WorkflowState` initialise ou echouer ferme.
 Le retry ne doit jamais :
 
 - creer un second `runId` ;
-- changer `RepositoryLaunchContext` ;
+- changer `RepoCapture` ;
 - changer `WorkflowPolicy` ;
 - reutiliser un `artefactRoot` sans ownership marker valide ;
 - transformer un `worktreeRootReservedPath` deja materialise en worktree
@@ -230,7 +230,7 @@ Turnlock execute et persiste cette phase, mais ne l'implemente pas. Le code de
 generique de Turnlock et n'est pas obligatoire pour tous les orchestrateurs
 Turnlock.
 
-Au début de `run-init`, le contexte est résolu en `RepositoryLaunchContext` :
+Au début de `run-init`, le contexte est résolu en `RepoCapture` :
 repo Git cible, sous-projet optionnel, et symlinks. Si ce contexte est absent ou ambigu, `/go` echoue
 avant Turnlock.
 
@@ -461,7 +461,7 @@ nettoie les branches quand les preuves nécessaires sont conservées.
 ## 5. Règles de transition
 
 `run-init` est une phase Turnlock mecanique obligatoire, pas un stage metier. Il
-stocke le `RepositoryLaunchContext` fourni par le parent process dans
+stocke le `RepoCapture` fourni par le parent process dans
 `WorkflowState`, initialise les refs `/go`, execute le bootstrap/onboarding, puis
 emet la delegation `implementation`. L'enveloppe runtime est fournie par
 Turnlock.

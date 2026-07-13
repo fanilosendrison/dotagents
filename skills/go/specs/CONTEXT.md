@@ -63,7 +63,7 @@ quand leur niveau de détail sera suffisant pour construction.
 
 ### Startup
 
-- [`launch-context.md`](./working/startup/launch-context.md)
+- [`repo-capture.md`](./working/startup/repo-capture.md)
   - Resolution parent process du repo cible avant `run-init`.
 - [`run-init.md`](./working/startup/run-init.md)
   - Startup du run, startup branches, joins et projection fail-closed.
