@@ -843,8 +843,8 @@ Regles de retry :
 - si `state.data.runInit` existe deja, que les hashes matchent les inputs de
   resume, et que le `RunInitOwnershipMarker` reference est valide, `run-init`
   retourne l'etat deja initialise sans regenerer de refs ;
-- si `state.data.runInit` existe deja mais que `launchContextHash` ou
-  `workflowPolicyHash` differe, `run-init` echoue ferme ;
+- si `state.data.runInit` existe deja mais que `launchContextHash`, `workflowPolicyHash` ou
+  `captureContextHash` differe, `run-init` echoue ferme ;
 - si `state.data.runInit` existe deja mais que le marker reference est absent,
   illisible ou invalide, `run-init` echoue ferme ou demande une reparation
   explicite au runtime ; il ne doit pas continuer sur l'etat seul ;
