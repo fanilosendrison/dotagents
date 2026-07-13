@@ -190,7 +190,7 @@ Regles :
 
 Responsabilites :
 
-- verifier que `canonicalRepositoryRoot` est un repo Git ;
+- garantir que `canonicalRepositoryRoot` est un repo Git (par verification ou initialisation) ;
 - verifier que la racine Git reelle correspond au contexte parent ;
 - detecter `baseBranch` ;
 - detecter `baseHeadSha` ;
@@ -203,7 +203,6 @@ Responsabilites :
 
 - Aucun chemin cible exploitable : `run-init` echoue avant le workflow.
 - Aucun repo Git trouve : `run-init` assigne le CWD comme `canonicalRepositoryRoot` et délègue l'initialisation à `workspace-setup`.
-- Plusieurs repos Git candidats : `run-init` echoue.
 - `projectRoot` hors repo : `run-init` echoue.
 - Gateway non Git pris comme repo : `run-init` echoue.
 - `RepoCapture` invalide : `run-init` echoue sans transition stable.
