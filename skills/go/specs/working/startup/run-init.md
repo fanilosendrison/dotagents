@@ -108,7 +108,6 @@ Avant `run-init`, le parent process doit resoudre un
 Ce contexte contient :
 
 - le repertoire d'invocation de la session ;
-- les chemins actifs qui ont servi a choisir la cible ;
 - la racine Git canonique cible ;
 - le sous-perimetre projet optionnel ;
 - les hints provider et branche cible ;

@@ -49,7 +49,6 @@ Il repond a la question : **quel repo Git et quel sous-perimetre projet ce run
 Il contient notamment :
 
 - repertoire d'invocation ;
-- chemins actifs ;
 - racine Git canonique cible ;
 - sous-projet optionnel ;
 - hints provider et branche cible ;

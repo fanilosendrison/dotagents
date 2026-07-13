@@ -40,8 +40,6 @@ Il connait deja :
 - le contexte de session ;
 - le prompt utilisateur ;
 - le repertoire courant ou workspace courant ;
-- les fichiers actifs quand le client les expose ;
-- les chemins ouverts dans l'IDE quand le client les expose ;
 - les gateways et symlinks connus du harness.
 
 Le parent process doit resoudre un `RepositoryLaunchContext` avant d'appeler

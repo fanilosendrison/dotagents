@@ -231,7 +231,7 @@ generique de Turnlock et n'est pas obligatoire pour tous les orchestrateurs
 Turnlock.
 
 Avant `run-init`, le parent process resout un `RepositoryLaunchContext` :
-repo Git cible, chemins actifs, sous-projet optionnel, symlinks et hints de
+repo Git cible, sous-projet optionnel, symlinks et hints de
 provider ou branche cible. Si ce contexte est absent ou ambigu, `/go` echoue
 avant Turnlock.
 
