@@ -42,6 +42,8 @@ Ces documents sont normatifs pour construction RED/GREEN.
   - Propagation des tokens Git via `GIT_ASKPASS`.
 - [`ADR-go-mandatory-provider-config-fail-fast.md`](./adr/ADR-go-mandatory-provider-config-fail-fast.md)
   - Validation `ProviderConfig` en première position, fail-fast.
+- [`ADR-go-prerequisite-validation.md`](./adr/ADR-go-prerequisite-validation.md)
+  - Fusion ProviderConfig + Git version check dans `prerequisite-validation`.
 - [`ADR-go-implicit-repo-capture-control.md`](./adr/ADR-go-implicit-repo-capture-control.md)
   - Résolution implicite du dépôt cible depuis le terminal (pas de magie IDE).
 - [`ADR-go-repo-capture-robustness.md`](./adr/ADR-go-repo-capture-robustness.md)

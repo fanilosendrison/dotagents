@@ -34,7 +34,7 @@ Cette bootstrap task ne produit aucun code applicatif.
 ```text
 run-init
 │
-├─ provider-config-validation (séquentiel)
+├─ prerequisite-validation (séquentiel)
 │       ↓
 ├─ repo-capture (séquentiel)
 │       ↓
@@ -199,7 +199,8 @@ stratégie sandbox délègue le nettoyage à la destruction du conteneur.
 
 - `load-dirty-state-capture-artifact`
 - `verify-canonical-repository`
-- `initialize-git-repo-and-remote` (si dépôt vide)
+- `initialize-git-repo-and-remote` (si dépôt vide ; suppose Git ≥ 2.18
+  validé par `prerequisite-validation`)
 - `determine-base-git-pointers` (`baseHeadSha`, `baseBranch`,
   `defaultTargetBranch`)
 - `create-work-branch`

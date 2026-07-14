@@ -259,7 +259,7 @@ partie de la phase Turnlock `run-init`.
 ```text
 run-init
 │
-├─ provider-config-validation (séquentiel)
+├─ prerequisite-validation (séquentiel)
 │       ↓
 ├─ repo-capture (sequentiel)
 │       ↓
@@ -499,7 +499,7 @@ Dans `run-init`, le demarrage nominal est :
 ```text
 run-init
 │
-├─ provider-config-validation (séquentiel)
+├─ prerequisite-validation (séquentiel)
 │       ↓
 ├─ repo-capture (sequentiel)
 │       ↓

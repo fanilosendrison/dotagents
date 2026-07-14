@@ -83,7 +83,7 @@ dans le `WorkflowState` donne a Turnlock avec la delegation `implementation`.
 
 ```ts
 type BootstrapTaskName =
-  | "provider-config-validation"
+  | "prerequisite-validation"
   | "repo-capture"
   | "dirty-state-capture"
   | "run-capture"
@@ -653,7 +653,7 @@ type BusinessArtifactRecord = {
 
 ```ts
 type BusinessArtifactKind =
-  | "provider-config-validation"
+  | "prerequisite-validation"
   | "repo-capture"
   | "dirty-state-capture"
   | "run-capture"
@@ -688,7 +688,7 @@ export const businessArtifactRecordSchema = z.object({
   id: z.string().min(1),
   unit: z.string().min(1),
   kind: z.enum([
-    "provider-config-validation",
+    "prerequisite-validation",
     "repo-capture",
     "run-capture",
     "repository-discovery-draft",

@@ -26,7 +26,7 @@ Produire un `RunCaptureArtifact` mécanique contenant :
 ```text
 run-init
 │
-├─ provider-config-validation (séquentiel)
+├─ prerequisite-validation (séquentiel)
 │       ↓
 ├─ repo-capture (séquentiel)
 │       ↓

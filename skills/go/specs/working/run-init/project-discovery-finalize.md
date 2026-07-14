@@ -21,7 +21,7 @@ Le résultat durable de cette validation est l'artefact `ProjectDiscovery`.
 ```text
 run-init
 │
-├─ provider-config-validation (séquentiel)
+├─ prerequisite-validation (séquentiel)
 │       ↓
 ├─ repo-capture (séquentiel)
 │       ↓

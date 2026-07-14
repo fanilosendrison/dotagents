@@ -115,7 +115,7 @@ Primitives externes :
 
 Configuration `/go` associee :
 
-- [`ProviderConfig`](../run-init/provider-config-validation.md) : token, username et
+- [`ProviderConfig`](../run-init/prerequisite-validation.md) : token, username et
   preferences fournisseur configures une fois a l'installation de `/go`.
 
 Role de `/go` :

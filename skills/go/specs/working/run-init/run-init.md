@@ -36,9 +36,9 @@ Dans `run-init`, le graphe nominal est :
 ```text
 run-init
 │
-├─ provider-config-validation (sequentiel)
+├─ prerequisite-validation (séquentiel)
 │       ↓
-├─ repo-capture (sequentiel)
+├─ repo-capture (séquentiel)
 │       ↓
 ├─ dirty-state-capture (sequentiel, host-side only)
 │       │
@@ -104,7 +104,7 @@ Les trois bootstrap tasks suivantes s'executent en parallele une fois
 - **`workspace-setup`** : prepare le worktree Git prive et produit
   `WorkSession`. Contrat dans [`workspace-setup.md`](./workspace-setup.md).
   Si le depot n'existe pas encore, l'initialise et le connecte a un
-  repo distant via [`ProviderConfig`](./provider-config-validation.md).
+  repo distant via [`ProviderConfig`](./prerequisite-validation.md).
 - **`repo-discovery-draft`** : lit le dépôt source pour decouvrir les
   commandes et capacites du repo, pendant que le worktree est cree. Ce
   resultat n'est qu'un brouillon. De plus, `repo-discovery-draft` ne doit pas
@@ -376,9 +376,9 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
     "currentStage": "implementation",
     "bootstrapTasks": [
       {
-        "task": "provider-config-validation",
+        "task": "prerequisite-validation",
         "status": "passed",
-        "businessArtifactIds": ["provider-config-validation:<id>"],
+        "businessArtifactIds": ["prerequisite-validation:<id>"],
         "requiredBefore": ["repo-capture"]
       },
       {
@@ -596,9 +596,9 @@ Disposition normative :
 runDir/artefactRoot/
 ├── run-init-ownership.json
 ├── startup/
-│   ├── provider-config-validation/
+│   ├── prerequisite-validation/
 │   │   ├── task-record.json
-│   │   └── provider-config.json
+│   │   └── prerequisite-validation.json
 │   ├── repo-capture/
 │   │   ├── task-record.json
 │   │   └── repo-capture.json
@@ -671,7 +671,7 @@ persistance atomique. Turnlock est la primitive autoritative.
 
 `ProviderConfig` est une configuration statique fournie a l'installation de
 `/go` et non une primitive runtime. Contrat dans
-[`provider-config-validation.md`](./provider-config-validation.md).
+[`prerequisite-validation.md`](./prerequisite-validation.md).
 
 ---
 
@@ -690,7 +690,7 @@ type BootstrapTaskCheckpoint = {
   schema: "go.startup-task-checkpoint.v1";
   runId: string;
   task:
-    | "provider-config-validation"
+    | "prerequisite-validation"
     | "repo-capture"
     | "dirty-state-capture"
     | "run-capture"

@@ -22,7 +22,7 @@ La capture garantit que le run a une cible unique et valide avant le démarrage 
 ```text
 run-init
 │
-├─ provider-config-validation (séquentiel)
+├─ prerequisite-validation (séquentiel)
 │       ↓
 ├─ repo-capture (séquentiel)
 │       ↓

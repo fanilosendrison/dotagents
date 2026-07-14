@@ -104,7 +104,7 @@ protocole §1.7.a-c avant de continuer.
    empêche `git worktree prune` manuel ou automatique de supprimer un
    worktree actif.
 
-### 1.4bis Initialisation post-checkout dans le workspace
+### 1.4bis Initialisation après création du workspace
 
 Après création réussie du workspace, exécuter dans l'ordre, depuis
 `workspaceRoot` :
@@ -243,19 +243,20 @@ conteneur.
 ### 2.3 Prérequis Git
 La stratégie worktree nécessite :
 - Git ≥ 2.18 pour `git worktree remove --force`
-- Git ≥ 2.31 pour `git worktree repair` (requis en mode diagnostic
-  `skipSetup: true`)
+- Git ≥ 2.31 pour `git worktree repair` (mode diagnostic)
 
-`workspace-setup` doit vérifier la version de Git (`git --version`) au
-démarrage et lever `errored` si la version minimale (2.18) n'est pas
-satisfaite.
+Ces versions minimales sont validées par `run-init` via la bootstrap task
+`prerequisite-validation`, avant toute tâche utilisant Git.
+`workspace-setup` suppose cette précondition satisfaite et ne re-vérifie
+pas.
 
 ---
 
 ## 3. Opérations internes
 
 - `verify-canonical-repository`
-- `initialize-git-repo-and-remote` (si dépôt vide)
+- `initialize-git-repo-and-remote` (si dépôt vide ; suppose Git ≥ 2.18
+  validé par `prerequisite-validation`)
 - `determine-base-git-pointers` (`baseHeadSha`, `baseBranch`,
   `defaultTargetBranch`)
 - `create-work-branch`
@@ -300,7 +301,6 @@ satisfaite.
 | 1.7.5.c | `git worktree prune` échoue | `errored` | Arrêt — corruption du dépôt principal |
 | 1.7.5.d | Dossier résiduel persiste après 1.7.5.b et 1.7.5.c | `errored` | Arrêt — conflit de chemin non résolu |
 | 1.7.5.e | `git worktree list` référence encore `workspaceRoot` après nettoyage | `errored` | Arrêt — corruption non résolue |
-| 2.3 | Version Git < 2.18 | `errored` | Arrêt — prérequis non satisfait |
 
 ---
 

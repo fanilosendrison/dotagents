@@ -24,7 +24,7 @@ Produire un `RepositoryDiscoveryDraft` contenant :
 ```text
 run-init
 │
-├─ provider-config-validation (séquentiel)
+├─ prerequisite-validation (séquentiel)
 │       ↓
 ├─ repo-capture (séquentiel)
 │       ↓

@@ -30,7 +30,7 @@ avant le bloc parallèle (`run-capture`, `workspace-setup`,
 ```text
 run-init
 │
-├─ provider-config-validation (séquentiel)
+├─ prerequisite-validation (séquentiel)
 │       ↓
 ├─ repo-capture (séquentiel)
 │       ↓
