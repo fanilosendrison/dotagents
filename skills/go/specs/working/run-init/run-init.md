@@ -84,10 +84,10 @@ Les trois bootstrap tasks suivantes s'executent en parallele une fois
   `WorkSession`. Contrat dans [`workspace-setup.md`](./workspace-setup.md).
   Si le depot n'existe pas encore, l'initialise et le connecte a un
   repo distant via [`ProviderConfig`](./provider-config.md).
-- **`repo-discovery-draft`** : lit le checkout source pour decouvrir les
+- **`repo-discovery-draft`** : lit le dépôt source pour decouvrir les
   commandes et capacites du repo, pendant que le worktree est cree. Ce
   resultat n'est qu'un brouillon. De plus, `repo-discovery-draft` ne doit pas
-  executer de commandes Git sur le checkout source. Elle lit uniquement des
+  executer de commandes Git sur le dépôt source. Elle lit uniquement des
   fichiers. Si un fichier ou dossier (comme `.git/`) est absent parce que
   `workspace-setup` est en cours d'initialisation parallele, la branche
   traite cette absence comme une information manquante (draft incomplet) et ne
@@ -675,9 +675,9 @@ Regles :
 Sur retry de `run-init` :
 
 - checkpoint terminal valide et hashes compatibles :
-  - Pour `workspace-setup` : deleguer systematiquement la tache en mode
-    `validate` pour verifier l'etat physique du depot Git (reparer/pruner si
-    necessaire).
+  - Pour `workspace-setup` : deleguer systematiquement la tache avec
+    `skipSetup: true` pour verifier l'etat physique du depot Git
+    (reparer/pruner si necessaire).
   - Pour les autres bootstrap tasks : adopter directement.
 - checkpoint absent : relancer la bootstrap task ;
 - checkpoint partiel ou temporaire : ignorer ou mettre en quarantaine, puis
@@ -729,7 +729,7 @@ Regles de retry :
 - si `artefactRootRef` existe sans ownership marker verifiable : echoue ferme
   ou quarantaine explicite ;
 - si `worktreeRootReservedPath` existe comme checkout Git physique : adoption
-  depend du diagnostic de `workspace-setup` en mode `validate` (branche, lien
+  depend du diagnostic de `workspace-setup` avec `skipSetup: true` (branche, lien
   `.git`, `baseHeadSha`) ; si invalide, nettoye et recree ;
 - si `worktreeRootReservedPath` existe comme placeholder vide reference par
   l'ownership marker du meme `runId` : adoption possible ;

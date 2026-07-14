@@ -22,7 +22,7 @@ Cette bootstrap task ne produit aucun code applicatif.
 - `WorkflowPolicy.dirtyState`
 - `artefactRoot` reserve par `run-init`
 - `worktreeRoot` reserve par `run-init`
-- `mode` ("execute" | "validate", default: "execute")
+- `skipSetup` (`boolean`, default: `false`)
 
 ---
 
@@ -33,7 +33,6 @@ Evidence JSON principale :
 ```ts
 type WorkspaceSetupEvidence = {
   workSession: WorkSession;
-  sourceStatusBeforeSetup: string;
   dirtyStateAdoption?: DirtyStateAdoption;
   createdDirectories: string[];
   worktreeProjectRoot?: string;
@@ -84,11 +83,11 @@ Si `ProviderConfig` est absent alors qu'un `git init` est necessaire, echec
 
 ### 4.4 Dirty state
 
-1. Lire le dirty state du checkout source (`git status --porcelain`)
+1. Lire le dirty state du dépôt source (`git status --porcelain`)
 2. Si le worktree source est clean → continuer
 3. Si `WorkflowPolicy.dirtyState.mode` refuse le dirty state → `failed`
 4. Si adoption autorisee :
-   - Capturer le dirty state (fichiers tracked et untracked) comme patch de maniere isolee sans alterer l'index reel du checkout source :
+   - Capturer le dirty state (fichiers tracked et untracked) comme patch de maniere isolee sans alterer l'index reel du dépôt source :
      ```bash
      TMP=$(mktemp)
      GIT_INDEX_FILE="$TMP" git read-tree HEAD
@@ -120,18 +119,18 @@ Si le patch ne s'applique pas proprement → `failed`.
 2. Ecrire `WorkSession` (artefact metier valide par schema)
 3. Persister `WorkflowExecutionRecord`
 
-### 4.8 Retry & Validation Mode
+### 4.8 Retry
 
-Le comportement de cette etape depend de la valeur de `mode` fournie en input :
+Le comportement de cette etape depend de la valeur de `skipSetup` :
 
-#### 4.8.1 Mode `validate`
-Si `mode` vaut `"validate"`, le pipeline est execute pour verifier l'integrite sans recreer le worktree depuis zero :
+#### 4.8.1 `skipSetup = true`
+Si `skipSetup` vaut `true`, le pipeline est execute pour verifier l'integrite sans recreer le worktree depuis zero :
 - Les etapes 4.2 (initialisation) et 4.5 (creation du worktree) sont ignorees.
 - L'etape 4.1 est executee avec des verifications assouplies : verifier uniquement que le chemin `worktreeRoot` est bien contenu dans le dossier du run et ne rentre pas en conflit avec un autre run, sans imposer que la racine Git de la source y soit resolue ou accessible.
 - Si le worktree ou la branche `work/<runId>` n'existe pas, ou si des incoherences majeures de configuration sont detectees, lever une erreur sans tenter de suppression ou reconstruction.
 
-#### 4.8.2 Mode `execute` (avec `worktreeRoot` preexistant)
-Si `worktreeRoot` existe deja lors d'un retry en mode `"execute"` :
+#### 4.8.2 `skipSetup = false` (avec `worktreeRoot` preexistant)
+Si `worktreeRoot` existe deja lors d'un retry avec `skipSetup = false` :
 
 1. Verifier que le lien `.git` dans le worktree est valide.
 2. Verifier que la branche `work/<runId>` existe dans Git.
@@ -153,7 +152,7 @@ Si `worktreeRoot` existe deja lors d'un retry en mode `"execute"` :
 
 ### 5.1 Worktree physique obligatoire
 
-Le run ne travaille pas dans le checkout source. Une simple branche ne suffit
+Le run ne travaille pas dans le dépôt source. Une simple branche ne suffit
 pas.
 
 ### 5.2 Artefacts hors worktree
@@ -167,10 +166,10 @@ Les artefacts du harness et du workflow ne doivent pas rendre le worktree dirty.
 ### 5.4 Dirty state adopte
 
 Un dirty state adopte n'est pas une permission vague de travailler dans le
-checkout source. Il devient un input du run seulement si `workspace-setup` peut
+dépôt source. Il devient un input du run seulement si `workspace-setup` peut
 produire `DirtyStateAdoption` :
 
-- `git status --porcelain` du checkout source capture comme evidence
+- `git status --porcelain` du dépôt source capture comme evidence
 - patch (capture isole via index temporaire, cf. 4.4)
 - hash du patch
 - replay du patch dans le worktree prive
@@ -197,7 +196,7 @@ worktree prive.
 `workspace-setup` produit le premier artefact autoritatif pour les preuves Git :
 `WorkSession`.
 
-Les bootstrap tasks de discovery qui ont lu le checkout source avant la creation
+Les bootstrap tasks de discovery qui ont lu le dépôt source avant la creation
 du worktree doivent etre finalisees contre ce `WorkSession` avant de produire un
 `ProjectDiscovery` autoritatif.
 
