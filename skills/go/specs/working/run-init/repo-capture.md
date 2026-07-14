@@ -44,7 +44,7 @@ Aucune tâche parallèle de démarrage (notamment `workspace-setup`) ne peut dé
 
 ## 4. Outputs
 
-Le produit de cette tâche est l'artefact `RepoCapture` projeté dans le `WorkflowState` :
+Le produit de cette tâche est l'artefact `RepoCapture`, écrit physiquement sous `artefactRoot/startup/repo-capture/repo-capture.json` pour archivage et reprise en cas d'interruption du run, puis projeté dans le `WorkflowState` :
 
 ```ts
 type RepoCapture = {

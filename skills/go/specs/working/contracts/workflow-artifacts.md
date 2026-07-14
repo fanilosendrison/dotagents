@@ -443,6 +443,7 @@ type RepositoryContext = {
   provider?: "github" | "gitlab" | "local-only";
   remoteName?: string;
   defaultTargetBranch: string;
+  apiEndpoint?: string;
 };
 ```
 

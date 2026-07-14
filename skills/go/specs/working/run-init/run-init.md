@@ -366,6 +366,7 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
       "projectRoot": "<optional-project-root>",
       "worktreeProjectRoot": "<optional-worktree-relative-path>",
       "provider": "github",
+      "apiEndpoint": "https://api.github.com",
       "remoteName": "origin",
       "defaultTargetBranch": "main"
     },
@@ -586,6 +587,12 @@ Disposition normative :
 runDir/artefactRoot/
 ├── run-init-ownership.json
 ├── startup/
+│   ├── provider-config-validation/
+│   │   ├── task-record.json
+│   │   └── provider-config.json
+│   ├── repo-capture/
+│   │   ├── task-record.json
+│   │   └── repo-capture.json
 │   ├── run-capture/
 │   │   ├── task-record.json
 │   │   ├── output.json
