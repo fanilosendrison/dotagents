@@ -385,7 +385,7 @@ type RepositoryDiscoveryDraft = {
   schema: "go.repository-discovery-draft.v1";
   id: string;
   runId: string;
-  sourceCheckoutRoot: string;
+  sourceRepo: string;
   inspectedAt: string;
   inspectedFiles: InspectedFileRef[];
   candidatePackageManager?:
@@ -457,7 +457,7 @@ Produit par la bootstrap task `workspace-setup`.
 type WorkSession = {
   runId: string;
   repositoryRoot: string;
-  sourceCheckoutRoot: string;
+  sourceRepo: string;
   worktreeRoot: string;
   worktreeProjectRoot?: string;
   artefactRoot: string;
@@ -466,7 +466,6 @@ type WorkSession = {
   baseRemote?: string;
   defaultTargetBranch: string;
   initialDirtyState: "clean" | "dirty-adopted";
-  initialStatusPorcelain: string;
   dirtyStateAdoption?: DirtyStateAdoption;
   workBranch: `work/${string}`;
   workBranchCreatedAt: string;
@@ -487,7 +486,7 @@ type DirtyStateAdoption = {
 ```
 
 Si `initialDirtyState` vaut `"dirty-adopted"`, `dirtyStateAdoption` est
-obligatoire. L'adoption signifie que le dirty state du checkout source est
+obligatoire. L'adoption signifie que le dirty state du dépôt source est
 capture comme patch, hashe, puis rejoue dans le worktree prive avant toute
 delegation agentique.
 

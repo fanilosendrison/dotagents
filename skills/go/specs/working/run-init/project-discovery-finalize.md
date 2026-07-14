@@ -8,7 +8,7 @@ verifie.
 Ce bootstrap join synchronise :
 
 - `workspace-setup`, qui produit `WorkSession` ;
-- `repo-discovery-draft`, qui peut avoir inspecte le checkout source en
+- `repo-discovery-draft`, qui peut avoir inspecte le dépôt source en
   parallele.
 
 ---
@@ -128,7 +128,7 @@ Evidence typiques :
 ## 6. `repo-discovery-draft`
 
 `repo-discovery-draft` est une bootstrap branch. Elle lit le
-checkout source en lecture seule pendant que `workspace-setup` peut creer le
+dépôt source en lecture seule pendant que `workspace-setup` peut creer le
 worktree.
 
 Elle peut inspecter :
@@ -189,7 +189,7 @@ Dans le cas d'un rerun depuis le worktree, `ProjectDiscovery.source` vaut
   `WorkflowPolicy.discovery.noReliableGateBehavior` ou `WorkflowPolicy.gates`
   l'exige.
 - Ne jamais rendre autoritatif un draft non prouve contre `WorkSession`.
-- Ne jamais utiliser le checkout source comme `workingDirectory` des gates
+- Ne jamais utiliser le dépôt source comme `workingDirectory` des gates
   finales.
 
 Les primitives externes attendues sont listees dans

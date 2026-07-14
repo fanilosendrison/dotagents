@@ -1,6 +1,6 @@
 # Startup branch `repo-discovery-draft`
 
-`repo-discovery-draft` inspecte le checkout source en lecture seule pendant que
+`repo-discovery-draft` inspecte le dépôt source en lecture seule pendant que
 `workspace-setup` peut creer le worktree physique prive.
 
 Cette branche produit un brouillon non autoritatif. Elle accelere le demarrage,
@@ -44,7 +44,7 @@ project-discovery-finalize
 
 - `runId` fourni par Turnlock et stocke par `run-init` ;
 - repository source ;
-- checkout source ;
+- dépôt source ;
 - `artefactRoot` reserve par `run-init` ;
 - `WorkflowPolicy.discovery` ;
 - `projectRoot` (optionnel, sous-périmètre de projet cible issu de `RepoCapture`).
@@ -60,7 +60,7 @@ type RepositoryDiscoveryDraft = {
   schema: "go.repository-discovery-draft.v1";
   id: string;
   runId: string;
-  sourceCheckoutRoot: string;
+  sourceRepo: string;
   inspectedAt: string;
   inspectedFiles: InspectedFileRef[];
   candidatePackageManager?:
@@ -99,7 +99,7 @@ Elle ne doit pas executer les checks lourds et ne doit pas installer d'outils.
 
 ## 6. Regles d'autorite
 
-Le draft n'est pas autoritatif parce qu'il est lu depuis le checkout source,
+Le draft n'est pas autoritatif parce qu'il est lu depuis le dépôt source,
 pas depuis le worktree prive du run.
 
 Il devient consommable seulement si `project-discovery-finalize` prouve que les

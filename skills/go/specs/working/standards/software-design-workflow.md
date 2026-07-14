@@ -133,7 +133,7 @@ capture de session s'ecrit.
 ### Startup branch: `repo-discovery-draft`
 
 Le workflow ne doit pas inventer les commandes de check. Une premiere discovery
-peut lire le checkout source pendant que le worktree prive est cree :
+peut lire le dépôt source pendant que le worktree prive est cree :
 
 - manifestes ;
 - lockfiles ;

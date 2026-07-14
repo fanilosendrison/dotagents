@@ -290,7 +290,7 @@ Cette bootstrap task est la frontière de départ de toutes les preuves de diff.
 
 #### 4.1.3 `repo-discovery-draft`
 
-Inspecte le checkout source en lecture seule pour detecter manifestes,
+Inspecte le dépôt source en lecture seule pour detecter manifestes,
 lockfiles, scripts, configs et capacites provider candidates.
 
 Cette bootstrap branch produit un brouillon non autoritatif. Elle peut s'executer
