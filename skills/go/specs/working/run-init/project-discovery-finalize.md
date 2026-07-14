@@ -1,76 +1,61 @@
-# Startup join `project-discovery-finalize`
+# Startup task `project-discovery-finalize`
 
-`project-discovery-finalize` produit le `ProjectDiscovery` autoritatif du run.
-Il ne se contente pas de lire des manifestes : il prouve que les commandes de
-gates retenues correspondent au worktree physique prive qui sera modifie et
-verifie.
+`project-discovery-finalize` produit le `ProjectDiscovery` autoritatif du run. Il ne se contente pas de lire des manifestes : il prouve que les commandes de gates retenues correspondent au worktree physique privé qui sera modifié et vérifié.
 
-Ce bootstrap join synchronise :
-
-- `workspace-setup`, qui produit `WorkSession` ;
-- `repo-discovery-draft`, qui peut avoir inspecte le dépôt source en
-  parallele.
+Cette bootstrap task agit comme un join synchronisant la tâche `workspace-setup` (qui produit `WorkSession`) et la tâche `repo-discovery-draft` (qui pré-analyse le dépôt source).
 
 ---
 
 ## 1. Objectif
 
-Produire une matrice de gates mecaniques adaptee au repo, validee contre le
-worktree prive du run.
+Produire une matrice de gates mécaniques adaptée au dépôt, validée directement contre le worktree privé et isolé du run. 
 
-Le resultat durable est `ProjectDiscovery`.
+Le résultat durable de cette validation est l'artefact `ProjectDiscovery`.
 
 ---
 
 ## 2. Position dans le workflow
 
-Demarrage nominal :
+`project-discovery-finalize` est le bootstrap join de la phase `run-init`. Elle s'exécute immédiatement après la complétion de `workspace-setup` et `repo-discovery-draft`.
 
 ```text
 run-init
-├─ repo-discovery-draft
-└─ workspace-setup
-       ↓
-project-discovery-finalize
-       ↓
-delegate implementation
-       ↓ resumeAt
-implementation-settlement
+│
+├─ provider-config-validation (séquentiel)
+│       ↓
+├─ repo-capture (séquentiel)
+│       │
+│       ├─ run-capture (parallèle)
+│       ├─ workspace-setup (parallèle) ──┐
+│       └─ repo-discovery-draft (parallèle)
+│                  │                      │
+│                  └──────────┬───────────┘
+│                             ↓
+│                 project-discovery-finalize
+│                             │
+│                             ↓
+│                 delegate implementation
 ```
 
-`repo-discovery-draft` peut commencer avant `workspace-setup`, mais
-`project-discovery-finalize` ne peut finaliser qu'apres `WorkSession`. Toute
-cette sequence est interne a la phase Turnlock `run-init`.
+Elle s'exécute de manière bloquante : la délégation de l'étape `implementation` ne peut pas être émise tant que `project-discovery-finalize` n'a pas validé et publié la matrice de checks définitive.
 
 ---
 
 ## 3. Inputs
 
-Inputs obligatoires :
-
-- `WorkSession`
-- worktree physique prive (`worktreeRoot`)
-- artefact root prive (`artefactRoot`)
-- `WorkflowPolicy.discovery`
-- `WorkflowPolicy.gates`
-
-Inputs optionnels :
-
-- `RepositoryDiscoveryDraft`
-- `projectRoot` (sous-périmètre de projet issu de `WorkSession` ou du repo capture)
-- fichiers manifeste du projet
-- scripts declares par le projet
-- lockfiles
-- configs de tooling
-
-Si aucun `RepositoryDiscoveryDraft` valide n'est disponible, ce join peut
-relancer la discovery depuis `worktreeRoot`.
+- `WorkSession` (générée par `workspace-setup`).
+- `worktreeRoot` (chemin physique résolu du worktree isolé).
+- `artefactRoot` (répertoire réservé aux preuves).
+- `WorkflowPolicy.discovery` (règles de découverte).
+- `WorkflowPolicy.gates` (règles des gates mécaniques).
+- `RepositoryDiscoveryDraft` (optionnel, produit par `repo-discovery-draft`).
+- `projectRoot` (optionnel, sous-périmètre de projet issu de `WorkSession`).
 
 ---
 
 ## 4. Outputs
 
-Artefact metier :
+Artefact métier écrit sous `artefactRoot/startup/project-discovery-finalize/project-discovery.json` :
 
 ```ts
 type ProjectDiscovery = {
@@ -95,132 +80,83 @@ type ProjectDiscovery = {
 };
 ```
 
-Evidence typiques :
-
-- manifestes detectes ;
-- lockfiles detectes ;
-- fichiers inspectes et hashes ;
-- scripts disponibles ;
-- commandes candidates ;
-- commandes retenues ;
-- commandes requises ou optionnelles ;
-- justification de fallback si le draft est invalide.
+Fichiers de preuves (dans le sous-dossier `project-discovery-finalize/`) contenant les manifestes détectés, commandes candidates rejetées et résultats de discovery. Cette tâche produit également un `WorkflowExecutionRecord` d'audit.
 
 ---
 
-## 5. Responsabilites
+## 5. Pipeline
 
-- Verifier la presence du worktree prive.
-- Valider que les chemins de commande pointent vers `worktreeRoot` (ou sous `projectRoot` si spécifié).
-- Valider que les evidence refs pointent sous `artefactRoot`.
-- Detecter ou finaliser le package manager.
-- Detecter ou finaliser les lockfiles.
-- Detecter ou finaliser les scripts de format, lint, typecheck, tests et build.
-- Filtrer et limiter la matrice de commandes mécaniques pour cibler en priorité le périmètre de `projectRoot` si spécifié.
-- Detecter les scans disponibles.
-- Detecter le provider Git distant si possible.
-- Detecter si les PRs peuvent etre ouvertes automatiquement.
-- Ecrire la matrice `MechanicalCheckDefinition[]`.
-- Produire un `WorkflowExecutionRecord` durable.
+Le pipeline de finalisation exécute les opérations suivantes :
 
----
+### 5.1 Vérification des prérequis
+S'assurer que la `WorkSession` et le répertoire physique du worktree privé `worktreeRoot` sont bien présents et accessibles.
 
-## 6. `repo-discovery-draft`
+### 5.2 Comparaison et finalisation du draft
+Si un `RepositoryDiscoveryDraft` est fourni :
+1. Pour chaque fichier du draft (`inspectedFiles`), vérifier sa présence sous `worktreeRoot`.
+2. Calculer le hash SHA256 de ces fichiers dans le worktree et s'assurer qu'ils correspondent exactement à ceux du draft.
+3. Valider que les commandes candidates peuvent s'exprimer avec un `workingDirectory` pointant dans le worktree.
+4. Si les hashes correspondent, le draft est finalisé. `ProjectDiscovery.source` est défini à `"draft-finalized"`.
 
-`repo-discovery-draft` est une bootstrap branch. Elle lit le
-dépôt source en lecture seule pendant que `workspace-setup` peut creer le
-worktree.
+### 5.3 Redécouverte (Rerun)
+Si le draft est absent, invalide, ou que les hashes ne correspondent pas :
+1. Si `WorkflowPolicy.discovery.allowWorktreeRerun` est `false`, lever une erreur `failed`.
+2. Si autorisé, relancer l'analyse complète (discovery) directement depuis le répertoire `worktreeRoot`.
+3. Produire la matrice de commandes et définir `ProjectDiscovery.source` à `"worktree-rerun"`.
 
-Elle peut inspecter :
-
-- `package.json` ;
-- lockfiles ;
-- configs de lint, format, typecheck et test ;
-- fichiers de workspace ;
-- configuration Git remote ;
-- scripts declares par le projet.
-
-Elle produit `RepositoryDiscoveryDraft`.
-
-Ce draft n'est pas autoritatif. Il accelere `project-discovery-finalize`, mais
-il ne suffit pas a definir les gates.
+### 5.4 Filtrage et persistance
+1. Filtrer et limiter les commandes de checks en fonction du sous-périmètre `projectRoot` et des obligations de la policy `WorkflowPolicy.gates`.
+2. Écrire le fichier final `project-discovery.json` et persister le `WorkflowExecutionRecord`.
 
 ---
 
-## 7. Finalisation du draft
+## 6. Règles & Invariants
 
-Quand un draft existe, `project-discovery-finalize` doit verifier :
+### 6.1 Non-modification du dépôt
+La finalisation ne doit en aucun cas modifier le code du dépôt ou écrire dans le worktree privé. Les fichiers d'évidences ou de rapports doivent être écrits exclusivement dans `artefactRoot`.
 
-- chaque fichier requis par `inspectedFiles` existe dans `worktreeRoot` ;
-- le hash du fichier dans le worktree correspond au hash du draft ;
-- les commandes candidates peuvent etre exprimees avec
-  `workingDirectory: worktreeRoot` (ou sous `projectRoot` si spécifié) ;
-- si un `projectRoot` est spécifié, valider que les fichiers inspectés et les commandes filtrées correspondent à ce sous-périmètre de projet ;
-- les commandes retenues sont des argv, pas des chaines shell concatenees ;
-- aucun evidence ref ne pointe dans le worktree ;
-- `WorkflowPolicy.gates` autorise les gates retenues.
+### 6.2 Priorité aux scripts locaux
+La discovery doit préférer les scripts et configurations déclarés par le projet (ex: scripts `package.json`, tâches `cargo`, configs de linter locales) aux conventions génériques du harness.
 
-Si toutes les preuves matchent, le `ProjectDiscovery.source` vaut
-`"draft-finalized"`.
+### 6.3 Outils et resolveurs officiels
+Pour analyser les dépendances et structures du projet, la tâche doit privilégier les commandes et APIs officielles des gestionnaires de paquets (ex: `cargo metadata`, `go list -json`) et rejeter les parseurs "maison" de fichiers de verrouillage.
 
-Si une preuve ne matche pas, le join doit choisir entre :
-
-- relancer la discovery depuis `worktreeRoot`, si
-  `WorkflowPolicy.discovery.allowWorktreeRerun` l'autorise ;
-- echouer ferme.
-
-Dans le cas d'un rerun depuis le worktree, `ProjectDiscovery.source` vaut
-`"worktree-rerun"`.
+### 6.4 Frontière de validation du draft
+Un draft n'a aucune autorité. Il n'est adopté que si sa conformité physique par rapport aux fichiers du worktree est formellement prouvée par la correspondance des hashes.
 
 ---
 
-## 8. Regles
+## 7. Opérations internes typiques
 
-- Ne pas installer de nouveaux outils.
-- Ne pas modifier le repo.
-- Ne pas executer les checks lourds ; seulement decouvrir.
-- Preferer les scripts du projet aux conventions generiques.
-- Preferer les CLIs et formats officiels du langage ou du package manager aux
-  parseurs maison : par exemple `cargo metadata`, `go list -json`, commandes du
-  package manager, scripts declares et parsers adaptes au format.
-- Ne pas reimplementer un resolver de dependances, un parser de lockfile
-  complexe ou un systeme de workspace quand l'outil du domaine peut le decrire.
-- Echouer ferme si aucun moyen fiable de verifier le projet n'existe et que
-  `WorkflowPolicy.discovery.noReliableGateBehavior` ou `WorkflowPolicy.gates`
-  l'exige.
-- Ne jamais rendre autoritatif un draft non prouve contre `WorkSession`.
-- Ne jamais utiliser le dépôt source comme `workingDirectory` des gates
-  finales.
-
-Les primitives externes attendues sont listees dans
-[`external-primitives.md`](../standards/external-primitives.md).
+- `load-work-session`
+- `load-repository-discovery-draft`
+- `validate-draft-file-hashes-against-worktree`
+- `rerun-discovery-from-worktree-if-needed`
+- `build-mechanical-gate-matrix`
+- `write-discovery-evidence`
+- `persist-execution-record`
 
 ---
 
-## 9. Operations internes typiques
+## 8. Failure modes
 
-```text
-load-work-session
-load-repository-discovery-draft
-validate-draft-file-hashes-against-worktree
-rerun-discovery-from-worktree-if-needed
-build-mechanical-gate-matrix
-write-discovery-evidence
-persist-execution-record
-```
+| Pipeline | Cause de l'échec | Statut du run | Action corrective / comportement |
+|---|---|---|---|
+| 5.1 | `WorkSession` absent ou illisible | `errored` | Arrêt de la tâche |
+| 5.1 | Répertoire physique `worktreeRoot` introuvable | `errored` | Arrêt de la tâche |
+| 5.2/5.3 | Draft incohérent (hashes différents) et rerun non autorisé | `failed` | Arrêt de la phase |
+| 5.3 | Aucun check de validation fiable détecté alors que requis par la policy | `failed` | Arrêt |
+| 5.4 | Commande candidate détectée impossible à exprimer sous forme d'argv | `failed` | Arrêt |
+| 5.4 | Fichiers d'évidence écrits hors de l'`artefactRoot` | `errored` | Arrêt de sécurité |
+| 5.4 | Artefact JSON produit invalide selon son schéma | `errored` | Arrêt |
 
 ---
 
-## 10. Failure modes
+## 9. Non-goals
 
-- `WorkSession` absent : `errored`.
-- Worktree introuvable : `errored`.
-- Draft invalide et rerun non autorise : `failed`.
-- Aucun check fiable detecte alors que `WorkflowPolicy` exige des gates :
-  `failed`.
-- Commande candidate non representable en argv : `failed`.
-- Evidence hors `artefactRoot` : `errored`.
-- Artefact `ProjectDiscovery` invalide : `errored`.
+- Installer ou mettre à jour des compilateurs, linters ou runtimes locaux.
+- Exécuter la suite de tests ou les scripts de formatage (les commandes sont uniquement recensées, pas lancées).
+- Valider la PR, le remote ou publier du code.
 
 ---
 

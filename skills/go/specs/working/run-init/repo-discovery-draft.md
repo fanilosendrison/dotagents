@@ -1,59 +1,59 @@
-# Startup branch `repo-discovery-draft`
+# Startup task `repo-discovery-draft`
 
-`repo-discovery-draft` inspecte le dépôt source en lecture seule pendant que
-`workspace-setup` peut creer le worktree physique prive.
+`repo-discovery-draft` inspecte le dépôt source en lecture seule pendant que `workspace-setup` crée le worktree physique privé. 
 
-Cette branche produit un brouillon non autoritatif. Elle accelere le demarrage,
-mais elle ne definit jamais les gates finales par elle-meme.
+Cette bootstrap task produit un brouillon non autoritatif. Elle accélère le démarrage du run en pré-analysant le dépôt, sans pour autant définir elle-même la configuration définitive des checks.
 
 ---
 
 ## 1. Objectif
 
 Produire un `RepositoryDiscoveryDraft` contenant :
-
-- fichiers inspectes ;
-- hashes des fichiers inspectes ;
-- package manager candidat ;
-- lockfiles candidats ;
-- commandes mecaniques candidates ;
-- capacites provider candidates.
+- Les fichiers inspectés et leurs hashes.
+- Le gestionnaire de paquets candidat.
+- Les fichiers de verrouillage (lockfiles) candidats.
+- Les commandes de vérification mécanique candidates.
+- Les capacités détectées pour le fournisseur Git (provider).
 
 ---
 
-## 2. Position dans le demarrage
+## 2. Position dans le workflow
 
-`repo-discovery-draft` est une bootstrap branch interne a la phase Turnlock
-`run-init`.
+`repo-discovery-draft` s'exécute en parallèle avec `run-capture` et `workspace-setup` au sein de la phase Turnlock `run-init`.
 
 ```text
 run-init
-├─ run-capture
-├─ repo-discovery-draft
-└─ workspace-setup
-       ↓
-project-discovery-finalize
+│
+├─ provider-config-validation (séquentiel)
+│       ↓
+├─ repo-capture (séquentiel)
+│       │
+│       ├─ run-capture (parallèle)
+│       ├─ workspace-setup (parallèle) ──┐
+│       └─ repo-discovery-draft (parallèle)
+│                  │                      │
+│                  └──────────┬───────────┘
+│                             ↓
+│                 project-discovery-finalize
 ```
 
-`repo-discovery-draft` ne depend pas de `WorkSession`. Le join
-`project-discovery-finalize` verifie ensuite le draft contre `worktreeRoot`.
+Elle ne dépend pas de la tâche `workspace-setup` ou de la création physique du worktree, car elle lit uniquement le dépôt source d'origine. Ses résultats sont ensuite consommés et vérifiés par `project-discovery-finalize`.
 
 ---
 
 ## 3. Inputs
 
-- `runId` fourni par Turnlock et stocke par `run-init` ;
-- repository source ;
-- dépôt source ;
-- `artefactRoot` reserve par `run-init` ;
-- `WorkflowPolicy.discovery` ;
-- `projectRoot` (optionnel, sous-périmètre de projet cible issu de `RepoCapture`).
+- `runId` (identifiant unique Crockford base32 ULID).
+- Répertoire ou chemin d'accès vers le dépôt source.
+- `artefactRoot` (répertoire réservé aux preuves).
+- `WorkflowPolicy.discovery` (règles de découverte).
+- `projectRoot` (optionnel, sous-périmètre de projet issu de `RepoCapture`).
 
 ---
 
 ## 4. Outputs
 
-Artefact metier :
+Artefact métier écrit sous `artefactRoot/startup/repo-discovery-draft/repository-discovery-draft.json` :
 
 ```ts
 type RepositoryDiscoveryDraft = {
@@ -78,66 +78,66 @@ type RepositoryDiscoveryDraft = {
 };
 ```
 
----
-
-## 5. Fichiers inspectables
-
-La branche peut inspecter :
-
-- manifestes projet ;
-- lockfiles ;
-- configs de lint, format, typecheck, test et build ;
-- fichiers de workspace ;
-- configuration Git remote ;
-- scripts declares par le projet.
-
-Si un `projectRoot` est spécifié, l'inspection des fichiers et la détection du gestionnaire de paquets doivent prioritairement se limiter à ce sous-dossier projet et ses fichiers de configuration parents directs (par exemple, un fichier `package.json` de projet et le lockfile parent à la racine du monorepo).
-
-Elle ne doit pas executer les checks lourds et ne doit pas installer d'outils.
+Cette tâche produit également un `WorkflowExecutionRecord` d'audit.
 
 ---
 
-## 6. Regles d'autorite
+## 5. Pipeline
 
-Le draft n'est pas autoritatif parce qu'il est lu depuis le dépôt source,
-pas depuis le worktree prive du run.
+Les étapes du pipeline s'enchaînent dans l'ordre suivant :
 
-Il devient consommable seulement si `project-discovery-finalize` prouve que les
-fichiers inspectes correspondent au worktree prive :
-
-```text
-draft inspected package.json hash == worktree package.json hash
-draft inspected lockfile hash == worktree lockfile hash
-draft inspected config hash == worktree config hash
-```
-
-Si les hashes ne correspondent pas, `project-discovery-finalize` relance la
-discovery depuis `worktreeRoot` ou echoue ferme selon
-`WorkflowPolicy.discovery`.
+1. **Chargement de la configuration :** Analyser le répertoire de départ et le paramètre optionnel `projectRoot`.
+2. **Scan en lecture seule :** Parcourir le répertoire pour identifier les fichiers de configuration de projet pertinents (manifestes, lockfiles, configs de tooling).
+3. **Calcul des empreintes :** Calculer le hash SHA256 (`sha256:<lowercase-hex>`) de chaque fichier inspecté.
+4. **Analyse des technologies :** Identifier le package manager candidat et extraire les scripts ou configurations disponibles.
+5. **Génération de l'artefact :** Rédiger et enregistrer le fichier JSON `repository-discovery-draft.json`.
+6. **Persistance de l'audit :** Produire et enregistrer le `WorkflowExecutionRecord` associé.
 
 ---
 
-## 7. Operations internes typiques
+## 6. Règles & Invariants
 
-```text
-inspect-source-manifests
-inspect-source-lockfiles
-inspect-source-package-scripts
-inspect-source-provider-capabilities
-hash-inspected-files
-write-repository-discovery-draft
-persist-execution-record
-```
+### 6.1 Lecture seule absolue
+La tâche ne doit apporter aucune modification au dépôt source. Elle ne doit pas installer de dépendances, ni générer de fichiers locaux, ni exécuter de tests.
+
+### 6.2 Déduction de projet (projectRoot)
+Si un `projectRoot` est spécifié (sous-dossier de monorepo), la détection du gestionnaire de paquets et l'inspection des fichiers doivent prioritairement cibler ce sous-dossier et ses configurations parentes directes (ex: `package.json` de l'application et lockfile parent à la racine du monorepo).
+
+### 6.3 Statut non-autoritatif
+Le brouillon produit n'est pas définitif. Il n'acquiert de valeur décisionnelle que lorsque `project-discovery-finalize` a prouvé que les fichiers inspectés correspondent exactement aux fichiers présents dans le worktree isolé privé du run.
+
+---
+
+## 7. Opérations internes typiques
+
+- `inspect-source-manifests`
+- `inspect-source-lockfiles`
+- `inspect-source-package-scripts`
+- `inspect-source-provider-capabilities`
+- `hash-inspected-files`
+- `write-repository-discovery-draft`
+- `persist-execution-record`
 
 ---
 
 ## 8. Failure modes
 
-- Checkout source introuvable : `errored`.
-- Manifestes illisibles : `failed` ou `errored` selon cause.
-- Commande candidate non representable en argv : `failed`.
-- Evidence hors `artefactRoot` : `errored`.
-- Artefact JSON invalide : `errored`.
+| Pipeline | Cause de l'échec | Statut du run | Comportement / Action corrective |
+|---|---|---|---|
+| 5.2 | Répertoire du dépôt source introuvable | `errored` | Arrêt de la tâche |
+| 5.2 | Fichiers manifestes ou configurations de base illisibles | `failed` | Arrêt de la tâche |
+| 5.4 | Commande candidate détectée impossible à sérialiser en argv | `failed` | Ignorer la commande ou échec selon la policy |
+| 5.5 | Fichier d'évidence écrit hors de l'`artefactRoot` | `errored` | Arrêt de sécurité |
+| 5.5 | Artefact JSON produit invalide selon son schéma | `errored` | Arrêt |
+
+---
+
+## 9. Non-goals
+
+- Définir définitivement la configuration des checks (matrice finale).
+- Résoudre ou modifier l'état physique du dépôt ou du worktree.
+- Installer ou mettre à jour des outils locaux.
+- Lancer ou exécuter des gates mécaniques complexes.
 
 ---
 

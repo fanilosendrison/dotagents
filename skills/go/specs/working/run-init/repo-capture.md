@@ -1,65 +1,50 @@
-# RepoCapture
+# Startup task `repo-capture`
 
-Ce document definit le contexte que `run-init` doit resoudre avant toute
-autre chose.
+`repo-capture` définit le contexte de dépôt cible que `run-init` doit résoudre avant de pouvoir amorcer le reste du workflow. 
 
-`run-init` ne lance pas `git`, ne choisit pas de branche et ne communique pas avec le réseau. Il
-utilise uniquement des opérations de système de fichiers (realpath, stat) pour déduire ce contexte
-à partir du répertoire d'invocation fourni par le parent process.
+Cette bootstrap task est synchrone et s'exécute de manière isolée : elle ne lance pas `git`, ne choisit pas de branche et ne communique pas avec le réseau. Elle utilise uniquement des opérations système de fichiers locales (`realpath`, `stat`) pour déduire le contexte du dépôt à partir du répertoire d'invocation fourni par le parent process.
 
 ---
 
 ## 1. Objectif
 
-La toute première opération de `run-init` est de produire un
-`RepoCapture`.
+Produire un `RepoCapture` valide répondant à la question précise :
+*Quel dépôt Git et quel sous-périmètre projet ce run `/go` cible-t-il ?*
 
-Ce contexte repond a une question precise :
-
-```text
-Quel repo Git et quel sous-perimetre projet ce run /go cible-t-il ?
-```
-
-Il existe avant Turnlock pour eviter que `run-init` devienne une phase de
-discovery. `run-init` reste purement mecanique :
-
-```text
-parent process provides invocationDirectory
--> parent process starts Turnlock with BootstrapState
--> run-init resolves RepoCapture from invocationDirectory
--> workspace-setup verifies it against real Git state
-```
+La capture garantit que le run a une cible unique et valide avant le démarrage des bootstrap tasks parallèles et la création de tout worktree physique.
 
 ---
 
-## 2. Première opération de run-init
+## 2. Position dans le workflow
 
-Le parent process (l'agent ou le harness) qui recoit le `/go` ne fournit qu'une seule information relative au code :
+`repo-capture` s'exécute de manière synchrone et séquentielle au début de la phase Turnlock `run-init`, juste après la validation de la configuration fournisseur (`ProviderConfig`).
 
-- le repertoire courant ou workspace courant (`invocationDirectory`).
+```text
+run-init
+│
+├─ provider-config-validation (séquentiel)
+│       ↓
+├─ repo-capture (séquentiel)
+│       │
+│       ├─ run-capture (parallèle)
+│       ├─ workspace-setup (parallèle)
+│       └─ repo-discovery-draft (parallèle)
+```
 
-`run-init` lit ce CWD depuis le `BootstrapState`, puis résout le `RepoCapture` complet.
-
-Inputs typiques de la résolution interne de `run-init` :
-
-- `invocationDirectory` : repertoire courant de la session (l'unique source de verite pour la cible) ;
-
-Si `run-init` ne peut pas prouver un repo Git cible unique (ou fallback formel), `/go` echoue.
-
-Si le parent process n'a pas configuré un `runDirRoot` valide, `run-init` verifie le containment de `runDir` par rapport au repo cible fraîchement résolu. S'il y a violation, `/go` échoue ferme, car il ne peut pas deplacer une enveloppe runtime deja creee.
+Aucune tâche parallèle de démarrage (notamment `workspace-setup`) ne peut démarrer avant que `repo-capture` ne soit finalisée, car elle fournit la racine Git cible et le sous-périmètre nécessaires pour la création et la configuration du worktree.
 
 ---
 
-## 3. Contrat minimal
+## 3. Inputs
 
-`RepoCapture` doit contenir :
+- `invocationDirectory` (reçu via le `BootstrapState` de départ) : répertoire courant de la session utilisateur qui invoque `/go` (l'unique source de vérité pour la cible).
+- `runDir` (fourni par Turnlock) : répertoire runtime de l'enveloppe courante du run (pour validation du containment).
 
-- le repertoire d'invocation ;
-- la racine Git canonique cible ;
-- le sous-perimetre projet optionnel ;
-- l'horodatage de resolution.
+---
 
-Forme conceptuelle :
+## 4. Outputs
+
+Le produit de cette tâche est l'artefact `RepoCapture` projeté dans le `WorkflowState` :
 
 ```ts
 type RepoCapture = {
@@ -72,141 +57,74 @@ type RepoCapture = {
 };
 ```
 
-`canonicalRepositoryRoot` est la racine Git cible (ou le dossier cible si aucun dépôt n'existait). Elle doit etre utilisable par `workspace-setup` pour creer une branche et un worktree.
-
-`projectRoot` est optionnel. Il represente le sous-dossier metier vise dans un
-monorepo. Il ne remplace jamais `canonicalRepositoryRoot`. S'il est absent, cela signifie qu'il n'y a pas de restriction de sous-perimetre (on travaille a la racine).
+- `canonicalRepositoryRoot` : racine Git canonique cible (ou dossier de base cible si aucun dépôt n'existe encore).
+- `projectRoot` : chemin absolu du sous-projet en cas de monorepo (ou absent si l'on travaille à la racine).
 
 ---
 
-## 4. Resolution normative
+## 5. Pipeline
 
-Le sous-système de résolution de `run-init` produit le contexte en utilisant strictement le repertoire courant (`invocationDirectory`) :
+Le sous-système de résolution de `run-init` produit le contexte en appliquant la logique suivante :
 
-1. Utiliser le repertoire courant de la session comme unique point de depart.
-2. Normaliser les symlinks connus.
-3. Chercher le répertoire `.git` le plus proche en remontant depuis ce chemin cible normalisé.
-4. Si un dépôt est trouvé, `canonicalRepositoryRoot` est ce dépôt.
-5. Si aucun dépôt n'est trouvé, vérifier si le répertoire résolu via `realpath(invocationDirectory)` est un répertoire "gateway" (voir critères à la Section 7). Si c'est le cas, la résolution échoue immédiatement. Sinon, `canonicalRepositoryRoot` devient le répertoire d'invocation (CWD) et la création du dépôt est déléguée à `workspace-setup`.
-
-Les demandes explicites de l'utilisateur ne doivent jamais court-circuiter cette regle. Le repo cible est **toujours** defini par le CWD.
-
-`workspace-setup` est la premiere bootstrap task qui verifie l'etat du
-repo Git reel.
+1. **Point de départ :** Utiliser le répertoire courant de la session (`invocationDirectory`) comme unique point de départ.
+2. **Normalisation :** Résoudre et normaliser les liaisons symboliques éventuelles pour obtenir le chemin physique réel.
+3. **Ascension Git :** Remonter les répertoires parents successifs à la recherche du premier dossier `.git/` valide.
+4. **Détection Dépôt :**
+   - Si un dépôt Git est trouvé, `canonicalRepositoryRoot` est résolu comme la racine de ce dépôt.
+   - Si aucun dépôt n'est trouvé, vérifier que le répertoire résolu n'est pas une gateway symbolique (voir Règles §6). Si ce n'est pas une gateway, assigner `canonicalRepositoryRoot = realpath(invocationDirectory)` et déléguer la création/initialisation du dépôt Git à `workspace-setup`.
+5. **Validation du Containment :** Si le parent process n'a pas configuré de `runDirRoot` valide, vérifier que le dossier runtime `runDir` n'est pas contenu dans le dépôt cible résolu (`canonicalRepositoryRoot`). En cas de violation, la validation échoue.
 
 ---
 
-## 5. Sous-dossier de monorepo
+## 6. Règles & Invariants
 
-Cas :
+### 6.1 Sous-dossiers de Monorepos
+Si le terminal de la session (`invocationDirectory`) cible un sous-dossier (ex: `packages/app/`) d'un dépôt Git global (ex: `monorepo/`), `repo-capture` doit distinguer :
+- `canonicalRepositoryRoot` : la racine du dépôt global (`monorepo/`) car Git crée des worktrees au niveau du dépôt, pas des sous-dossiers.
+- `projectRoot` : le sous-dossier métier (`monorepo/packages/app/`) résolu via `realpath` pour éviter la propagation de symlinks.
+Le `projectRoot` doit impérativement être un sous-dossier de `canonicalRepositoryRoot`.
 
-```text
-monorepo/
-├── .git/
-├── packages/
-│   ├── app/
-│   └── lib/
-└── tools/
-```
+### 6.2 Dépôts Git imbriqués
+La recherche du dépôt cible s'arrête sur le premier dépôt `.git/` trouvé en remontant depuis `invocationDirectory`. Le terminal de la session a toujours raison : se situer dans `workspace/` cible le dépôt parent, alors que se situer dans `workspace/vendor/nested-repo/` cible le sous-dépôt.
 
-Si la session cible `packages/app/`, le contexte doit distinguer :
+### 6.3 Gateway Symlinks (Sécurité)
+`run-init` ne doit jamais accepter un répertoire "gateway" global comme dépôt cible.
+- Si aucun dépôt `.git` n'est présent dans le répertoire ou ses parents, et que `realpath(invocationDirectory)` contient un dossier sentinelle (`.agents/`, `.codex/`, `.pi/`, `.gravity/`) ou un fichier sentinelle (`AGENTS.md`, `SKILL.md`, `CODEX.md`, `GRAVITY.md`), le répertoire est identifié comme une gateway. La résolution échoue immédiatement avec le statut `failed`.
 
-```text
-canonicalRepositoryRoot = "monorepo/"
-projectRoot = "monorepo/packages/app/"
-```
-
-Le worktree Git est cree depuis `canonicalRepositoryRoot`, car Git ne cree pas
-un worktree pour un sous-dossier.
-
-Le `projectRoot` sert ensuite a limiter la discovery, les commandes ou les
-reviews quand la demande porte sur un sous-projet precis.
-
-Regles :
-
-- `canonicalRepositoryRoot` est toujours la racine Git ;
-- `projectRoot` est déduit automatiquement : si `realpath(invocationDirectory)` ≠ `realpath(canonicalRepositoryRoot)` et que `realpath(invocationDirectory)` est un sous-dossier de `realpath(canonicalRepositoryRoot)`, alors `projectRoot` = `realpath(invocationDirectory)` (les deux chemins doivent être résolus via `realpath` pour toute comparaison, vérification de sous-dossier ou assignation finale, évitant ainsi la propagation de liaisons symboliques non résolues dans le payload `WorkflowState`) ;
-- `projectRoot` doit etre sous `canonicalRepositoryRoot` ;
-- `workspace-setup` cree le worktree pour le repo entier ;
-- `project-discovery-finalize` peut produire des commandes dont le
-  `workingDirectory` cible le sous-projet.
+### 6.4 Autorité Git ultérieure
+`repo-capture` ne valide pas l'intégrité de l'historique ou du dépôt. C'est à la charge de `workspace-setup` de confirmer la conformité physique avec `canonicalRepositoryRoot`.
 
 ---
 
-## 6. Repos Git imbriques
+## 7. Opérations internes typiques
 
-Cas :
-
-```text
-workspace/
-├── .git/
-├── app/
-└── vendor/
-    └── nested-repo/
-        └── .git/
-```
-
-La cible normative est le premier repo Git trouve en remontant depuis le repertoire courant de la session (`invocationDirectory`).
-
-Si le terminal de la session (CWD) est dans `workspace/`, c'est `workspace/` qui devient le `canonicalRepositoryRoot`. A l'inverse, si le terminal est positionne dans `workspace/vendor/nested-repo/`, la resolution s'arretera sur `nested-repo/`. Le terminal a toujours raison.
-
-Regles :
-
-- `canonicalRepositoryRoot` est resolu uniquement en cherchant le `.git` le plus proche au-dessus du `invocationDirectory` ;
-- refuser la cible avant Turnlock si le repertoire courant ne permet pas de trouver une racine Git unique en remontant.
+- `resolve-cwd-path` (lecture de l'invocationDirectory)
+- `resolve-symlinks` (normalisation via realpath)
+- `find-nearest-git-root` (recherche ascendante du répertoire `.git`)
+- `check-gateway-sentinels` (vérification de fichiers/dossiers gateways)
+- `verify-path-containment` (vérification que runDir est hors du dépôt cible)
+- `write-repo-capture-draft` (construction de la structure RepoCapture)
 
 ---
 
-## 7. Symlink gateways
+## 8. Failure modes
 
-Cas :
-
-```text
-~/.agents/
-├── skills/ -> <physical-agent-repo>/skills/
-└── AGENTS.md
-```
-
-Un gateway peut contenir des dossiers physiques et des symlinks vers des repos
-Git reels.
-
-`run-init` ne doit pas supposer que le gateway lui-meme est un repo Git.
-Il doit resoudre le work target reel :
-
-- si le target est `~/.agents/`, la resolution Git peut echouer ;
-- si le target est `~/.agents/skills/go/`, le symlink peut mener au repo reel ;
-
-Regles :
-
-- `invocationDirectory` peut rester le chemin visible par la session ;
-- `canonicalRepositoryRoot` doit pointer vers la racine Git canonique ;
-- `symlinkResolved` indique si la resolution a traverse un symlink ;
-- un gateway non Git ne doit pas etre accepte comme `canonicalRepositoryRoot`. Pour identifier et rejeter un gateway non-Git au niveau du répertoire d'invocation (CWD), le système doit vérifier la présence de fichiers sentinelles ou de dossiers spécifiques directement au niveau de `realpath(invocationDirectory)`. Les dossiers sentinelles reconnus incluent `.agents/`, `.codex/`, `.pi/` et `.gravity/` ; les fichiers sentinelles incluent `AGENTS.md`, `SKILL.md`, `CODEX.md` et `GRAVITY.md`. Si l'un de ces marqueurs est détecté et qu'aucun dépôt `.git` n'est présent dans le répertoire ou ses parents, le dossier est identifié comme un gateway et la résolution échoue avec `failed`, invitant l'utilisateur à se positionner dans un répertoire projet valide.
+| Pipeline | Cause de l'échec | Statut du run |
+|---|---|---|
+| 5.1 | `invocationDirectory` ou chemin cible non exploitable | `errored` (crash avant run) |
+| 5.4 | Aucun dépôt trouvé et répertoire CWD identifié comme une gateway sentinelle | `failed` (invitation à changer de CWD) |
+| 5.5 | `projectRoot` résolu hors de `canonicalRepositoryRoot` | `failed` |
+| 5.5 | `runDir` contenu à l'intérieur du dépôt cible résolu | `failed` |
+| - | Payload `RepoCapture` invalide ou corrompu | `errored` |
 
 ---
 
-## 8. Rapport a `workspace-setup`
+## 9. Non-goals
 
-`workspace-setup` verifie le contexte contre le repo reel.
-
-Responsabilites :
-
-- garantir que `canonicalRepositoryRoot` est un repo Git (par verification ou initialisation) ;
-- verifier que la racine Git reelle correspond au contexte parent ;
-- detecter `baseBranch` ;
-- detecter `baseHeadSha` ;
-- detecter `defaultTargetBranch` ;
-- verifier que `projectRoot`, s'il existe, est sous le repo ;
-
----
-
-## 9. Failure modes
-
-- Aucun chemin cible exploitable : `run-init` echoue avant le workflow.
-- Aucun repo Git trouve : `run-init` assigne le CWD comme `canonicalRepositoryRoot` et délègue l'initialisation à `workspace-setup`.
-- `projectRoot` hors repo : `run-init` echoue.
-- Gateway non Git pris comme repo : `run-init` echoue.
-- `RepoCapture` invalide : `run-init` echoue sans transition stable.
+- Initialiser un dépôt Git (tâche déléguée à `workspace-setup`).
+- Configurer les remotes, les branches ou les commits.
+- Se connecter à l'API d'un fournisseur Git.
+- Interroger ou modifier le contenu des fichiers du projet (tâche déléguée à `repo-discovery-draft`).
 
 ---
 

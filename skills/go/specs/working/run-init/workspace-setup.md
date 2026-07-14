@@ -1,34 +1,55 @@
 # Startup task `workspace-setup`
 
-`workspace-setup` prépare le terrain isolé d'un run `/go`. Elle doit s'exécuter
-avant toute délégation agentique qui modifie le code. Elle est une bootstrap task
-interne a la phase Turnlock `run-init`, pas une phase Turnlock separee.
+`workspace-setup` prépare le terrain isolé d'un run `/go`. Elle doit s'exécuter avant toute délégation agentique qui modifie le code. Elle est une bootstrap task interne à la phase Turnlock `run-init`, et non une phase Turnlock séparée.
 
 ---
 
 ## 1. Objectif
 
-Créer un worktree Git physique privé, enregistrer le point de départ, et
-produire un `WorkSession`.
+Créer un worktree Git physique privé et isolé, enregistrer avec précision le point de départ Git du run, et produire l'artefact `WorkSession` durable. 
 
 Cette bootstrap task ne produit aucun code applicatif.
 
 ---
 
-## 2. Inputs
+## 2. Position dans le workflow
 
-- `runId`
-- `RepoCapture` stocke par `run-init`
-- `WorkflowPolicy.dirtyState`
-- `artefactRoot` reserve par `run-init`
-- `worktreeRoot` reserve par `run-init`
-- `skipSetup` (`boolean`, default: `false`)
+`workspace-setup` s'exécute en parallèle avec `run-capture` et `repo-discovery-draft` au sein de la phase Turnlock `run-init`.
+
+```text
+run-init
+│
+├─ provider-config-validation (séquentiel)
+│       ↓
+├─ repo-capture (séquentiel)
+│       │
+│       ├─ run-capture (parallèle)
+│       ├─ workspace-setup (parallèle) ──┐
+│       └─ repo-discovery-draft (parallèle)
+│                  │                      │
+│                  └──────────┬───────────┘
+│                             ↓
+│                 project-discovery-finalize
+```
+
+Elle s'exécute après la validation de `ProviderConfig` et la résolution de `RepoCapture`. Ses extrants sont requis comme intrants indispensables pour finaliser la découverte de projet dans `project-discovery-finalize`.
 
 ---
 
-## 3. Outputs
+## 3. Inputs
 
-Evidence JSON principale :
+- `runId` (identifiant unique Crockford base32 ULID)
+- `RepoCapture` (contexte de dépôt préalablement résolu par `run-init`)
+- `WorkflowPolicy.dirtyState` (règles d'adoption du dirty state)
+- `artefactRoot` (répertoire réservé aux preuves)
+- `worktreeRoot` (chemin réservé pour le worktree privé)
+- `skipSetup` (boolean, défaut: `false` ; utilisé pour bypasser la création lors des retries/verifications)
+
+---
+
+## 4. Outputs
+
+Evidence JSON principale écrite sous `artefactRoot/startup/workspace-setup/work-session.json` :
 
 ```ts
 type WorkspaceSetupEvidence = {
@@ -39,215 +60,134 @@ type WorkspaceSetupEvidence = {
 };
 ```
 
-La task produit aussi un `WorkflowExecutionRecord` durable. Si elle passe par le
-stage harness, ce record reference le `StageOutput` canonique.
+Cette tâche produit également un `WorkflowExecutionRecord` durable. Si elle passe par le stage harness, ce record référence le `StageOutput` canonique.
 
 ---
 
-## 4. Pipeline
+## 5. Pipeline
 
-Les etapes s'enchainent dans cet ordre. Chaque etape depend de la precedente.
+Les étapes du pipeline s'enchaînent de la manière suivante. Chaque étape dépend de la réussite de la précédente :
 
-### 4.1 Resolution du depot
+### 5.1 Résolution du dépôt
+`canonicalRepositoryRoot` provient de `RepoCapture`. Si aucun dépôt Git n'existe à cet emplacement (dossier vide/nouveau), ignorer la validation Git et passer à l'étape 5.2. Sinon, vérifier que `canonicalRepositoryRoot` correspond à la racine Git réelle. Vérifier que `projectRoot` (si spécifié) est bien un sous-dossier de `canonicalRepositoryRoot`.
 
-`canonicalRepositoryRoot` provient du `RepoCapture`. Si aucun depot Git n'existe a `canonicalRepositoryRoot` (par exemple si le dossier est vide ou nouvellement cree), ignorer la verification de la racine Git reelle et passer directement a l'etape 4.2. Sinon, verifier qu'il correspond a la racine Git reelle.
+### 5.2 Initialisation (nouveau dépôt)
+Si aucun dépôt n'existe à `canonicalRepositoryRoot` :
+1. Initialiser le dépôt (`git init`).
+2. Indexer les fichiers présents (`git add -A`).
+3. Commiter l'état existant (`git commit -m "initial"` ou `--allow-empty` si aucun fichier).
+4. Créer le dépôt distant via l'API du provider (utilisant la configuration `ProviderConfig` déjà validée par `run-init`).
+5. Associer le remote : `git remote add origin <url-retournée>`.
+6. Pousser la branche par défaut : `git push -u origin main`.
 
-Si `projectRoot` est present dans le `RepoCapture`, verifier qu'il est bien un
-sous-dossier de `canonicalRepositoryRoot`.
+### 5.3 Point de départ Git
+- `baseHeadSha` : `git rev-parse --verify HEAD^{commit}`. Si la tête n'existe pas (aucun commit), initialiser avec un premier commit vide (`git commit --allow-empty -m "initial"`) puis relancer.
+- `baseBranch` : `git rev-parse --abbrev-ref HEAD` (vaut `"(detached)"` si HEAD détaché).
+- `defaultTargetBranch` : `git symbolic-ref refs/remotes/origin/HEAD` (extraire le nom court, ex: `main`. Fallback sur `main` puis `master` si absent).
 
-### 4.2 Initialisation (nouveau depot)
+### 5.4 Capture du Dirty State
+1. Lire le dirty state initial (`git status --porcelain`) du dépôt source.
+2. Si le dépôt est clean, continuer.
+3. Si `WorkflowPolicy.dirtyState.mode` refuse le dirty state, lever un échec `failed`.
+4. Si l'adoption est autorisée, capturer le dirty state sous forme de patch de manière isolée sans altérer l'index réel du dépôt source :
+   ```bash
+   TMP=$(mktemp)
+   GIT_INDEX_FILE="$TMP" git read-tree HEAD
+   GIT_INDEX_FILE="$TMP" git add -A
+   GIT_INDEX_FILE="$TMP" git diff --cached --binary --full-index
+   rm "$TMP"
+   ```
+5. Calculer le hash SHA256 du patch brut. Le patch sera appliqué à l'étape 5.6.
 
-Si aucun depot Git n'existe a `canonicalRepositoryRoot` :
+### 5.5 Création du worktree
+1. Créer la branche de travail locale `work/<runId>` depuis `baseHeadSha`.
+2. Vérifier que le chemin `worktreeRoot` est libre ou adoptable.
+3. Ajouter le worktree physique privé (`git worktree add <worktreeRoot> work/<runId>`) en résolvant impérativement `worktreeRoot` via `realpath` (Invariant 6.8).
 
-1. `git init`
-2. `git add -A`
-3. `git commit -m "initial"` — l'etat existant devient le commit initial. Si apres `git add -A` l'index est vide (0 fichier a commiter, par exemple si le dossier est vide ou entierement gitignore), utiliser `git commit --allow-empty -m "initial"`.
-4. Creer le repo distant via l'API du provider (utilisant la configuration `ProviderConfig` deja validee par `run-init`) :
-   - `POST https://api.github.com/user/repos` (ou equivalent GitLab)
-   - `name` = `basename(canonicalRepositoryRoot)`
-   - `private` = `ProviderConfig.defaultVisibility`
-5. `git remote add origin <url-retournee-par-l'API>`
-6. `git push -u origin main`
+### 5.6 Application du patch
+Si un dirty state a été adopté (étape 5.4), appliquer le patch dans le worktree privé. Capturer le `git status --porcelain` du worktree privé après l'application. Si le patch ne s'applique pas proprement, lever un échec `failed`.
 
-### 4.3 Point de depart Git
+### 5.7 Persistance
+1. Créer le sous-dossier `workspace-setup/` sous `artefactRoot`.
+2. Écrire le fichier de preuve `WorkSession` (conforme au schéma validé).
+3. Persister le `WorkflowExecutionRecord` associé.
 
-- `baseHeadSha` : `git rev-parse --verify HEAD^{commit}`. Si la commande echoue (exit code 128, tete non nee / aucun commit), initialiser le depot avec un premier commit vide (`git commit --allow-empty -m "initial"`), puis relancer la commande pour obtenir le SHA du commit initial comme `baseHeadSha`.
-- `baseBranch` : `git rev-parse --abbrev-ref HEAD`
-  - Si HEAD est detache, `baseBranch` = `"(detached)"`
-- `defaultTargetBranch` : `git symbolic-ref refs/remotes/origin/HEAD`
-  - Extraire le nom court (ex: `refs/remotes/origin/main` → `main`)
-  - Si `origin/HEAD` n'est pas configure, tenter d'utiliser `main` puis `master` comme fallback. Si aucun des deux n'existe sur le remote, emettre un avertissement et laisser `defaultTargetBranch` indefini ; l'echec sera leve uniquement par la suite si cette information s'avere indispensable (ex: packaging/PR).
-
-### 4.4 Dirty state
-
-1. Lire le dirty state du dépôt source (`git status --porcelain`)
-2. Si le worktree source est clean → continuer
-3. Si `WorkflowPolicy.dirtyState.mode` refuse le dirty state → `failed`
-4. Si adoption autorisee :
-   - Capturer le dirty state (fichiers tracked et untracked) comme patch de maniere isolee sans alterer l'index reel du dépôt source :
-     ```bash
-     TMP=$(mktemp)
-     GIT_INDEX_FILE="$TMP" git read-tree HEAD
-     GIT_INDEX_FILE="$TMP" git add -A
-     GIT_INDEX_FILE="$TMP" git diff --cached --binary --full-index
-     rm "$TMP"
-     ```
-   - Hasher le patch obtenu
-   - Le patch sera rejoue dans le worktree prive apres sa creation (etape 4.6)
-
-### 4.5 Creation du worktree
-
-1. Creer la branche `work/<runId>` depuis `baseHeadSha`.
-2. Verifier que le chemin `worktreeRoot` est libre ou adoptable
-3. `git worktree add <worktreeRoot> work/<runId>` — utiliser la forme
-   `realpath` de `worktreeRoot` (voir invariant 5.8)
-
-### 4.6 Replay du dirty state
-
-Si un dirty state a ete adopte (etape 4.4), rejouer le patch dans le worktree
-prive. Capturer `git status --porcelain` du worktree apres replay comme
-evidence.
-
-Si le patch ne s'applique pas proprement → `failed`.
-
-### 4.7 Persistance
-
-1. Creer le sous-dossier `workspace-setup/` sous `artefactRoot`
-2. Ecrire `WorkSession` (artefact metier valide par schema)
-3. Persister `WorkflowExecutionRecord`
-
-### 4.8 Retry
-
-Le comportement de cette etape depend de la valeur de `skipSetup` :
-
-#### 4.8.1 `skipSetup = true`
-Si `skipSetup` vaut `true`, le pipeline est execute pour verifier l'integrite sans recreer le worktree depuis zero :
-- Les etapes 4.2 (initialisation) et 4.5 (creation du worktree) sont ignorees.
-- L'etape 4.1 est executee avec des verifications assouplies : verifier uniquement que le chemin `worktreeRoot` est bien contenu dans le dossier du run et ne rentre pas en conflit avec un autre run, sans imposer que la racine Git de la source y soit resolue ou accessible.
-- Si le worktree ou la branche `work/<runId>` n'existe pas, ou si des incoherences majeures de configuration sont detectees, lever une erreur sans tenter de suppression ou reconstruction.
-
-#### 4.8.2 `skipSetup = false` (avec `worktreeRoot` preexistant)
-Si `worktreeRoot` existe deja lors d'un retry avec `skipSetup = false` :
-
-1. Verifier que le lien `.git` dans le worktree est valide.
-2. Verifier que la branche `work/<runId>` existe dans Git.
-3. Verifier que `baseHeadSha` (si non nul) est un ancetre du HEAD actuel du worktree (`git merge-base --is-ancestor <baseHeadSha> HEAD`), garantissant ainsi la continuite de l'historique sans imposer une egalite stricte de HEAD.
-4. Si la `WorkSession` contient un `dirtyStateAdoption` :
-   - Extraire la liste des fichiers modifies par le patch (via `git apply --numstat` ou en analysant les en-têtes du patch).
-   - Tenter `git apply --reverse --check <patch>` sur le worktree. Si ce dry-run reverse reussit, alors le patch a deja ete applique. Verifier alors que l'etat porcelain (`git status --porcelain`), filtre uniquement sur la liste des fichiers extraits du patch, correspond exactement a l'etat attendu dans le `dirtyStateAdoption` (ignorant ainsi tout fichier untracked ou modifie etranger au patch, comme `.DS_Store` ou des caches locaux).
-   - Sinon, tenter `git apply --check <patch>` (forward). Si ce dry-run forward reussit, alors le patch n'a pas encore ete applique (le worktree est propre depuis `baseHeadSha`). Le patch sera re-applique a l'etape 4.6.
-   - Si aucun des deux dry-runs ne reussit, le worktree est considere comme corrompu.
-5. Si tout est valide et correspond au `WorkSession` existant → adopter sans modification.
-6. Si corrompu ou inconsistent (l'une des verifications ci-dessus echoue) :
-   - Tenter de nettoyer proprement via `git worktree remove --force` et `git worktree prune`.
-   - Si les commandes Git echouent (par exemple si le worktree n'est pas enregistre), forcer la suppression du dossier physique `worktreeRoot` (`rm -rf`) et executer `git worktree prune`.
-   - Supprimer la branche locale, puis recreer depuis zero (etapes 4.5-4.7).
+### 5.8 Gestion des Retries et skipSetup
+Le comportement en cas de retry dépend de la valeur de `skipSetup` :
+* **`skipSetup = true` :** Exécuter le pipeline en mode diagnostic sans recréer le worktree. Ignorer les étapes 5.2 et 5.5. Vérifier que `worktreeRoot` est cohérent. Lever une erreur s'il y a des incohérences, sans altérer le disque.
+* **`skipSetup = false` (avec `worktreeRoot` préexistant) :** 
+  1. Valider le lien `.git` du worktree et s'assurer que la branche `work/<runId>` existe.
+  2. Valider la continuité d'historique : `git merge-base --is-ancestor <baseHeadSha> HEAD`.
+  3. Si un patch a été adopté, vérifier s'il a déjà été appliqué via `git apply --reverse --check <patch>`. Si oui, valider l'état porcelain filtré sur les fichiers du patch. Si non appliqué, tenter de l'appliquer à l'étape 5.6.
+  4. Si cohérent, l'adopter. Si corrompu ou incohérent, nettoyer proprement via `git worktree remove --force` / `git worktree prune` ou en forçant la suppression physique du dossier (`rm -rf`) avant de reconstruire (étapes 5.5-5.7).
 
 ---
 
-## 5. Invariants
+## 6. Règles & Invariants
 
-### 5.1 Worktree physique obligatoire
+### 6.1 Worktree physique obligatoire
+Le run de l'agent ne travaille jamais dans le dépôt source. Une simple branche Git locale ne suffit pas pour isoler les fichiers non suivis, les caches ou les conflits.
 
-Le run ne travaille pas dans le dépôt source. Une simple branche ne suffit
-pas.
+### 6.2 Isolation des artefacts
+Les artefacts et logs du run doivent être stockés hors du worktree privé (sous `artefactRoot` ou le dossier de logs du run) pour éviter de polluer le `git status` et les diffs de l'implémentation.
 
-### 5.2 Artefacts hors worktree
+### 6.3 Base de référence figée
+`baseHeadSha` est le commit parent définitif de tout le travail effectué pendant le run. Il est immuable une fois le run démarré.
 
-Les artefacts du harness et du workflow ne doivent pas rendre le worktree dirty.
+### 6.4 Dirty state adopté
+Un dirty state adopté ne donne pas le droit d'écrire ou travailler dans le dépôt source. Il est encapsulé comme un intrant strict via `DirtyStateAdoption` (status porcelain d'origine, patch binaire complet, hash du patch, statut de replay dans le worktree).
 
-### 5.3 Base figee
+### 6.5 Pas d'implémentation directe sur main
+L'agent ne doit jamais travailler ou commiter directement sur la branche par défaut (ex: `main`, `master`).
 
-`baseHeadSha` est le commit de reference pour tout diff produit par le run.
+### 6.6 Indépendance de `run-capture`
+`workspace-setup` ne lit pas et ne dépend pas du prompt de l'utilisateur capturé par `run-capture`. Ces deux tâches de startup peuvent tourner de façon asynchrone et concurrente.
 
-### 5.4 Dirty state adopte
+### 6.7 Frontière d'autorité Git
+`WorkSession` est le premier document d'autorité Git produit par le run. Les analyses de projet faites en parallèle sur le dépôt source doivent être validées contre ce `WorkSession` avant d'être finalisées.
 
-Un dirty state adopte n'est pas une permission vague de travailler dans le
-dépôt source. Il devient un input du run seulement si `workspace-setup` peut
-produire `DirtyStateAdoption` :
-
-- `git status --porcelain` du dépôt source capture comme evidence
-- patch (capture isole via index temporaire, cf. 4.4)
-- hash du patch
-- replay du patch dans le worktree prive
-- `git status --porcelain` du worktree apres replay capture comme evidence
-
-Si `WorkflowPolicy.dirtyState.adoptionRequiresWorktreeReplay` vaut `true`, le
-replay dans le worktree prive est obligatoire. Si le patch ne peut pas etre
-rejoue proprement, `workspace-setup` echoue `failed` ou ouvre la `HumanGate`
-prevue par `WorkflowPolicy.dirtyState.mode`.
-
-### 5.5 No direct main work
-
-L'agent n'implemente pas directement sur la branche par defaut.
-
-### 5.6 Independance de `run-capture`
-
-`workspace-setup` ne lit pas `RunCaptureArtifact` et ne depend pas de la
-capture du prompt `/go`. Elle peut s'executer en parallele de `run-capture`,
-car sa responsabilite est de figer le point de depart Git et de creer le
-worktree prive.
-
-### 5.7 Frontiere d'autorite Git
-
-`workspace-setup` produit le premier artefact autoritatif pour les preuves Git :
-`WorkSession`.
-
-Les bootstrap tasks de discovery qui ont lu le dépôt source avant la creation
-du worktree doivent etre finalisees contre ce `WorkSession` avant de produire un
-`ProjectDiscovery` autoritatif.
-
-### 5.8 Resolution des symlinks
-
-Pour toutes les operations Git liees au worktree (notamment `git worktree add`),
-`workspace-setup` doit utiliser la forme resolue (`realpath`) de `worktreeRoot`
-(`canonicalRepositoryRoot` etant par definition deja resolu). Ceci garantit que
-Git n'ecrit pas de chemins contenant des symlinks dans ses pointeurs internes,
-evitant ainsi la corruption du worktree prive.
+### 6.8 Résolution des chemins (realpath)
+Pour toutes les opérations Git impliquant le worktree (ex: `git worktree add`), `workspace-setup` doit utiliser la forme résolue (`realpath`) du chemin `worktreeRoot` pour éviter d'écrire des chemins contenant des symlinks dans les pointeurs internes de Git, ce qui corromprait le worktree privé.
 
 ---
 
-## 6. Cas limites
+## 7. Opérations internes typiques
 
-- **HEAD detache** : `baseBranch` vaut `"(detached)"`. `baseHeadSha` reste le
-  SHA du commit detache. La branche `work/<runId>` est creee normalement depuis
-  ce SHA.
-- **Pas de remote `origin`** : `workspace-setup` echoue avec `failed` (sauf si
-  elle vient d'initialiser le depot, auquel cas elle configure `origin`
-  automatiquement via `ProviderConfig`).
-- **`origin/HEAD` non configure** : tenter `main` puis `master` comme fallback. En cas d'absence complete, laisser indefini (avec avertissement) et ne lever l'echec que si une etape subsequente en a imperativement besoin.
-- **Echec de creation du repo distant** : `errored`. L'etat local (commits)
-  reste intact mais le run ne peut pas continuer sans remote.
-
----
-
-## 7. Failure modes
-
-| Etape | Echec | Statut |
-|---|---|---|
-| 4.1 | `RepoCapture` absent ou invalide | `errored` |
-| 4.1 | Racine Git reelle ≠ `canonicalRepositoryRoot` | `failed` |
-| 4.1 | `projectRoot` hors repo | `failed` |
-| 4.2 | Creation repo distant echouee (API injoignable, token invalide, nom deja pris) | `errored` |
-| 4.3 | `origin/HEAD` et fallbacks absents | `failed` (si requis) |
-| 4.4 | Dirty state non adopte | `failed` |
-| 4.4/4.6 | Patch irrejouable dans le worktree prive | `failed` |
-| 4.5 | Branche `work/<runId>` deja existante sans checkpoint valide | nettoyee et recreee |
-| 4.5 | Worktree cible deja occupe par un dossier corrompu | nettoye et recree |
-| 4.5 | Echec du nettoyage worktree corrompu | `errored` |
-| 4.5 | Creation du worktree impossible | `errored` |
-| 4.7 | Sous-dossier `workspace-setup/` deja occupe | `errored` |
-| 4.8 | Worktree existant valide et correspond au `WorkSession` | adopte |
-| 4.8 | Worktree existant corrompu ou inconsistent | nettoie/reconstruit |
+- `verify-canonical-repository`
+- `initialize-git-repo-and-remote` (si dépôt vide)
+- `determine-base-git-pointers` (`baseHeadSha`, `baseBranch`, `defaultTargetBranch`)
+- `capture-source-dirty-state` (via index Git temporaire)
+- `create-work-branch`
+- `create-physical-worktree`
+- `apply-dirty-patch-into-worktree`
+- `write-work-session-evidence`
+- `persist-execution-record`
 
 ---
 
-## 8. Non-goals
+## 8. Failure modes
 
-- Implementer la demande utilisateur.
-- Publier une branche.
-- Creer une PR.
-- Decouper le diff.
+| Pipeline | Échec rencontré | Statut du run | Action corrective / comportement |
+|---|---|---|---|
+| 5.1 | `RepoCapture` absent ou invalide | `errored` | Arrêt immédiat |
+| 5.1 | Racine Git réelle du dépôt source ≠ `canonicalRepositoryRoot` | `failed` | Arrêt |
+| 5.1 | `projectRoot` résolu hors de `canonicalRepositoryRoot` | `failed` | Arrêt |
+| 5.2 | Création du dépôt distant échouée (API injoignable, nom pris, auth) | `errored` | Arrêt |
+| 5.3 | `origin/HEAD` et branches fallbacks absents | `failed` | Échec (uniquement si cette info est indispensable) |
+| 5.4 | Dirty state détecté mais rejeté par la policy | `failed` | Arrêt |
+| 5.4/5.6 | Le patch capturé ne s'applique pas proprement dans le worktree | `failed` | Arrêt |
+| 5.5 | Création du worktree impossible (chemin occupé par dossier étranger) | `errored` | Arrêt |
+| 5.8 | Nettoyage d'un worktree existant corrompu échoue | `errored` | Arrêt |
+| 5.7 | Dossier d'artefacts `workspace-setup/` déjà occupé lors du retry | `errored` | Arrêt |
+
+---
+
+## 9. Non-goals
+
+- Résoudre ou interpréter l'intention utilisateur.
+- Publier ou pousser la branche de travail `work/<runId>` vers le remote (tâche déléguée aux stages de packaging/publication).
+- Créer une Pull Request.
+- Effectuer des optimisations de code, lancer des tests ou exécuter des gates mécaniques.
 
 ---
 
