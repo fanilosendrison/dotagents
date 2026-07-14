@@ -59,6 +59,9 @@ découverte de projet dans `project-discovery-finalize`.
 - `runId` (identifiant unique Crockford base32 ULID)
 - `RepoCapture` (contexte de dépôt préalablement résolu par `run-init`)
 - `DirtyStateDiffArtifact` (produit par `dirty-state-capture`)
+- `WorkflowPolicy.dirtyState` (règles d'adoption du dirty state,
+  consommées pour valider la cohérence avec le
+  `DirtyStateDiffArtifact`)
 - `artefactRoot` (répertoire réservé aux preuves)
 - `workspaceRoot` (chemin réservé pour le workspace privé)
 - `skipSetup` (boolean, défaut: `false` ; utilisé pour bypasser la
@@ -155,9 +158,14 @@ stratégie sandbox délègue le nettoyage à la destruction du conteneur.
 
 **Composition des hashes :**
 - `inputHash` : empreinte JCS de
-  `{ runId, RepoCapture, artefactRoot, workspaceRoot, skipSetup }`,
-  les inputs consommés par cette tâche. `RepoCapture` est référencé par
-  valeur (hash JCS), pas par référence.
+  `{ runId, RepoCapture, dirtyStateDiffHash, artefactRoot, workspaceRoot,
+  skipSetup }`, les inputs consommés par cette tâche. `RepoCapture` est
+  référencé par valeur (hash JCS), pas par référence.
+  `dirtyStateDiffHash` est le hash JCS canonique du
+  `DirtyStateDiffArtifact` produit par `dirty-state-capture`. Si le
+  `DirtyStateDiffArtifact` est absent (clean), `dirtyStateDiffHash` vaut
+  la sentinelle déterministe
+  `sha256:0000000000000000000000000000000000000000000000000000000000000000`.
 - `repoCaptureHash` : pertinent. La tâche consomme `RepoCapture` pour
   `canonicalRepositoryRoot`, `projectRoot` et la validation du dépôt
   source.
