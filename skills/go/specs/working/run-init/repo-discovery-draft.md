@@ -106,6 +106,37 @@ Si un `projectRoot` est spécifié (sous-dossier de monorepo), la détection du 
 ### 6.3 Statut non-autoritatif
 Le brouillon produit n'est pas définitif. Il n'acquiert de valeur décisionnelle que lorsque `project-discovery-finalize` a prouvé que les fichiers inspectés correspondent exactement aux fichiers présents dans le worktree isolé privé du run.
 
+### 6.4 Checkpoints et comportement au retry
+
+La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
+`artefactRoot/startup/repo-discovery-draft/task-record.json`.
+
+**Composition des hashes :**
+- `inputHash` : empreinte JCS de `{ runId, artefactRoot }`, les
+  inputs directs non couverts par les hashes partages.
+- `repoCaptureHash` : **pertinent**. La tache lit `sourceRepo` et
+  `projectRoot` depuis le `RepoCapture` pour localiser les fichiers
+  a inspecter.
+- `workflowPolicyHash` : **pertinent**. La tache consomme
+  `WorkflowPolicy.discovery` pour les regles de decouverte.
+- `captureContextHash` : fixe a la valeur sentinelle deterministe
+  `sha256:0000000000000000000000000000000000000000000000000000000000000000`
+  (64 zeros). Cette tache ne consomme pas le `CaptureContext`.
+
+**Comportement au retry :**
+- Checkpoint terminal present et tous les hashes pertinents identiques
+  (`inputHash`, `repoCaptureHash`, `workflowPolicyHash`) → adoption
+  directe du `RepositoryDiscoveryDraft` precedent.
+- Checkpoint absent → re-execution complete de l'inspection en
+  lecture seule.
+- `inputHash`, `repoCaptureHash` ou `workflowPolicyHash` different
+  (mismatch) → echec ferme (`failed`). Les inputs de la tache ont
+  change entre deux executions du meme `runId`.
+- Checkpoint terminal `failed` ou `errored` → echec ferme (pas de
+  re-execution automatique sans intervention). Le `project-discovery-finalize`
+  peut alors relancer la discovery depuis le worktree si
+  `WorkflowPolicy.discovery.allowWorktreeRerun` l'autorise.
+
 ---
 
 ## 7. Opérations internes typiques

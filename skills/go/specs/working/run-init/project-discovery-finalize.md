@@ -124,6 +124,45 @@ Pour analyser les dépendances et structures du projet, la tâche doit privilég
 ### 6.4 Frontière de validation du draft
 Un draft n'a aucune autorité. Il n'est adopté que si sa conformité physique par rapport aux fichiers du worktree est formellement prouvée par la correspondance des hashes.
 
+### 6.5 Checkpoints et comportement au retry
+
+La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
+`artefactRoot/startup/project-discovery-finalize/task-record.json`.
+
+**Composition des hashes :**
+- `inputHash` : empreinte JCS de `{ runId, artefactRoot, worktreeRoot,
+  projectRoot }`, les inputs directs non couverts par les hashes
+  partages. `projectRoot` est optionnel et normalise a `null` si absent.
+- `repoCaptureHash` : **pertinent**. Le contexte du depot cible
+  (`canonicalRepositoryRoot`, `projectRoot`) est verifie
+  indirectement via la `WorkSession` produite par `workspace-setup`.
+- `workflowPolicyHash` : **pertinent**. La tache consomme
+  `WorkflowPolicy.discovery` et `WorkflowPolicy.gates` pour decider
+  du comportement de rerun et du filtrage des gates.
+- `captureContextHash` : fixe a la valeur sentinelle deterministe
+  `sha256:0000000000000000000000000000000000000000000000000000000000000000`
+  (64 zeros). Cette tache ne consomme pas le `CaptureContext`.
+
+**Comportement au retry :**
+- Checkpoint terminal present et tous les hashes pertinents identiques
+  (`inputHash`, `repoCaptureHash`, `workflowPolicyHash`) → adoption
+  directe du `ProjectDiscovery` precedent. La verification de
+  correspondance draft↔worktree a deja ete prouvee.
+- Checkpoint absent → execution complete (finalisation du draft ou
+  rerun discovery depuis le worktree, cf. §5.2-5.3).
+- `inputHash`, `repoCaptureHash` ou `workflowPolicyHash` different
+  (mismatch) → echec ferme (`failed`). Les inputs de la tache ont
+  change entre deux executions du meme `runId`.
+- Checkpoint terminal `failed` ou `errored` → echec ferme (pas de
+  re-execution automatique sans intervention).
+
+**Note sur le draft :** Le `RepositoryDiscoveryDraft` est un output
+intermediaire de `repo-discovery-draft`, pas un input direct de
+`run-init`. Sa validite est prouvee lors de l'execution initiale par
+comparaison des hashes de fichiers (§5.2). Au retry avec adoption de
+checkpoint, cette verification n'est pas rejouee — le `ProjectDiscovery`
+final fait foi.
+
 ---
 
 ## 7. Opérations internes typiques

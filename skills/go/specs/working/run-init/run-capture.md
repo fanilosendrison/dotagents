@@ -111,6 +111,37 @@ Il ne doit pas dupliquer l'intégralité de la session par défaut.
 ### 6.3 Hachage de contenu textuel
 Les hashes dans `RunCaptureArtifact` sont calculés sur les octets bruts des fichiers textes normalisés. Ils diffèrent des hashes structurels JSON JCS utilisés pour les artefacts du workflow.
 
+### 6.4 Checkpoints et comportement au retry
+
+La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
+`artefactRoot/startup/run-capture/task-record.json`.
+
+**Composition des hashes :**
+- `inputHash` : empreinte JCS de `{ runId, artefactRoot }`, les
+  inputs directs de la tache qui ne sont pas couverts par les hashes
+  partages.
+- `repoCaptureHash` : fixe a la valeur sentinelle deterministe
+  `sha256:0000000000000000000000000000000000000000000000000000000000000000`
+  (64 zeros). Conformement au §6.2, cette tache ne lit pas le worktree
+  et ne depend pas du `RepoCapture`.
+- `workflowPolicyHash` : fixe a la valeur sentinelle. Cette tache ne
+  consomme aucune policy.
+- `captureContextHash` : **pertinent**. La tache consomme le
+  `CaptureContext` (`sessionRef`, `promptAtGo`, `sessionExcerpt`) ;
+  toute modification du contexte de capture entre deux executions du
+  meme `runId` constitue une corruption de l'environnement.
+
+**Comportement au retry :**
+- Checkpoint terminal present et tous les hashes pertinents identiques
+  (`inputHash`, `captureContextHash`) → adoption directe du
+  `RunCaptureArtifact` precedent.
+- Checkpoint absent → re-execution complete de la tache de capture.
+- `inputHash` ou `captureContextHash` different (mismatch) → echec
+  ferme (`failed`). Les inputs de la tache ont change entre deux
+  executions du meme `runId`.
+- Checkpoint terminal `failed` ou `errored` → echec ferme (pas de
+  re-execution automatique sans intervention).
+
 ---
 
 ## 7. Opérations internes typiques

@@ -149,6 +149,52 @@ L'agent ne doit jamais travailler ou commiter directement sur la branche par dé
 ### 6.8 Résolution des chemins (realpath)
 Pour toutes les opérations Git impliquant le worktree (ex: `git worktree add`), `workspace-setup` doit utiliser la forme résolue (`realpath`) du chemin `worktreeRoot` pour éviter d'écrire des chemins contenant des symlinks dans les pointeurs internes de Git, ce qui corromprait le worktree privé.
 
+### 6.9 Checkpoints et comportement au retry
+
+La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
+`artefactRoot/startup/workspace-setup/task-record.json`.
+
+Le §5.8 decrit les **mecaniques physiques** du retry (diagnostic
+`skipSetup`, validation d'integrite du worktree). Cette section definit
+**quand** le retry est declenche et **comment** le checkpoint est adopte
+ou rejete.
+
+**Composition des hashes :**
+- `inputHash` : empreinte JCS de
+  `{ runId, RepoCapture, WorkflowPolicy.dirtyState, artefactRoot, worktreeRoot, skipSetup }`,
+  les inputs consommes par cette tache. `RepoCapture` est reference par
+  valeur (hash JCS), pas par reference.
+- `repoCaptureHash` : pertinent. La tache consomme `RepoCapture` pour
+  `canonicalRepositoryRoot`, `projectRoot` et la validation du depot
+  source.
+- `workflowPolicyHash` : pertinent. La tache consomme
+  `WorkflowPolicy.dirtyState` pour decider de l'adoption ou du rejet du
+  dirty state.
+- `captureContextHash` : fixe a la valeur sentinelle deterministe
+  `sha256:0000000000000000000000000000000000000000000000000000000000000000`
+  (64 zeros apres le prefixe). Conformement au §6.6, cette tache est
+  independante de `run-capture` et ne consomme pas le `CaptureContext`.
+
+**Comportement au retry :**
+- Checkpoint terminal present et tous les hashes pertinents identiques
+  (`inputHash`, `repoCaptureHash`, `workflowPolicyHash`) → adoption
+  directe. Le worktree est valide par diagnostic (`skipSetup: true`,
+  cf. §5.8) sans reconstruction.
+- Checkpoint absent → re-execution complete (`skipSetup: false`,
+  cf. §5.8).
+- `inputHash` different (mismatch) → echec ferme (`failed`). Les inputs
+  de la tache ont change entre deux executions du meme `runId`.
+- `repoCaptureHash` ou `workflowPolicyHash` differents alors que
+  `inputHash` matche → echec ferme (`errored`). Incoherence interne :
+  les sous-composants des inputs ont diverge.
+- Checkpoint terminal `failed` ou `errored` → echec ferme (pas de
+  re-execution automatique sans intervention).
+
+**Lien avec le §5.8 :** Le checkpoint determine **si** le retry a lieu ;
+le §5.8 determine **comment** il s'execute. L'adoption d'un checkpoint
+valide declenche `skipSetup: true` ; la re-execution declenche
+`skipSetup: false`.
+
 ---
 
 ## 7. Opérations internes typiques

@@ -94,6 +94,43 @@ La recherche du dépôt cible s'arrête sur le premier dépôt `.git/` trouvé e
 ### 6.4 Autorité Git ultérieure
 `repo-capture` ne valide pas l'intégrité de l'historique ou du dépôt. C'est à la charge de `workspace-setup` de confirmer la conformité physique avec `canonicalRepositoryRoot`.
 
+### 6.5 Checkpoints et comportement au retry
+
+La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
+`artefactRoot/startup/repo-capture/task-record.json`.
+
+**Composition des hashes :**
+- `inputHash` : empreinte JCS de `{ invocationDirectory, runDir }`, les
+  deux seuls inputs consommes par cette tache. La resolution du
+  `RepoCapture` etant deterministe (meme CWD + meme `runDir` → meme
+  `canonicalRepositoryRoot`), un `inputHash` identique garantit un
+  resultat identique.
+- `repoCaptureHash` : empreinte JCS du `RepoCapture` **produit** par
+  cette tache. Contrairement aux autres bootstrap tasks ou
+  `repoCaptureHash` est un hash d'input, il est ici un hash de sortie
+  servant de verification : si l'`inputHash` matche, le `repoCaptureHash`
+  doit matcher egalement.
+- `workflowPolicyHash`, `captureContextHash` : fixes a la valeur
+  sentinelle deterministe
+  `sha256:0000000000000000000000000000000000000000000000000000000000000000`
+  (64 zeros apres le prefixe). Cette tache ne depend ni de la
+  `WorkflowPolicy`, ni du `CaptureContext`.
+
+**Comportement au retry :**
+- Checkpoint terminal present, `inputHash` identique et `repoCaptureHash`
+  identique → adoption directe du `RepoCapture` precedent.
+- Checkpoint absent → re-execution complete de la tache de resolution.
+- `inputHash` different (mismatch) → echec ferme (`failed`). Le
+  `invocationDirectory` ou le `runDir` ont change entre deux executions
+  du meme `runId`, ce qui constitue une corruption de l'environnement
+  d'execution.
+- `inputHash` identique mais `repoCaptureHash` different → echec ferme
+  (`errored`). La resolution du `RepoCapture` est supposee deterministe ;
+  un hash de sortie different pour un meme input indique un bug ou une
+  corruption du filesystem.
+- Checkpoint terminal `failed` ou `errored` → echec ferme (pas de
+  re-execution automatique sans intervention).
+
 ---
 
 ## 7. Opérations internes typiques

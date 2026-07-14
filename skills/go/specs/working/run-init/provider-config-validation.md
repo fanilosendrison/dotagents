@@ -199,6 +199,33 @@ remote `origin`. Les stages aval (`package-and-publish`, `pr-ci-review`)
 utilisent la configuration fournisseur pour creer des PRs et pousser des
 branches. Aucun mode "local-only" n'est supporte en v1.
 
+### 6.5 Checkpoints et comportement au retry
+
+La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
+`artefactRoot/startup/provider-config-validation/task-record.json`.
+
+**Composition des hashes :**
+- `inputHash` : empreinte SHA-256 du contenu brut de `~/.go/config.json`
+  (les octets du fichier tels que lus, avant parsing JSON). Seul cet input
+  est semantiquement pertinent pour cette tache.
+- `repoCaptureHash`, `workflowPolicyHash`, `captureContextHash` : fixes a
+  la valeur sentinelle deterministe
+  `sha256:0000000000000000000000000000000000000000000000000000000000000000`
+  (64 zeros apres le prefixe). Cette tache ne depend ni du `RepoCapture`,
+  ni de la `WorkflowPolicy`, ni du `CaptureContext` et ces champs
+  n'existent pas encore au moment de son execution.
+
+**Comportement au retry :**
+- Checkpoint terminal present et `inputHash` identique → adoption directe
+  du resultat precedent.
+- Checkpoint absent → re-execution complete de la tache de validation.
+- `inputHash` different (mismatch) → echec ferme (`failed`). La
+  configuration fournisseur globale est supposee immuable pour la duree du
+  run (cf. §6.3). Un changement du fichier entre deux executions du meme
+  `runId` constitue une corruption de l'environnement d'execution.
+- Checkpoint terminal `failed` ou `errored` → echec ferme (pas de
+  re-execution automatique sans intervention).
+
 ---
 
 ## 7. Failure modes
