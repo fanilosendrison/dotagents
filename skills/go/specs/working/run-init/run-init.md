@@ -372,6 +372,18 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
     "currentStage": "implementation",
     "bootstrapTasks": [
       {
+        "task": "provider-config-validation",
+        "status": "passed",
+        "businessArtifactIds": ["provider-config-validation:<id>"],
+        "requiredBefore": ["repo-capture"]
+      },
+      {
+        "task": "repo-capture",
+        "status": "passed",
+        "businessArtifactIds": ["repo-capture:<id>"],
+        "requiredBefore": ["run-capture", "workspace-setup", "repo-discovery-draft"]
+      },
+      {
         "task": "run-capture",
         "status": "passed",
         "businessArtifactIds": ["run-capture:<id>"],
@@ -662,6 +674,8 @@ type BootstrapTaskCheckpoint = {
   schema: "go.startup-task-checkpoint.v1";
   runId: string;
   task:
+    | "provider-config-validation"
+    | "repo-capture"
     | "run-capture"
     | "repo-discovery-draft"
     | "workspace-setup"
