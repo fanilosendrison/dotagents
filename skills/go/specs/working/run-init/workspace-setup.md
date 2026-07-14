@@ -125,6 +125,13 @@ le `git status` et les diffs de l'implémentation.
 `baseHeadSha` est le commit parent définitif de tout le travail effectué
 pendant le run. Il est immuable une fois le run démarré.
 
+### 6.3bis HEAD détaché comme point de départ [Agnostique]
+Un HEAD détaché est accepté comme point de départ valide. Dans ce cas,
+`baseHeadSha` est le commit pointé et `baseBranch` vaut `null`. La
+branche de travail `work/<runId>` est créée depuis `baseHeadSha`, et la
+PR finale ciblera `defaultTargetBranch`. Cette situation est documentée
+dans `WorkSession.baseBranch = null` mais ne bloque pas le run.
+
 ### 6.4 Dirty state adopté [Agnostique]
 Un dirty state adopté ne donne pas le droit d'écrire ou travailler dans le
 dépôt source. Il est encapsulé comme un intrant strict via
@@ -197,6 +204,8 @@ stratégie sandbox délègue le nettoyage à la destruction du conteneur.
   `defaultTargetBranch`)
 - `create-work-branch`
 - `create-workspace` (délégué à la stratégie)
+- `init-submodules` (si `.gitmodules` présent dans le workspace)
+- `init-git-lfs` (si `.gitattributes` avec filtre LFS dans le workspace)
 - `apply-dirty-patch-into-workspace`
 - `write-work-session-evidence`
 - `persist-execution-record`
@@ -216,7 +225,7 @@ stratégie sandbox délègue le nettoyage à la destruction du conteneur.
 | Dossier d'artefacts déjà occupé au retry | `errored` | Arrêt |
 
 Pour les failure modes spécifiques à la stratégie (worktree remove, prune,
-dossier résiduel), voir
+dossier résiduel, submodules, Git LFS, etc.), voir
 [`workspace-setup.worktree.md`](./workspace-setup.worktree.md) §4.
 
 ---
