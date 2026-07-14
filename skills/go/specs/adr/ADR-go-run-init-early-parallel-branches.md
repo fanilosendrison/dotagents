@@ -3,9 +3,10 @@ id: ADR-GO-RUN-INIT-EARLY-PARALLEL-BRANCHES
 type: ard
 version: "1.0.0"
 scope: go-workflow/run-init
-status: active
+status: superseded
 supersedes: []
-superseded_by: []
+superseded_by:
+  - ADR-GO-REMOVE-REPO-DISCOVERY-DRAFT
 ---
 
 # ADR — Démarrage anticipé des branches parallèles dans `run-init`
