@@ -36,6 +36,8 @@ Dans `run-init`, le graphe nominal est :
 ```text
 run-init
 │
+├─ provider-config-validation (sequentiel)
+│       ↓
 ├─ repo-capture (sequentiel)
 │       │
 │       ├─ run-capture (parallele) ─────────────────┐
@@ -53,6 +55,23 @@ run-init
          ↓ resumeAt
     implementation-settlement
 ```
+
+### 1.0 Validation du ProviderConfig
+
+Avant toute autre operation, `run-init` verifie que `ProviderConfig` est
+present et valide dans la configuration globale de `/go` (`~/.go/config.json`).
+
+Cette validation est un fail-fast : si le fichier est absent, illisible, ou
+invalide (schema non conforme, token manquant), `run-init` echoue
+immediatement avec `errored`, avant toute reservation de ressources ou
+operation Git.
+
+`ProviderConfig` est necessaire pour :
+- l'initialisation d'un nouveau depot distant (`workspace-setup` §4.2) ;
+- la creation de PR et le packaging (stages aval).
+
+Sa validation en premiere position garantit qu'aucune operation couteuse n'est
+lancee si la configuration fournisseur est defectueuse.
 
 ### 1.1 Resolution du repo capture
 

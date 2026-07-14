@@ -62,15 +62,12 @@ Si aucun depot Git n'existe a `canonicalRepositoryRoot` :
 1. `git init`
 2. `git add -A`
 3. `git commit -m "initial"` — l'etat existant devient le commit initial. Si apres `git add -A` l'index est vide (0 fichier a commiter, par exemple si le dossier est vide ou entierement gitignore), utiliser `git commit --allow-empty -m "initial"`.
-4. Creer le repo distant via l'API du provider (`ProviderConfig`) :
+4. Creer le repo distant via l'API du provider (utilisant la configuration `ProviderConfig` deja validee par `run-init`) :
    - `POST https://api.github.com/user/repos` (ou equivalent GitLab)
    - `name` = `basename(canonicalRepositoryRoot)`
    - `private` = `ProviderConfig.defaultVisibility`
 5. `git remote add origin <url-retournee-par-l'API>`
 6. `git push -u origin main`
-
-Si `ProviderConfig` est absent alors qu'un `git init` est necessaire, echec
-`errored`.
 
 ### 4.3 Point de depart Git
 
@@ -231,7 +228,6 @@ evitant ainsi la corruption du worktree prive.
 | 4.1 | `RepoCapture` absent ou invalide | `errored` |
 | 4.1 | Racine Git reelle ≠ `canonicalRepositoryRoot` | `failed` |
 | 4.1 | `projectRoot` hors repo | `failed` |
-| 4.2 | `ProviderConfig` absent alors que `git init` necessaire | `errored` |
 | 4.2 | Creation repo distant echouee (API injoignable, token invalide, nom deja pris) | `errored` |
 | 4.3 | `origin/HEAD` et fallbacks absents | `failed` (si requis) |
 | 4.4 | Dirty state non adopte | `failed` |
