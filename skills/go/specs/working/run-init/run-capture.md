@@ -10,9 +10,8 @@ Cette bootstrap task existe pour la traçabilité, la reproductibilité de la re
 
 Produire un `RunCaptureArtifact` mécanique contenant :
 - Une référence stable vers la session source.
-- Un extrait minimal et gelé de la session.
 - Le prompt exact associé au `/go`.
-- Les hashes de contenu du prompt et de l'extrait.
+- Le hash de contenu du prompt.
 - Les références des fichiers d'evidence écrits sous l'`artefactRoot` du run.
 
 `run-capture` ne résout pas les specs, ne déduit pas les contraintes, ne crée pas de critères d'acceptation, et ne décide pas si la demande est faisable.
@@ -54,7 +53,6 @@ Bien qu'elle s'exécute en parallèle, la délégation `implementation` ne peut 
 - `artefactRoot` (répertoire réservé pour le run).
 - `sessionRef` (fourni par le parent process ou le harness appelant).
 - Prompt exact associé au `/go`.
-- Extrait minimal de session sélectionné par le parent process.
 - Horodatage de capture fourni par l'horloge du run.
 
 `run-capture` ne lit pas le worktree et ne dépend pas de `WorkSession`.
@@ -71,17 +69,18 @@ type RunCaptureArtifact = {
   id: string;
   runId: string;
   sessionRef: string;
-  sessionExcerptRef: string;
   promptAtGoRef: string;
   promptHash: string;
-  excerptHash: string;
   capturedAt: string;
 };
 ```
 
 Fichiers d'évidence écrits sous `artefactRoot/startup/run-capture/` :
 - `prompt-at-go.txt` : le prompt exact.
-- `session-excerpt.md` : l'extrait gelé de la session.
+
+`promptAtGoRef` est un chemin relatif a `artefactRoot` (ex:
+`startup/run-capture/prompt-at-go.txt`). Les chemins absolus sont
+interdits dans cet artefact afin de garantir la portabilite du run.
 
 ---
 
@@ -89,31 +88,32 @@ Fichiers d'évidence écrits sous `artefactRoot/startup/run-capture/` :
 
 Les étapes s'enchaînent dans l'ordre suivant :
 
-1. **Résolution des entrées :** Charger les données de session et le prompt depuis le `CaptureContext`.
-2. **Écriture des évidences :** 
-   - Écrire le prompt exact dans `prompt-at-go.txt`.
-   - Écrire l'extrait de session dans `session-excerpt.md`.
-3. **Calcul des empreintes :** Calculer le hash de contenu SHA256 (`sha256:<lowercase-hex>`) sur les octets exacts de chaque fichier d'évidence écrit.
-4. **Génération de l'artefact :** Produire et persister le fichier JSON `run-capture.json` contenant les métadonnées et hashes.
-5. **Persistance de l'audit :** Produire et enregistrer le `WorkflowExecutionRecord` associé à la tâche.
+### 5.1 Résolution des entrées
+Charger la référence de session et le prompt depuis le `CaptureContext`.
+
+### 5.2 Écriture de l'évidence
+Écrire le prompt exact dans `prompt-at-go.txt`.
+
+### 5.3 Calcul de l'empreinte
+Calculer le hash de contenu SHA256 (`sha256:<lowercase-hex>`) sur les octets exacts du fichier d'évidence écrit.
+
+### 5.4 Génération de l'artefact
+Produire et persister le fichier JSON `run-capture.json` contenant la référence de session, la référence du prompt et le hash.
+
+### 5.5 Persistance de l'audit
+Produire et enregistrer le `WorkflowExecutionRecord` associé à la tâche.
 
 ---
 
 ## 6. Règles & Invariants
 
-### 6.1 Minimisation de l'extrait
-Le fichier `session-excerpt.md` doit contenir uniquement les éléments indispensables pour comprendre l'intention de l'utilisateur :
-- Les messages pertinents précédant l'appel `/go`.
-- Les clarifications ou contraintes explicites acceptées.
-Il ne doit pas dupliquer l'intégralité de la session par défaut.
-
-### 6.2 Isolation du parallélisme
+### 6.1 Isolation du parallélisme
 `run-capture` ne modifie jamais le `WorkflowState` directement. Son résultat est écrit de manière isolée sous son sous-dossier d'artefacts. Il ne doit pas lire ou écrire dans le worktree privé ou perturber les autres tâches de démarrage.
 
-### 6.3 Hachage de contenu textuel
-Les hashes dans `RunCaptureArtifact` sont calculés sur les octets bruts des fichiers textes normalisés. Ils diffèrent des hashes structurels JSON JCS utilisés pour les artefacts du workflow.
+### 6.2 Hachage de contenu textuel
+Le hash dans `RunCaptureArtifact` est calculé sur les octets bruts du fichier texte après normalisation des fins de ligne. La normalisation consiste à remplacer toute occurrence de `\r\n` (CRLF) par `\n` (LF) avant écriture et calcul du hash. L'encodage du fichier est UTF-8 sans BOM. Ce hash diffère des hashes structurels JSON JCS utilisés pour les artefacts du workflow.
 
-### 6.4 Checkpoints et comportement au retry
+### 6.3 Checkpoints et comportement au retry
 
 La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 `artefactRoot/startup/run-capture/task-record.json`.
@@ -129,14 +129,20 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 - `workflowPolicyHash` : fixe a la valeur sentinelle. Cette tache ne
   consomme aucune policy.
 - `captureContextHash` : **pertinent**. La tache consomme le
-  `CaptureContext` (`sessionRef`, `promptAtGo`, `sessionExcerpt`) ;
+  `CaptureContext` (`sessionRef`, `promptAtGo`) ;
   toute modification du contexte de capture entre deux executions du
   meme `runId` constitue une corruption de l'environnement.
 
 **Comportement au retry :**
 - Checkpoint terminal present et tous les hashes pertinents identiques
-  (`inputHash`, `captureContextHash`) → adoption directe du
-  `RunCaptureArtifact` precedent.
+  (`inputHash`, `captureContextHash`) → adoption du
+  `RunCaptureArtifact` precedent, apres verification que les fichiers
+  d'evidence (`prompt-at-go.txt`, `run-capture.json`) existent
+  physiquement et que le hash de `prompt-at-go.txt` correspond a
+  `promptHash`. Si un fichier est absent ou corrompu, echec ferme
+  (`failed`). Cette verification est conforme a la regle du
+  orchestrateur `run-init` : "checkpoint valide mais artefact metier
+  manquant ou invalide : fail-closed".
 - Checkpoint absent → re-execution complete de la tache de capture.
 - `inputHash` ou `captureContextHash` different (mismatch) → echec
   ferme (`failed`). Les inputs de la tache ont change entre deux
@@ -150,7 +156,6 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 
 - `resolve-run-capture-inputs`
 - `write-prompt-evidence`
-- `write-session-excerpt-evidence`
 - `hash-capture-evidence`
 - `write-run-capture-artifact`
 - `persist-execution-record`
@@ -163,8 +168,7 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 |---|---|---|---|
 | 5.1 | `sessionRef` absent ou vide | `failed` | Arrêt de la tâche |
 | 5.1 | Prompt `/go` manquant | `failed` | Arrêt de la tâche |
-| 5.1 | Extrait de session manquant ou vide sans justification | `failed` | Arrêt de la tâche |
-| 5.3 | Échec du calcul ou incohérence des hashes après écriture | `errored` | Arrêt |
+| 5.3 | Échec du calcul ou incohérence du hash après écriture | `errored` | Arrêt |
 | 5.4 | Chemin de fichier d'évidence en dehors d'`artefactRoot` | `errored` | Arrêt de sécurité |
 | 5.4 | Artefact JSON produit invalide selon son schéma | `errored` | Arrêt |
 

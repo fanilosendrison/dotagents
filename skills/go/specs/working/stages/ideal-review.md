@@ -148,17 +148,17 @@ dans `WorkflowState.findings`.
 Une review semantique ne peut pas s'executer sans :
 
 - `RunCaptureArtifact` ;
-- `sessionExcerptRef` et `promptAtGoRef` valides ;
-- hashes verifies du prompt et de l'extrait ;
+- `promptAtGoRef` et `sessionRef` valides ;
+- hash verifie du prompt ;
 - dernier `ChangeSnapshot` applicable ;
 - diff ou PR diff reel ;
 - `ProjectDiscovery` finalise ;
 - resultats des gates mecaniques requises ;
 - specs, NIB, ADR ou contrats publics applicables au repo.
 
-La review peut consulter `sessionRef` si l'extrait gele est insuffisant, mais
-elle doit alors citer cette consultation dans les evidences. Le workflow doit
-rester reviewable avec l'extrait gele quand la session source est indisponible.
+La review consulte `sessionRef` pour acceder au contexte complet de la session.
+Le workflow doit rester reviewable avec les preuves capturees meme quand la
+session source est indisponible.
 
 ---
 
@@ -241,9 +241,9 @@ La review doit separer au moins deux passes.
 Cette passe lit :
 
 - prompt `/go` gele ;
-- extrait de session gele ;
+- `sessionRef` pour le contexte complet de session ;
 - diff reel ;
-- explicit non-goals si presents dans l'extrait ;
+- explicit non-goals si presents dans le contexte de session ;
 - specs citees par l'utilisateur ou directement necessaires pour juger la
   demande.
 
@@ -259,7 +259,7 @@ Prompt canonique :
 You are the intent-conformance reviewer for a /go workflow run.
 
 Authoritative inputs:
-1. RunCaptureArtifact and verified session excerpt.
+1. RunCaptureArtifact and the full session context accessible via sessionRef.
 2. The real diff or PR diff under review.
 3. Applicable specs only when they constrain the requested behavior.
 
@@ -268,7 +268,7 @@ Determine whether the diff implements the frozen user intent, without missing
 required behavior and without adding unrelated scope.
 
 Rules:
-- Do not invent requirements absent from the frozen session excerpt or specs.
+- Do not invent requirements absent from the session context or specs.
 - Treat explicit non-goals as binding.
 - If intent is unclear, produce an "unclear" report item and a structured
   finding when that uncertainty can block publication.

@@ -94,8 +94,8 @@ internes ne puissent produire une evidence autoritative.
 Les trois bootstrap tasks suivantes s'executent en parallele une fois
 `repo-capture` termine :
 
-- **`run-capture`** : capture les preuves du moment `/go` (prompt, extrait de
-  session). Contrat dans [`run-capture.md`](./run-capture.md). Elle ne depend
+- **`run-capture`** : capture les preuves du moment `/go` (reference de session,
+  prompt). Contrat dans [`run-capture.md`](./run-capture.md). Elle ne depend
   pas du worktree, seulement du `CaptureContext` fourni dans
   `BootstrapState`. Pour v1, `run-init` ne delegue pas `implementation`
   tant que `RunCaptureArtifact` n'est pas terminal, et Turnlock termine le
@@ -229,8 +229,7 @@ Exemple conceptuel avant `run-init` :
     "captureContext": {
       "schema": "go.capture-context.v1",
       "sessionRef": "<session-id-or-path>",
-      "promptAtGo": "le prompt exact tape par l'utilisateur",
-      "sessionExcerpt": "extrait de la session jusqu'au prompt"
+      "promptAtGo": "le prompt exact tape par l'utilisateur"
     }
   }
 }
@@ -264,7 +263,6 @@ type CaptureContext = {
   schema: "go.capture-context.v1";
   sessionRef: string;
   promptAtGo: string;
-  sessionExcerpt: string;
 };
 ```
 
@@ -602,17 +600,20 @@ runDir/artefactRoot/
 │   ├── repo-capture/
 │   │   ├── task-record.json
 │   │   └── repo-capture.json
+│   ├── dirty-state-capture/
+│   │   ├── task-record.json
+│   │   └── dirty-state-capture.json
 │   ├── run-capture/
 │   │   ├── task-record.json
-│   │   ├── output.json
+│   │   ├── run-capture.json
 │   │   ├── prompt-at-go.txt
-│   │   └── session-excerpt.md
 │   ├── workspace-setup/
 │   │   ├── task-record.json
 │   │   ├── work-session.json
 │   │   └── evidence/
 │   ├── repo-discovery-draft/
 │   │   ├── task-record.json
+│   │   ├── repository-discovery-draft.json
 │   │   └── evidence/
 │   └── project-discovery-finalize/
 │       ├── task-record.json

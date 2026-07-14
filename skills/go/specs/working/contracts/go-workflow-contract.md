@@ -190,8 +190,8 @@ moment de la delegation `implementation`.
 
 ### 2.15 Capture mecanique, analyse semantique tardive
 
-La capture du moment `/go` est mecanique. Elle fige des references, extraits et
-hashes.
+La capture du moment `/go` est mecanique. Elle fige une reference de session et
+le hash du prompt.
 
 L'analyse de l'intention utilisateur appartient aux stages de review, quand le
 diff reel, les gates, les specs et les snapshots sont disponibles.
@@ -293,8 +293,7 @@ Cette bootstrap task est host-side uniquement et produit un
 
 #### 4.1.1 `run-capture`
 
-Fige le prompt `/go`, une reference de session, un extrait minimal de session
-et leurs hashes.
+Fige le prompt `/go`, une reference de session, et le hash du prompt.
 
 Cette bootstrap branch ne modifie pas le repo cible, ne lit pas le workspace, et
 ne produit aucune interpretation semantique. Pour v1, elle doit etre jointe
@@ -384,8 +383,8 @@ Ce stage peut contenir plusieurs `CheckRun`.
 
 Review hybride du résultat global final avant découpage en paquets.
 
-Ce stage lit `RunCaptureArtifact`, l'extrait de session gele, les specs
-applicables, le diff final et les gates mecaniques. Il produit un
+Ce stage lit `RunCaptureArtifact`, le contexte de session via `sessionRef`, les
+specs applicables, le diff final et les gates mecaniques. Il produit un
 `ReviewReportArtifact` detaille et un `ReviewFindingsArtifact` contenant des
 `ReviewFinding[]` structurés.
 

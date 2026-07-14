@@ -119,9 +119,8 @@ de travailler dans le bon worktree.
 Il capture :
 
 - une reference de session ;
-- un extrait minimal gele de session ;
 - le prompt exact du `/go` ;
-- les hashes de contenu du prompt et de l'extrait.
+- le hash de contenu du prompt.
 
 Il ne resout pas les specs, ne deduit pas les contraintes et ne produit pas
 d'artefact semantique precoce. Ces interpretations appartiennent aux reviews,
@@ -202,9 +201,9 @@ format, lint, typecheck, tests, build, scans et drift généré.
 La review intervient avant packaging pour juger le résultat global final.
 
 Elle est le premier moment ou l'analyse d'intention est necessaire. La review
-lit le `RunCaptureArtifact`, l'extrait de session gele, les specs applicables,
-le diff final et les resultats de gates. Elle peut alors poser la question
-utile :
+lit le `RunCaptureArtifact`, le contexte de session via `sessionRef`, les
+specs applicables, le diff final et les resultats de gates. Elle peut alors
+poser la question utile :
 
 ```text
 Ce diff implemente-t-il l'intention utilisateur,

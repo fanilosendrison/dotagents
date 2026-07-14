@@ -378,19 +378,16 @@ type RunCaptureArtifact = {
   id: string;
   runId: string;
   sessionRef: string;
-  sessionExcerptRef: string;
   promptAtGoRef: string;
   promptHash: string;
-  excerptHash: string;
   capturedAt: string;
 };
 ```
 
 `RunCaptureArtifact` est mecanique. Il ne contient pas de resume,
 contraintes, criteres d'acceptation ou specs applicables deduits par LLM.
-`promptHash` et `excerptHash` sont des hashes de contenu
-`sha256:<lowercase-hex>` calcules sur les octets exacts des fichiers
-referencés, pas des hashes JSON JCS.
+`promptHash` est un hash de contenu `sha256:<lowercase-hex>` calcule sur les
+octets exacts du fichier reference, pas un hash JSON JCS.
 
 ```ts
 type DirtyStateDiffArtifact = {
@@ -690,6 +687,7 @@ export const businessArtifactRecordSchema = z.object({
   kind: z.enum([
     "prerequisite-validation",
     "repo-capture",
+    "dirty-state-capture",
     "run-capture",
     "repository-discovery-draft",
     "work-session",
