@@ -12,8 +12,8 @@ valide, et reussit ou echoue.
 ## 1. Objectif
 
 Garantir que `ProviderConfig` est chargeable et valide avant que `run-init`
-n'alloue des ressources (runId, artefactRoot, worktreeRoot) ou ne lance des
-operations Git.
+ne projette le `runId` dans le `WorkflowState` de `/go`, ne reserve le
+worktree physique, ou ne lance les autres branches de bootstrap.
 
 Si la configuration est absente ou invalide, le run echoue immediatement avec
 `errored`, sans effet de bord.
@@ -77,6 +77,7 @@ type ProviderConfigValidation = {
   provider: "github" | "gitlab";
   username: string;
   defaultVisibility: "private" | "public";
+  apiEndpoint?: string;
   validatedAt: string;
 };
 ```
@@ -92,11 +93,14 @@ Les etapes s'enchainent dans l'ordre suivant :
 
 ### 5.1 Localisation du fichier
 
-1. Resoudre `~/.go/config.json` via `realpath`.
+1. Etendre le chemin en remplacant le tilde `~` par le repertoire personnel de
+   l'utilisateur (`os.homedir()` ou equivalent `HOME`/`USERPROFILE`), puis
+   resoudre le chemin resultant via `realpath`.
 2. Verifier que le fichier existe (`fs.stat`).
-3. Verifier les permissions : `600` (lecture/ecriture proprietaire uniquement).
-   Si les permissions sont plus permissives, emettre un avertissement mais ne
-   pas echouer.
+3. Verifier les permissions : `600` (lecture/ecriture proprietaire uniquement)
+   sur les systemes POSIX (Linux, macOS). Ignorer ce controle specifique sur
+   Windows. Si les permissions sont plus permissives sur POSIX, emettre un
+   avertissement mais ne pas echouer.
 4. Si le fichier est absent → `failed`.
 
 ### 5.2 Parsing et validation du schema
@@ -110,12 +114,23 @@ Les etapes s'enchainent dans l'ordre suivant :
      token: string;
      username: string;
      defaultVisibility: "private" | "public";
+     apiEndpoint?: string;
    };
    ```
    - `provider` : doit etre `"github"` ou `"gitlab"`
-   - `token` : string non-vide
+   - `token` : string non-vide + validation syntaxique selon le provider :
+     - Pour `"github"` : le token doit commencer par l'un des prefixes
+       officiels (`ghp_`, `github_pat_`, `gho_`, `ghs_`, `ghu_`).
+     - Pour `"gitlab"` : le token doit commencer par `glpat-`.
+     - Tout token contenant une valeur de substitution par defaut
+       (ex: `YOUR_TOKEN_HERE`, `TODO`) ou ne respectant pas le format du
+       provider est rejete → `failed`.
    - `username` : string non-vide
    - `defaultVisibility` : `"private"` ou `"public"`
+   - `apiEndpoint` : optionnel. Si present, doit etre une URL absolue
+     parseable (protocole `http` ou `https` et hostname requis). Si absent,
+     l'endpoint SaaS public du provider est utilise par defaut
+     (`https://api.github.com` ou `https://gitlab.com/api/v4`).
    - Champs supplementaires non declares → `failed`
 
 ### 5.3 Ecriture de l'artefact
@@ -131,8 +146,11 @@ Les etapes s'enchainent dans l'ordre suivant :
 ### 6.1 Fail-fast
 
 L'echec de cette tache doit survenir avant toute allocation de ressources par
-`repo-capture` ou `workspace-setup`. Aucun `runId` n'est consomme, aucun
-dossier cree, aucun worktree reserve.
+`repo-capture` ou `workspace-setup`. Aucun `runId` n'est projete dans le
+`WorkflowState` de `/go`, aucun worktree n'est reserve, et aucune autre
+branche de bootstrap n'est demarree. Le `runDir` et l'`artefactRoot` deja
+alloues par Turnlock en amont ne servent qu'a consigner le checkpoint
+d'echec pour audit.
 
 ### 6.2 Non-divulgation du token
 
@@ -146,6 +164,27 @@ dans :
 
 En cas d'echec de validation, le message d'erreur peut indiquer qu'un token est
 manquant ou invalide, mais ne doit jamais afficher la valeur du token.
+
+**Note d'implementation :** Le token d'authentification valide est conserve
+uniquement en memoire par le processus executeur de Turnlock. Sa propagation
+aux taches aval suit deux mecanismes distincts :
+
+- **Operations Git (`push`, `clone`, `fetch`) :** Utilisation de
+  `GIT_ASKPASS` avec un script ephemere genere par Turnlock qui ecrit le
+  token sur stdout. Le token n'est jamais injecte comme variable
+  d'environnement persistante, ce qui empeche toute fuite accidentelle via
+  des sous-processus arbitraires (linter, test runner, build tool) qui
+  pourraient dumper leur environnement dans un log ou un crash report.
+
+- **Appels API REST (creer un depot distant, ouvrir une PR, lire le statut
+  CI) :** Passage explicite du token en parametre de fonction au niveau du
+  client HTTP, sans ecriture dans l'environnement ni dans un fichier
+  temporaire.
+
+Ces deux mecanismes garantissent que le token reste immuable pour la duree
+du run et ne peut pas fuiter vers des processus non controles par Turnlock,
+meme si le fichier `~/.go/config.json` est modifie sur le disque par un
+processus externe.
 
 ### 6.3 Immutabilite par run
 
@@ -171,6 +210,9 @@ branches. Aucun mode "local-only" n'est supporte en v1.
 | 5.2 | Schema `ProviderConfig` non respecte (champ manquant, type incorrect, enum inconnue) | `failed` |
 | 5.2 | `token` manquant ou vide | `failed` |
 | 5.2 | `username` manquant ou vide | `failed` |
+| 5.2 | `token` ne respecte pas le format/prefixe du provider declare | `failed` |
+| 5.2 | `token` contient une valeur de substitution par defaut | `failed` |
+| 5.2 | `apiEndpoint` present mais non parseable en URL absolue | `failed` |
 | 5.2 | Champs supplementaires non declares presents dans le fichier | `failed` |
 | 5.3 | `artefactRoot` inaccessible pour l'ecriture du checkpoint | `errored` |
 
