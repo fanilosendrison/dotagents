@@ -27,17 +27,30 @@ Ces documents sont normatifs pour construction RED/GREEN.
 
 ## ADR actifs
 
-- [`ADR-go-stage-harness-v1-non-goals.md`](./adr/ADR-go-stage-harness-v1-non-goals.md)
-  - Non-goals v1 du stage harness.
+- [`ADR-go-workflow-vocabulary.md`](./adr/ADR-go-workflow-vocabulary.md)
+  - Vocabulaire canonique : stage, bootstrap task, phase Turnlock, délégation.
 - [`ADR-go-stages-vs-turnlock-phases.md`](./adr/ADR-go-stages-vs-turnlock-phases.md)
   - Séparation stage, phase Turnlock, délégation, stage harness.
-- [`ADR-go-physical-worktree-isolation.md`](./adr/ADR-go-physical-worktree-isolation.md)
-  - Worktree Git physique privé par run `/go`.
-- [`ADR-go-review-before-packaging-with-package-verify.md`](./adr/ADR-go-review-before-packaging-with-package-verify.md)
-  - Review globale avant packaging, avec vérification obligatoire du split.
+- [`ADR-go-stage-harness-v1-non-goals.md`](./adr/ADR-go-stage-harness-v1-non-goals.md)
+  - Non-goals v1 du stage harness.
 - [`ADR-go-stage-output-envelope-and-typed-business-artifacts.md`](./adr/ADR-go-stage-output-envelope-and-typed-business-artifacts.md)
   - `StageOutput` comme enveloppe d'exécution, payloads riches en artefacts
     métier typés.
+- [`ADR-go-physical-worktree-isolation.md`](./adr/ADR-go-physical-worktree-isolation.md)
+  - Worktree Git physique privé par run `/go`.
+- [`ADR-go-token-propagation-git-askpass.md`](./adr/ADR-go-token-propagation-git-askpass.md)
+  - Propagation des tokens Git via `GIT_ASKPASS`.
+- [`ADR-go-mandatory-provider-config-fail-fast.md`](./adr/ADR-go-mandatory-provider-config-fail-fast.md)
+  - Validation `ProviderConfig` en première position, fail-fast.
+- [`ADR-go-implicit-repo-capture-control.md`](./adr/ADR-go-implicit-repo-capture-control.md)
+  - Résolution implicite du dépôt cible depuis le terminal (pas de magie IDE).
+- [`ADR-go-repo-capture-robustness.md`](./adr/ADR-go-repo-capture-robustness.md)
+  - Robustesse de la détection : `.git` fichier, rejet Bare, garde-fou
+    système, gateway par composant exact.
+- [`ADR-go-workspace-setup-skip-setup.md`](./adr/ADR-go-workspace-setup-skip-setup.md)
+  - Paramètre `skipSetup` pour la reprise sans reconstruction du worktree.
+- [`ADR-go-review-before-packaging-with-package-verify.md`](./adr/ADR-go-review-before-packaging-with-package-verify.md)
+  - Review globale avant packaging, avec vérification obligatoire du split.
 
 ---
 
