@@ -322,9 +322,10 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
       },
       "artefactRootRef": "artefactRoot/",
       "workflowLogRootRef": "logs/workflow/",
-      "worktreeRootReservedPath": "worktree/",
+      "workspaceRootReservedPath": "worktree/",
       "ownershipMarkerRef": "artefactRoot/run-init-ownership.json",
-      "initializedAt": "2026-07-12T14:30:00.000Z"
+      "initializedAt": "2026-07-12T14:30:00.000Z",
+      "dirtyStateDiff": null
     },
     "policy": {
       "schema": "go.workflow-policy.v1",
@@ -691,6 +692,7 @@ type BootstrapTaskCheckpoint = {
   task:
     | "provider-config-validation"
     | "repo-capture"
+    | "dirty-state-capture"
     | "run-capture"
     | "repo-discovery-draft"
     | "workspace-setup"
@@ -776,10 +778,10 @@ Regles de retry :
   echoue ferme ;
 - si `artefactRootRef` existe sans ownership marker verifiable : echoue ferme
   ou quarantaine explicite ;
-- si `worktreeRootReservedPath` existe comme checkout Git physique : adoption
+- si `workspaceRootReservedPath` existe comme checkout Git physique : adoption
   depend du diagnostic de `workspace-setup` avec `skipSetup: true` (branche, lien
   `.git`, `baseHeadSha`) ; si invalide, nettoye et recree ;
-- si `worktreeRootReservedPath` existe comme placeholder vide reference par
+- si `workspaceRootReservedPath` existe comme placeholder vide reference par
   l'ownership marker du meme `runId` : adoption possible ;
 - si une ref reservee sort du namespace du run apres resolution canonique :
   echoue ferme.
@@ -862,7 +864,7 @@ Regles :
 - `runDir` fourni par Turnlock ne doit pas etre sous le repo cible ;
 - `artefactRoot` ne doit pas etre sous le worktree ;
 - `workflowLogRootRef`, s'il existe, ne doit pas etre sous le worktree ;
-- `worktreeRootReservedPath` doit etre sous le namespace du run ;
+- `workspaceRootReservedPath` doit etre sous le namespace du run ;
 - les chemins resolus ne doivent pas sortir de leur racine via `..` ou symlink ;
 - aucune bootstrap task ne peut fournir un chemin absolu qui remplace une racine
   reservee par `run-init`.
@@ -908,7 +910,7 @@ Turnlock runtime envelope
 ├─ TurnlockRunRef
 ├─ artefactRootRef
 ├─ ownershipMarkerRef
-├─ worktreeRootReservedPath
+├─ workspaceRootReservedPath
 ├─ WorkflowState initial data
 └─ bootstrapTasks initial records
 ```
