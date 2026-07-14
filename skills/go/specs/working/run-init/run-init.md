@@ -116,7 +116,7 @@ Les trois bootstrap tasks suivantes s'executent en parallele une fois
   discovery finale.
 
 Aucune bootstrap branch ne demarre avant que `run-init` ait reserve ses refs
-d'ecriture (artefactRoot, worktreeRoot, ownership marker), car aucune startup
+d'ecriture (artefactRoot, workspaceRoot, ownership marker), car aucune startup
 branch ne doit inventer son propre emplacement d'ecriture ou son propre
 identifiant.
 
@@ -126,7 +126,7 @@ identifiant.
 `repo-discovery-draft`. Il verifie que les fichiers inspectes par le draft
 correspondent au worktree prive (hashes de `package.json`, lockfile, config).
 Si les hashes matchent, le draft est finalise en `ProjectDiscovery`
-autoritatif. Sinon, la discovery est relancee depuis `worktreeRoot` ou le
+autoritatif. Sinon, la discovery est relancee depuis `workspaceRoot` ou le
 join echoue ferme selon `WorkflowPolicy.discovery`.
 
 Pour v1, `run-init` joint aussi `run-capture` avant la sortie : la delegation
@@ -161,7 +161,7 @@ evite les courses d'ecriture entre branches de demarrage.
 - si `project-discovery-finalize` echoue, `run-init` annule les branches encore
   actives et echoue ;
 - si `repo-discovery-draft` echoue, `project-discovery-finalize` peut relancer
-  la discovery depuis `worktreeRoot` seulement si `WorkflowPolicy.discovery`
+  la discovery depuis `workspaceRoot` seulement si `WorkflowPolicy.discovery`
   l'autorise ; sinon `run-init` echoue ;
 - si `run-capture` echoue, `run-init` echoue ou ouvre la HumanGate prevue par
   policy ; v1 ne delegue pas `implementation` sans `RunCaptureArtifact` valide ;
@@ -332,11 +332,11 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
       "dirtyState": {
         "mode": "require-clean",
         "adoptionRequiresPatchEvidence": true,
-        "adoptionRequiresWorktreeReplay": true
+        "adoptionRequiresWorkspaceReplay": true
       },
       "discovery": {
         "allowSourceCheckoutDraft": true,
-        "allowWorktreeRerun": true,
+        "allowWorkspaceRerun": true,
         "noReliableGateBehavior": "human-gate"
       },
       "gates": {
@@ -355,7 +355,7 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
         "blockingMajorFindingBehavior": "human-gate"
       },
       "packaging": {
-        "requireCleanWorktreeForPackaging": true,
+        "requireCleanWorkspaceForPackaging": true,
         "allowPublishPr": true,
         "requirePackageReconstructionProof": true
       },
@@ -367,7 +367,7 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
     "repository": {
       "repositoryRoot": "<canonical-repository-root>",
       "projectRoot": "<optional-project-root>",
-      "worktreeProjectRoot": "<optional-worktree-relative-path>",
+      "workspaceProjectRoot": "<optional-workspace-relative-path>",
       "provider": "github",
       "apiEndpoint": "https://api.github.com",
       "remoteName": "origin",
@@ -482,7 +482,7 @@ run-init resolves RepoCapture from invocationDirectory
 run-init validates WorkflowPolicy shape from BootstrapState
 run-init hashes canonical launch inputs
 run-init creates or reserves /go artefact refs
-run-init reserves worktreeRoot path
+run-init reserves workspaceRoot path
 run-init writes or verifies ownership marker
 run-init starts bootstrap branches
 run-init runs workspace-setup

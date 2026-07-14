@@ -5,12 +5,12 @@
 ## Phase 1: Orchestrator Skeleton & `run-init` Bootstrap (Pragmatic Core)
 * **Goal**: Establish a minimal, working Turnlock skeleton and implement the initial bootstrap logic.
 * **Steps**:
-  1. **Minimal State Schema**: Define a minimal `GoRuntimeState` Zod schema containing only the base properties (e.g., `runId`, `workDir`, and `artefactRoot`).
+  1. **Minimal State Schema**: Define a minimal `WorkflowState` Zod schema containing only the base properties (e.g., `runId`, `workspaceRoot`, and `artefactRoot`).
   2. **Minimal FSM Scaffold**: Create the Turnlock orchestrator in `src/orchestrator/index.ts` with only two initial phases:
      - `run-init`: The bootstrap phase.
      - `dummy-phase`: A temporary placeholder phase to represent "the rest of the workflow" and keep the FSM compileable.
   3. **Implement `run-init`**: Build the bootstrap logic inside the `run-init` phase:
-     - Read the initial bootstrap context (`GoBootstrapState`).
+     - Read the initial bootstrap context (`BootstrapState`).
      - Initialize paths and resolve directories (`runDir`, `artefactRoot`).
      - Write the run-ownership marker file (`run-init-ownership.json`).
      - Validate the target repository root.
@@ -27,7 +27,7 @@
      - What errors, statuses, or evidence it returns.
      - What decisions it needs to make (e.g., retry on merge conflicts, trigger remediation loops, or proceed).
   2. **State & Transition Discovery**:
-     - Enrich the global `GoRuntimeState` Zod schema with the variables discovered in step 1.
+     - Enrich the global `WorkflowState` Zod schema with the variables discovered in step 1.
      - Define the new Turnlock phase (e.g., `turnlockImplementationPhase`) that wraps the stage function.
   3. **Standalone Function & Test**:
      - Write the standalone async stage function conforming to the `Stage` contract.

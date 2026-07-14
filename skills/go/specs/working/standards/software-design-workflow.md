@@ -155,7 +155,7 @@ decide pas encore les gates.
 `project-discovery-finalize` finalise la discovery contre le worktree prive.
 
 Il verifie que les fichiers inspectes par `repo-discovery-draft` correspondent
-au `worktreeRoot` issu de `WorkSession`. Si les hashes ne correspondent pas, il
+au `workspaceRoot` issu de `WorkSession`. Si les hashes ne correspondent pas, il
 relance la discovery depuis le worktree ou echoue ferme selon
 `WorkflowPolicy.discovery`.
 

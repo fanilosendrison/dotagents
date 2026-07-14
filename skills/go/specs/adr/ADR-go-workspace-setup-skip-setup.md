@@ -43,7 +43,7 @@ Quand `skipSetup` vaut `true` :
 - Les étapes §4.2 (initialisation) et §4.5 (création du worktree) sont
   ignorées.
 - L'étape §4.1 est exécutée avec des vérifications assouplies : seul le
-  containment du `worktreeRoot` dans le run est vérifié, sans imposer de
+  containment du `workspaceRoot` dans le run est vérifié, sans imposer de
   résolution de la racine Git source.
 - Le pipeline ne tente jamais de suppression ou reconstruction du worktree.
 

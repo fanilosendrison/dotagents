@@ -137,7 +137,7 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 - Checkpoint terminal `failed` ou `errored` → echec ferme (pas de
   re-execution automatique sans intervention). Le `project-discovery-finalize`
   peut alors relancer la discovery depuis le worktree si
-  `WorkflowPolicy.discovery.allowWorktreeRerun` l'autorise.
+  `WorkflowPolicy.discovery.allowWorkspaceRerun` l'autorise.
 
 ---
 
