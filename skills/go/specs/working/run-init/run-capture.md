@@ -98,7 +98,7 @@ Charger la référence de session et le prompt depuis le `CaptureContext`.
 Calculer le hash de contenu SHA256 (`sha256:<lowercase-hex>`) sur les octets exacts du fichier d'évidence écrit.
 
 ### 5.4 Génération de l'artefact
-Produire et persister le fichier JSON `run-capture.json` contenant la référence de session, la référence du prompt et le hash.
+Construire l'objet `RunCaptureArtifact`, le valider contre son schéma, puis persister le fichier JSON `run-capture.json`. L'identifiant `id` de l'artefact est dérivé de manière déterministe à partir du `runId` (ex: `id = runId`) afin de garantir que deux exécutions de la tâche avec les mêmes inputs produisent le même `id`, assurant l'idempotence en cas de reprise après crash avant l'écriture du checkpoint.
 
 ### 5.5 Persistance de l'audit
 Produire et enregistrer le `WorkflowExecutionRecord` associé à la tâche.
@@ -111,7 +111,11 @@ Produire et enregistrer le `WorkflowExecutionRecord` associé à la tâche.
 `run-capture` ne modifie jamais le `WorkflowState` directement. Son résultat est écrit de manière isolée sous son sous-dossier d'artefacts. Il ne doit pas lire ou écrire dans le worktree privé ou perturber les autres tâches de démarrage.
 
 ### 6.2 Hachage de contenu textuel
-Le hash dans `RunCaptureArtifact` est calculé sur les octets bruts du fichier texte après normalisation des fins de ligne. La normalisation consiste à remplacer toute occurrence de `\r\n` (CRLF) par `\n` (LF) avant écriture et calcul du hash. L'encodage du fichier est UTF-8 sans BOM. Ce hash diffère des hashes structurels JSON JCS utilisés pour les artefacts du workflow.
+Le hash dans `RunCaptureArtifact` est calculé sur les octets bruts du fichier texte après normalisation. La normalisation consiste à :
+- Appliquer la normalisation Unicode **NFC** (Normalization Form Canonical Composition) pour garantir la compatibilité des caractères accentués ou spéciaux indépendamment de la plateforme (ex : macOS NFD vs Linux NFC).
+- Remplacer toute occurrence de `\r\n` (CRLF) par `\n` (LF).
+- Garantir que le fichier se termine par exactement un saut de ligne final (`\n`). Si le prompt d'origine ne se termine pas par `\n`, un `\n` est ajouté. Les `\n` supplémentaires en fin de fichier sont supprimés.
+L'encodage du fichier est UTF-8 sans BOM. Ce hash diffère des hashes structurels JSON JCS utilisés pour les artefacts du workflow.
 
 ### 6.3 Checkpoints et comportement au retry
 
@@ -124,7 +128,7 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
   partages.
 - `repoCaptureHash` : fixe a la valeur sentinelle deterministe
   `sha256:0000000000000000000000000000000000000000000000000000000000000000`
-  (64 zeros). Conformement au §6.2, cette tache ne lit pas le worktree
+  (64 zeros). Conformement au §6.1, cette tache ne lit pas le worktree
   et ne depend pas du `RepoCapture`.
 - `workflowPolicyHash` : fixe a la valeur sentinelle. Cette tache ne
   consomme aucune policy.
@@ -167,7 +171,7 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 | Pipeline | Cause de l'échec | Statut du run | Comportement / Action corrective |
 |---|---|---|---|
 | 5.1 | `sessionRef` absent ou vide | `failed` | Arrêt de la tâche |
-| 5.1 | Prompt `/go` manquant | `failed` | Arrêt de la tâche |
+| 5.1 | Prompt `/go` manquant, vide, ou composé uniquement d'espaces blancs | `failed` | Arrêt de la tâche |
 | 5.3 | Échec du calcul ou incohérence du hash après écriture | `errored` | Arrêt |
 | 5.4 | Chemin de fichier d'évidence en dehors d'`artefactRoot` | `errored` | Arrêt de sécurité |
 | 5.4 | Artefact JSON produit invalide selon son schéma | `errored` | Arrêt |
