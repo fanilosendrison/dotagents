@@ -45,8 +45,8 @@ api-compat
 
 Les checks rapides et structurels précèdent les checks coûteux.
 
-`mechanical-gates` ne consomme jamais `RepositoryDiscoveryDraft`. Si la discovery
-n'a pas ete finalisee contre le worktree prive, le stage echoue ferme.
+`mechanical-gates` consomme uniquement `ProjectDiscovery` produit par
+`project-discovery-finalize`, qui a deja scanne le worktree prive.
 
 ---
 

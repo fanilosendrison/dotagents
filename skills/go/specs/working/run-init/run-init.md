@@ -39,24 +39,21 @@ Dans `run-init`, le graphe nominal est :
        prerequisite-validation
                  │
             repo-capture
-       ┌─────────┼─────────┐
-       ▼         ▼         ▼
-  run-capture  dirty-  repo-discovery
-               state       -draft
-       │         │            │
-       │         ▼            │
-       │    workspace-        │
-       │    setup             │
-       │         │            │
-       │         └──────┬─────┘
-       │                ▼
-       │   project-discovery-finalize
-       │                │
-       └────────┬───────┘
-                ▼
-       delegate implementation
-         ↓ resumeAt
-    implementation-settlement
+          ┌──────┴──────┐
+          ▼             ▼
+     run-capture    dirty-state
+          │             │
+          │             ▼
+          │        workspace-setup
+          │             │
+          │             ▼
+          │   project-discovery-finalize
+          │             │
+          └──────┬──────┘
+                 ▼
+        delegate implementation
+          ↓ resumeAt
+     implementation-settlement
 ```
 
 ### 1.0 Validation du ProviderConfig
@@ -92,52 +89,37 @@ internes ne puissent produire une evidence autoritative.
 
 ### 1.2 Branches paralleles
 
-Deux des trois branches paralleles — `run-capture` et `repo-discovery-draft`
-— demarrent immediatement apres `repo-capture`, sans attendre
-`dirty-state-capture` dont elles ne dependent pas. La troisieme,
-`workspace-setup`, s'execute sequentiellement apres `dirty-state-capture`,
-dont elle consomme le `DirtyStateDiffArtifact` pour le replay du patch.
+Deux branches demarrent de `repo-capture` :
 
 - **`run-capture`** : capture les preuves du moment `/go` (reference de session,
   prompt). Contrat dans [`run-capture.md`](./run-capture.md). Elle ne depend
   pas du worktree, seulement du `CaptureContext` fourni dans
-  `BootstrapState`. Pour v1, `run-init` ne delegue pas `implementation`
-  tant que `RunCaptureArtifact` n'est pas terminal, et Turnlock termine le
-  process apres `io.delegate` : un mode sidecar ou ensure-before-review
-  pourra etre ajoute plus tard.
-- **`workspace-setup`** : prepare le worktree Git prive et produit
-  `WorkSession`. Contrat dans [`workspace-setup.md`](./workspace-setup.md).
-  Elle est la seule branche a dependre de `dirty-state-capture` (pour le
-  replay du patch dirty). Si le depot n'existe pas encore, l'initialise et
-  le connecte a un repo distant via [`ProviderConfig`](./prerequisite-validation.md).
-- **`repo-discovery-draft`** : lit le dépôt source pour decouvrir les
-  commandes et capacites du repo, en parallele de `dirty-state-capture` et
-  `workspace-setup`. Ce
-  resultat n'est qu'un brouillon. De plus, `repo-discovery-draft` ne doit pas
-  executer de commandes Git sur le dépôt source. Elle lit uniquement des
-  fichiers. Si un fichier ou dossier (comme `.git/`) est absent parce que
-  `workspace-setup` est en cours d'initialisation parallele, la branche
-  traite cette absence comme une information manquante (draft incomplet) et ne
-  crashe pas. Le join `project-discovery-finalize` validera ou relancera la
-  discovery finale.
+  `BootstrapState`. Elle file en parallele jusqu'a la delegation
+  `implementation`, qui n'est pas emise tant que `RunCaptureArtifact` n'est
+  pas terminal.
+- **`dirty-state-capture`** : capture le dirty state du depot source, puis
+  **`workspace-setup`** cree le worktree Git prive et produit `WorkSession`.
+  Contrat dans [`dirty-state-capture.md`](./dirty-state-capture.md) et
+  [`workspace-setup.md`](./workspace-setup.md). C'est la seule chaine
+  sequentielle : `workspace-setup` depend de `dirty-state-capture` pour le
+  replay du patch dirty. La discovery du projet est faite ensuite par
+  `project-discovery-finalize`, qui scanne directement le worktree prive.
 
 Aucune bootstrap branch ne demarre avant que `run-init` ait reserve ses refs
 d'ecriture (artefactRoot, workspaceRoot, ownership marker), car aucune startup
 branch ne doit inventer son propre emplacement d'ecriture ou son propre
 identifiant.
 
-### 1.3 Joins
+### 1.3 Join
 
-`project-discovery-finalize` est le bootstrap join entre `workspace-setup` et
-`repo-discovery-draft`. Il verifie que les fichiers inspectes par le draft
-correspondent au worktree prive (hashes de `package.json`, lockfile, config).
-Si les hashes matchent, le draft est finalise en `ProjectDiscovery`
-autoritatif. Sinon, la discovery est relancee depuis `workspaceRoot` ou le
-join echoue ferme selon `WorkflowPolicy.discovery`.
-
-Pour v1, `run-init` joint aussi `run-capture` avant la sortie : la delegation
+Le seul join de `run-init` est `run-capture` avant la sortie : la delegation
 `implementation` n'est pas emise tant que `RunCaptureArtifact` n'est pas
 terminal, schema-valide, hash-verifie et projete dans le `WorkflowState`.
+
+`project-discovery-finalize` n'est pas un join. C'est une tache sequentielle
+apres `workspace-setup` : elle scanne directement le worktree prive pour
+decouvrir le package manager, les lockfiles et les commandes candidates. Elle
+ne depend d'aucun brouillon intermediaire.
 
 ### 1.4 Delegation
 
@@ -164,11 +146,8 @@ evite les courses d'ecriture entre branches de demarrage.
 
 - si `workspace-setup` echoue, `run-init` annule les branches encore actives,
   attend leur terminaison controlee ou leur timeout court, puis echoue ;
-- si `project-discovery-finalize` echoue, `run-init` annule les branches encore
-  actives et echoue ;
-- si `repo-discovery-draft` echoue, `project-discovery-finalize` peut relancer
-  la discovery depuis `workspaceRoot` seulement si `WorkflowPolicy.discovery`
-  l'autorise ; sinon `run-init` echoue ;
+- si `project-discovery-finalize` echoue,
+  `run-init` echoue ;
 - si `run-capture` echoue, `run-init` echoue ou ouvre la HumanGate prevue par
   policy ; v1 ne delegue pas `implementation` sans `RunCaptureArtifact` valide ;
 - une task annulee ecrit un `task-record.json` terminal `cancelled` si possible ;
@@ -190,7 +169,7 @@ libre :
 ```text
 project-discovery-finalize requires:
   - WorkSession
-  - RepositoryDiscoveryDraft or permission to rerun discovery from worktree
+  - workspaceRoot
 
 implementation delegation requires:
   - WorkSession
@@ -389,7 +368,7 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
         "task": "repo-capture",
         "status": "passed",
         "businessArtifactIds": ["repo-capture:<id>"],
-        "requiredBefore": ["dirty-state-capture", "run-capture", "repo-discovery-draft"]
+        "requiredBefore": ["dirty-state-capture", "run-capture"]
       },
       {
         "task": "dirty-state-capture",
@@ -402,12 +381,6 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
         "status": "passed",
         "businessArtifactIds": ["run-capture:<id>"],
         "requiredBefore": ["implementation", "pre-package-review", "pr-ci-review"]
-      },
-      {
-        "task": "repo-discovery-draft",
-        "status": "passed",
-        "businessArtifactIds": ["repository-discovery-draft:<id>"],
-        "requiredBefore": ["project-discovery-finalize"]
       },
       {
         "task": "workspace-setup",
@@ -490,8 +463,7 @@ run-init reserves workspaceRoot path
 run-init writes or verifies ownership marker
 run-init starts bootstrap branches
 run-init runs workspace-setup
-run-init runs or finalizes repo discovery
-run-init joins project-discovery-finalize
+run-init runs project-discovery-finalize
 run-init joins run-capture
 run-init prepares implementation delegation input
 run-init returns io.delegate(label=implementation, resumeAt=implementation-settlement)
@@ -617,10 +589,6 @@ runDir/artefactRoot/
 │   │   ├── task-record.json
 │   │   ├── work-session.json
 │   │   └── evidence/
-│   ├── repo-discovery-draft/
-│   │   ├── task-record.json
-│   │   ├── repository-discovery-draft.json
-│   │   └── evidence/
 │   └── project-discovery-finalize/
 │       ├── task-record.json
 │       ├── project-discovery.json
@@ -701,7 +669,6 @@ type BootstrapTaskCheckpoint = {
     | "repo-capture"
     | "dirty-state-capture"
     | "run-capture"
-    | "repo-discovery-draft"
     | "workspace-setup"
     | "project-discovery-finalize";
   status: "passed" | "failed" | "errored" | "cancelled";

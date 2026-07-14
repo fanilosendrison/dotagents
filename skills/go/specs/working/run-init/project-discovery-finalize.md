@@ -1,14 +1,19 @@
 # Startup task `project-discovery-finalize`
 
-`project-discovery-finalize` produit le `ProjectDiscovery` autoritatif du run. Il ne se contente pas de lire des manifestes : il prouve que les commandes de gates retenues correspondent au workspace physique privé qui sera modifié et vérifié.
+`project-discovery-finalize` scanne directement le worktree privé pour
+découvrir le package manager, les lockfiles et les commandes candidates. Elle
+produit le `ProjectDiscovery` autoritatif du run.
 
-Cette bootstrap task agit comme un join synchronisant la tâche `workspace-setup` (qui produit `WorkSession`) et la tâche `repo-discovery-draft` (qui pré-analyse le dépôt source).
+Contrairement à une version antérieure de la spec, cette tâche n'est plus un
+join et ne consomme aucun brouillon intermédiaire. Elle opère directement
+depuis le workspace isolé.
 
 ---
 
 ## 1. Objectif
 
-Produire une matrice de gates mécaniques adaptée au dépôt, validée directement contre le workspace privé et isolé du run. 
+Produire une matrice de gates mécaniques adaptée au dépôt, validée directement
+contre le workspace privé et isolé du run.
 
 Le résultat durable de cette validation est l'artefact `ProjectDiscovery`.
 
@@ -16,29 +21,29 @@ Le résultat durable de cette validation est l'artefact `ProjectDiscovery`.
 
 ## 2. Position dans le workflow
 
-`project-discovery-finalize` est le bootstrap join de la phase `run-init`. Elle s'exécute immédiatement après la complétion de `workspace-setup` et `repo-discovery-draft`.
+`project-discovery-finalize` s'exécute séquentiellement après
+`workspace-setup` et avant la délégation `implementation`.
 
 ```text
             repo-capture
-       ┌─────────┼─────────┐
-       ▼         ▼         ▼
-  run-capture  dirty-  repo-discovery
-               state       -draft
-       │         │            │
-       │         ▼            │
-       │    workspace-        │
-       │    setup             │
-       │         │            │
-       │         └──────┬─────┘
-       │                ▼
-       │   project-discovery-finalize
-       │                │
-       └────────┬───────┘
-                ▼
-       delegate implementation
+          ┌──────┴──────┐
+          ▼             ▼
+     run-capture    dirty-state
+          │             │
+          │             ▼
+          │        workspace-setup
+          │             │
+          │             ▼
+          │   project-discovery-finalize
+          │             │
+          └──────┬──────┘
+                 ▼
+        delegate implementation
 ```
 
-Elle s'exécute de manière bloquante : la délégation de l'étape `implementation` ne peut pas être émise tant que `project-discovery-finalize` n'a pas validé et publié la matrice de checks définitive.
+Elle s'exécute de manière bloquante : la délégation `implementation` ne peut
+pas être émise tant que `project-discovery-finalize` n'a pas validé et publié
+la matrice de checks définitive.
 
 ---
 
@@ -49,19 +54,20 @@ Elle s'exécute de manière bloquante : la délégation de l'étape `implementat
 - `artefactRoot` (répertoire réservé aux preuves).
 - `WorkflowPolicy.discovery` (règles de découverte).
 - `WorkflowPolicy.gates` (règles des gates mécaniques).
-- `RepositoryDiscoveryDraft` (optionnel, produit par `repo-discovery-draft`).
 - `projectRoot` (optionnel, sous-périmètre de projet issu de `WorkSession`).
 
 ---
 
 ## 4. Outputs
 
-Artefact métier écrit sous `artefactRoot/startup/project-discovery-finalize/project-discovery.json` :
+Artefact métier écrit sous
+`artefactRoot/startup/project-discovery-finalize/project-discovery.json` :
 
 ```ts
 type ProjectDiscovery = {
-  source: "draft-finalized" | "workspace-rerun";
-  finalizedFromDraftId?: string;
+  schema: "go.project-discovery.v1";
+  id: string;
+  runId: string;
   finalizedAgainstWorkspaceRoot: string;
   inspectedFiles: InspectedFileRef[];
   packageManager?:
@@ -81,51 +87,67 @@ type ProjectDiscovery = {
 };
 ```
 
-Fichiers de preuves (dans le sous-dossier `project-discovery-finalize/`) contenant les manifestes détectés, commandes candidates rejetées et résultats de discovery. Cette tâche produit également un `WorkflowExecutionRecord` d'audit.
+Fichiers de preuves (dans le sous-dossier `project-discovery-finalize/`)
+contenant les manifestes détectés, commandes candidates rejetées et résultats
+de discovery. Cette tâche produit également un `WorkflowExecutionRecord`
+d'audit.
 
 ---
 
 ## 5. Pipeline
 
-Le pipeline de finalisation exécute les opérations suivantes :
-
 ### 5.1 Vérification des prérequis
-S'assurer que la `WorkSession` et le répertoire physique du workspace privé `workspaceRoot` sont bien présents et accessibles.
+S'assurer que la `WorkSession` et le répertoire physique du workspace privé
+`workspaceRoot` sont bien présents et accessibles.
 
-### 5.2 Comparaison et finalisation du draft
-Si un `RepositoryDiscoveryDraft` est fourni :
-1. Pour chaque fichier du draft (`inspectedFiles`), vérifier sa présence sous `workspaceRoot`.
-2. Calculer le hash SHA256 de ces fichiers dans le workspace et s'assurer qu'ils correspondent exactement à ceux du draft.
-3. Valider que les commandes candidates peuvent s'exprimer avec un `workingDirectory` pointant dans le workspace.
-4. Si les hashes correspondent, le draft est finalisé. `ProjectDiscovery.source` est défini à `"draft-finalized"`.
+### 5.2 Scan du workspace
+1. Parcourir le répertoire `workspaceRoot` (ou `workspaceRoot/projectRoot` si
+   un sous-périmètre est spécifié) pour identifier les fichiers de
+   configuration de projet pertinents : manifestes (`package.json`,
+   `Cargo.toml`, `go.mod`, `pyproject.toml`), lockfiles (`yarn.lock`,
+   `pnpm-lock.yaml`, `bun.lockb`, `Cargo.lock`, `go.sum`), et configs de
+   tooling (`.eslintrc.*`, `tsconfig.json`, `Cargo.toml` [workspace]).
+2. Calculer le hash SHA256 de chaque fichier inspecté.
+3. Déduire le package manager candidat à partir des manifestes détectés.
+4. Extraire les scripts et commandes déclarés (ex: `scripts` dans
+   `package.json`, `[[bin]]` et `[lib]` dans `Cargo.toml`, targets dans
+   `go.mod`).
 
-### 5.3 Redécouverte (Rerun)
-Si le draft est absent, invalide, ou que les hashes ne correspondent pas :
-1. Si `WorkflowPolicy.discovery.allowWorkspaceRerun` est `false`, lever une erreur `failed`.
-2. Si autorisé, relancer l'analyse complète (discovery) directement depuis le répertoire `workspaceRoot`.
-3. Produire la matrice de commandes et définir `ProjectDiscovery.source` à `"workspace-rerun"`.
+### 5.3 Filtrage et construction de la matrice
+1. Filtrer et limiter les commandes de checks en fonction du sous-périmètre
+   `projectRoot` et des obligations de la policy `WorkflowPolicy.gates`.
+2. Si `WorkflowPolicy.gates.requiredKinds` exige des types de gates qui ne
+   sont pas détectables, et que
+   `WorkflowPolicy.discovery.noReliableGateBehavior` vaut `"human-gate"`,
+   ouvrir une HumanGate. Sinon, échouer avec `failed`.
+3. Préférer les scripts et configurations déclarés par le projet aux
+   conventions génériques du harness (§6.2).
 
-### 5.4 Filtrage et persistance
-1. Filtrer et limiter les commandes de checks en fonction du sous-périmètre `projectRoot` et des obligations de la policy `WorkflowPolicy.gates`.
-2. Écrire le fichier final `project-discovery.json` et persister le `WorkflowExecutionRecord`.
+### 5.4 Persistance
+1. Écrire le `ProjectDiscovery` validé contre son schéma.
+2. Persister le `WorkflowExecutionRecord` d'audit.
 
 ---
 
 ## 6. Règles & Invariants
 
 ### 6.1 Non-modification du dépôt
-La finalisation ne doit en aucun cas modifier le code du dépôt ou écrire dans le workspace privé. Les fichiers d'évidences ou de rapports doivent être écrits exclusivement dans `artefactRoot`.
+La tâche ne doit en aucun cas modifier le code du dépôt ou écrire dans le
+workspace privé. Les fichiers d'évidences ou de rapports doivent être écrits
+exclusivement dans `artefactRoot`.
 
 ### 6.2 Priorité aux scripts locaux
-La discovery doit préférer les scripts et configurations déclarés par le projet (ex: scripts `package.json`, tâches `cargo`, configs de linter locales) aux conventions génériques du harness.
+La discovery doit préférer les scripts et configurations déclarés par le
+projet (ex: scripts `package.json`, tâches `cargo`, configs de linter
+locales) aux conventions génériques du harness.
 
 ### 6.3 Outils et resolveurs officiels
-Pour analyser les dépendances et structures du projet, la tâche doit privilégier les commandes et APIs officielles des gestionnaires de paquets (ex: `cargo metadata`, `go list -json`) et rejeter les parseurs "maison" de fichiers de verrouillage.
+Pour analyser les dépendances et structures du projet, la tâche doit
+privilégier les commandes et APIs officielles des gestionnaires de paquets
+(ex: `cargo metadata`, `go list -json`) et rejeter les parseurs "maison" de
+fichiers de verrouillage.
 
-### 6.4 Frontière de validation du draft
-Un draft n'a aucune autorité. Il n'est adopté que si sa conformité physique par rapport aux fichiers du workspace est formellement prouvée par la correspondance des hashes.
-
-### 6.5 Checkpoints et comportement au retry
+### 6.4 Checkpoints et comportement au retry
 
 La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 `artefactRoot/startup/project-discovery-finalize/task-record.json`.
@@ -139,7 +161,8 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
   indirectement via la `WorkSession` produite par `workspace-setup`.
 - `workflowPolicyHash` : **pertinent**. La tache consomme
   `WorkflowPolicy.discovery` et `WorkflowPolicy.gates` pour decider
-  du comportement de rerun et du filtrage des gates.
+  du filtrage des gates et du comportement en cas d'absence de gates
+  fiables.
 - `captureContextHash` : fixe a la valeur sentinelle deterministe
   `sha256:0000000000000000000000000000000000000000000000000000000000000000`
   (64 zeros). Cette tache ne consomme pas le `CaptureContext`.
@@ -147,31 +170,22 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 **Comportement au retry :**
 - Checkpoint terminal present et tous les hashes pertinents identiques
   (`inputHash`, `repoCaptureHash`, `workflowPolicyHash`) → adoption
-  directe du `ProjectDiscovery` precedent. La verification de
-  correspondance draft↔workspace a deja ete prouvee.
-- Checkpoint absent → execution complete (finalisation du draft ou
-  rerun discovery depuis le workspace, cf. §5.2-5.3).
+  directe du `ProjectDiscovery` precedent.
+- Checkpoint absent → execution complete du scan du workspace.
 - `inputHash`, `repoCaptureHash` ou `workflowPolicyHash` different
   (mismatch) → echec ferme (`failed`). Les inputs de la tache ont
   change entre deux executions du meme `runId`.
 - Checkpoint terminal `failed` ou `errored` → echec ferme (pas de
   re-execution automatique sans intervention).
 
-**Note sur le draft :** Le `RepositoryDiscoveryDraft` est un output
-intermediaire de `repo-discovery-draft`, pas un input direct de
-`run-init`. Sa validite est prouvee lors de l'execution initiale par
-comparaison des hashes de fichiers (§5.2). Au retry avec adoption de
-checkpoint, cette verification n'est pas rejouee — le `ProjectDiscovery`
-final fait foi.
-
 ---
 
 ## 7. Opérations internes typiques
 
 - `load-work-session`
-- `load-repository-discovery-draft`
-- `validate-draft-file-hashes-against-workspace`
-- `rerun-discovery-from-workspace-if-needed`
+- `scan-workspace-manifests`
+- `detect-package-manager`
+- `extract-candidate-commands`
 - `build-mechanical-gate-matrix`
 - `write-discovery-evidence`
 - `persist-execution-record`
@@ -184,7 +198,6 @@ final fait foi.
 |---|---|---|---|
 | 5.1 | `WorkSession` absent ou illisible | `errored` | Arrêt de la tâche |
 | 5.1 | Répertoire physique `workspaceRoot` introuvable | `errored` | Arrêt de la tâche |
-| 5.2/5.3 | Draft incohérent (hashes différents) et rerun non autorisé | `failed` | Arrêt de la phase |
 | 5.3 | Aucun check de validation fiable détecté alors que requis par la policy | `failed` | Arrêt |
 | 5.4 | Commande candidate détectée impossible à exprimer sous forme d'argv | `failed` | Arrêt |
 | 5.4 | Fichiers d'évidence écrits hors de l'`artefactRoot` | `errored` | Arrêt de sécurité |
@@ -195,7 +208,8 @@ final fait foi.
 ## 9. Non-goals
 
 - Installer ou mettre à jour des compilateurs, linters ou runtimes locaux.
-- Exécuter la suite de tests ou les scripts de formatage (les commandes sont uniquement recensées, pas lancées).
+- Exécuter la suite de tests ou les scripts de formatage (les commandes sont
+  uniquement recensées, pas lancées).
 - Valider la PR, le remote ou publier du code.
 
 ---

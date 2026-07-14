@@ -41,7 +41,6 @@ type WorkflowState = {
   currentStage: WorkflowStage | null;
   bootstrapTasks: BootstrapTaskRecord[];
   runCapture?: RunCaptureArtifact;
-  repositoryDiscoveryDraft?: RepositoryDiscoveryDraft;
   workSession?: WorkSession;
   projectDiscovery?: ProjectDiscovery;
   snapshots: ChangeSnapshot[];
@@ -87,7 +86,6 @@ type BootstrapTaskName =
   | "repo-capture"
   | "dirty-state-capture"
   | "run-capture"
-  | "repo-discovery-draft"
   | "workspace-setup"
   | "project-discovery-finalize";
 ```
@@ -405,29 +403,6 @@ type DirtyStateDiffArtifact = {
 `dirty-state-capture`. Si `initialDirtyState` vaut `"clean"`, les champs
 `sourceStatusPorcelainRef`, `sourcePatchRef` et `sourcePatchHash` sont
 absents.
-
-```ts
-type RepositoryDiscoveryDraft = {
-  schema: "go.repository-discovery-draft.v1";
-  id: string;
-  runId: string;
-  sourceRepo: string;
-  inspectedAt: string;
-  inspectedFiles: InspectedFileRef[];
-  candidatePackageManager?:
-    | "bun"
-    | "npm"
-    | "pnpm"
-    | "yarn"
-    | "cargo"
-    | "go"
-    | "python"
-    | "unknown";
-  candidateLockfiles: string[];
-  candidateCommands: CandidateMechanicalCommand[];
-  providerCapabilities: ProviderCapabilities;
-};
-```
 
 ```ts
 type InspectedFileRef = {

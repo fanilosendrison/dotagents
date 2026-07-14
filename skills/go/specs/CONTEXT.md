@@ -55,7 +55,6 @@ specs/
 │   │   ├── run-capture.md
 │   │   ├── workspace-setup.md
 │   │   ├── workspace-setup.worktree.md
-│   │   ├── repo-discovery-draft.md
 │   │   └── project-discovery-finalize.md
 │   └── stages/                 ← Stages métier (après run-init)
 │       ├── implementation.md
@@ -155,7 +154,7 @@ quand leur niveau de détail sera suffisant pour construction.
   - Contrat commun du workspace et `WorkSession`.
 - [`workspace-setup.worktree.md`](./working/run-init/workspace-setup.worktree.md)
   - Stratégie Git Worktree : pipeline `git worktree add`.
-- [`repo-discovery-draft.md`](./working/run-init/repo-discovery-draft.md)
+- [`workspace-setup.md`](./working/run-init/workspace-setup.md)
   - Discovery repo non autoritative depuis le checkout source.
 - [`project-discovery-finalize.md`](./working/run-init/project-discovery-finalize.md)
   - Finalisation de la discovery repo contre le worktree prive.

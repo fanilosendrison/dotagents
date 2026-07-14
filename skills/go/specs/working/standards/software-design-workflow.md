@@ -30,7 +30,6 @@ des hashes.
 /go
   -> run-init
      ├─ run-capture
-     ├─ repo-discovery-draft
      └─ workspace-setup
           ↓
         project-discovery-finalize
@@ -76,8 +75,8 @@ Git cible, sous-projet optionnel, et symlinks. Si cette cible est absente ou amb
 Turnlock.
 
 Le demarrage n'est pas lineaire non plus. Ce n'est pas un stage : c'est le
-bootstrap du run porte par la phase Turnlock `run-init`. `run-capture`,
-`repo-discovery-draft` et `workspace-setup` peuvent avancer en parallele a
+bootstrap du run porte par la phase Turnlock `run-init`. `run-capture`
+et `workspace-setup` peuvent avancer en parallele a
 l'interieur de `run-init`, tant qu'ils ne modifient pas directement
 `WorkflowState`.
 
@@ -135,30 +134,10 @@ states partagés.
 `workspace-setup` ne depend pas de `run-capture`. Il peut avancer pendant que la
 capture de session s'ecrit.
 
-### Startup branch: `repo-discovery-draft`
+### Startup branch: `project-discovery-finalize`
 
-Le workflow ne doit pas inventer les commandes de check. Une premiere discovery
-peut lire le dépôt source pendant que le worktree prive est cree :
-
-- manifestes ;
-- lockfiles ;
-- scripts ;
-- configs ;
-- capacites provider.
-
-Ce resultat est un brouillon non autoritatif. Il accelere le demarrage, mais ne
-decide pas encore les gates.
-
-### Startup join: `project-discovery-finalize`
-
-`project-discovery-finalize` finalise la discovery contre le worktree prive.
-
-Il verifie que les fichiers inspectes par `repo-discovery-draft` correspondent
-au `workspaceRoot` issu de `WorkSession`. Si les hashes ne correspondent pas, il
-relance la discovery depuis le worktree ou echoue ferme selon
-`WorkflowPolicy.discovery`.
-
-Le resultat autoritatif est `ProjectDiscovery`, qui fixe la matrice de gates
+`project-discovery-finalize` scanne directement le worktree prive pour
+decouvrir le projet :
 mecaniques.
 
 ### Delegation: `implementation`

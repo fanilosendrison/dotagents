@@ -20,26 +20,23 @@ Produire un `RunCaptureArtifact` mécanique contenant :
 
 ## 2. Position dans le workflow
 
-`run-capture` s'exécute en parallèle avec `workspace-setup` et `repo-discovery-draft` au sein de la phase Turnlock `run-init`.
+`run-capture` s'exécute en parallèle avec `workspace-setup` au sein de la phase Turnlock `run-init`.
 
 ```text
             repo-capture
-       ┌─────────┼─────────┐
-       ▼         ▼         ▼
-  run-capture  dirty-  repo-discovery
-               state       -draft
-       │         │            │
-       │         ▼            │
-       │    workspace-        │
-       │    setup             │
-       │         │            │
-       │         └──────┬─────┘
-       │                ▼
-       │   project-discovery-finalize
-       │                │
-       └────────┬───────┘
-                ▼
-       delegate implementation
+          ┌──────┴──────┐
+          ▼             ▼
+     run-capture    dirty-state
+          │             │
+          │             ▼
+          │        workspace-setup
+          │             │
+          │             ▼
+          │   project-discovery-finalize
+          │             │
+          └──────┬──────┘
+                 ▼
+        delegate implementation
 ```
 
 Bien qu'elle s'exécute en parallèle, la délégation `implementation` ne peut pas être émise tant que `RunCaptureArtifact` n'est pas terminal, schéma-valide et hash-vérifié.
@@ -182,7 +179,7 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 - Résumer la demande utilisateur ou en déduire des contraintes.
 - Créer des critères d'acceptation ou des plans de test.
 - Modifier le dépôt source ou le worktree privé.
-- Bloquer le lancement de `workspace-setup` ou `repo-discovery-draft`.
+- Bloquer le lancement de `workspace-setup`.
 
 ---
 

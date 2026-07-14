@@ -40,7 +40,6 @@ run-init
 │       │
 │       ├─ run-capture (parallèle)
 │       ├─ workspace-setup (parallèle) ──┐
-│       └─ repo-discovery-draft (parallèle)
 │                  │                      │
 │                  └──────────┬───────────┘
 │                             ↓

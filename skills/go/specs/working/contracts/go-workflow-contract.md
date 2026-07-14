@@ -252,33 +252,30 @@ resumeAt: implementation-settlement
 `run-init` ne cree pas l'enveloppe runtime Turnlock et ne resout pas le repo
 cible. Ces responsabilites appartiennent respectivement a Turnlock et au parent
 process. En revanche, les bootstrap tasks `dirty-state-capture`,
-`workspace-setup`,
-`repo-discovery-draft`, `project-discovery-finalize` et `run-capture` font bien
+`workspace-setup`, `project-discovery-finalize` et `run-capture` font bien
 partie de la phase Turnlock `run-init`.
 
 ```text
-run-init
-│
-├─ prerequisite-validation (séquentiel)
-│       ↓
-├─ repo-capture (sequentiel)
-│       ↓
-├─ dirty-state-capture (sequentiel, host-side only)
-│       │
-│       ├─ run-capture (parallele) ─────────────────┐
-│       ├─ workspace-setup (parallele) ──┐          │
-│       └─ repo-discovery-draft (parallele)         │
-│                  │                      │          │
-│                  └──────────┬───────────┘          │
-│                             ↓                      │
-│                 project-discovery-finalize         │
-│                             │                      │
-│                             ↓                      │
-│                 join run-capture ◄─────────────────┘
-│                             ↓
-└─ delegate implementation
-         ↓ resumeAt
-    implementation-settlement
+              run-init
+                 │
+       prerequisite-validation
+                 │
+            repo-capture
+          ┌──────┴──────┐
+          ▼             ▼
+     run-capture    dirty-state
+          │             │
+          │             ▼
+          │        workspace-setup
+          │             │
+          │             ▼
+          │   project-discovery-finalize
+          │             │
+          └──────┬──────┘
+                 ▼
+        delegate implementation
+          ↓ resumeAt
+     implementation-settlement
 ```
 
 Les sous-sections `4.1.x` ne sont pas des stages canoniques et ne sont pas des
@@ -312,25 +309,11 @@ Prépare le terrain isolé du run. En mode `execute` (nominal), elle crée le wo
 
 Cette bootstrap task est la frontière de départ de toutes les preuves de diff.
 
-#### 4.1.3 `repo-discovery-draft`
+#### 4.1.3 `project-discovery-finalize`
 
-Inspecte le dépôt source en lecture seule pour detecter manifestes,
-lockfiles, scripts, configs et capacites provider candidates.
-
-Cette bootstrap branch produit un brouillon non autoritatif. Elle peut s'executer
-en parallele de `workspace-setup`.
-
-#### 4.1.4 `project-discovery-finalize`
-
-Détecte les commandes et capacités du repo : package manager, lint, typecheck,
-tests, build, scans disponibles, conventions Git et provider.
-
-Ce bootstrap join finalise le brouillon de discovery contre le workspace privé, ou
-relance la discovery depuis `workspaceRoot` si le brouillon ne peut pas etre
-prouve.
-
-Ce join produit le `ProjectDiscovery` autoritatif et la matrice de gates
-mecaniques à executer.
+Scanne directement le worktree privé pour détecter le package manager, les
+lockfiles et les commandes candidates. Produit le `ProjectDiscovery`
+autoritatif et la matrice de gates mécaniques à exécuter.
 
 ### 4.2 `implementation`
 
@@ -506,7 +489,6 @@ run-init
 │       │
 │       ├─ run-capture (parallele)
 │       ├─ workspace-setup (parallele)
-│       └─ repo-discovery-draft (parallele)
 ```
 
 Le bootstrap joint ensuite les branches necessaires avant la premiere delegation
@@ -532,8 +514,8 @@ project-discovery-finalize
 -> post-merge-tracking
 ```
 
-`project-discovery-finalize` exige `WorkSession` et soit un `RepositoryDiscoveryDraft`
-valide, soit l'autorisation de relancer la discovery depuis `workspaceRoot`.
+`project-discovery-finalize` exige `WorkSession` et scanne directement
+le workspace privé pour produire `ProjectDiscovery`.
 
 Pour v1, la delegation `implementation` exige aussi un `RunCaptureArtifact`
 valide. `run-capture` peut s'executer en parallele des autres bootstrap tasks, mais

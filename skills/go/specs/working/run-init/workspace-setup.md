@@ -27,9 +27,8 @@ Cette bootstrap task ne produit aucun code applicatif.
 
 ## 2. Position dans le workflow
 
-`workspace-setup` s'exécute en parallèle avec `run-capture` et
-`repo-discovery-draft` au sein de la phase Turnlock `run-init`, après
-`dirty-state-capture`.
+`workspace-setup` s'exécute après `dirty-state-capture`, en parallèle
+avec `run-capture`, au sein de la phase Turnlock `run-init`.
 
 ```text
 run-init
@@ -42,7 +41,6 @@ run-init
 │       │
 │       ├─ run-capture (parallèle)
 │       ├─ workspace-setup (parallèle) ──┐
-│       └─ repo-discovery-draft (parallèle)
 │                  │                      │
 │                  └──────────┬───────────┘
 │                             ↓

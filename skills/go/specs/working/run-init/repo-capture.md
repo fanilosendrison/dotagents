@@ -30,7 +30,6 @@ run-init
 │       │
 │       ├─ run-capture (parallèle)
 │       ├─ workspace-setup (parallèle)
-│       └─ repo-discovery-draft (parallèle)
 ```
 
 Aucune tâche parallèle de démarrage (notamment `workspace-setup`) ne peut démarrer avant que `repo-capture` ne soit finalisée, car elle fournit la racine Git cible et le sous-périmètre nécessaires pour la création et la configuration du worktree.
@@ -165,7 +164,8 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 - Initialiser un dépôt Git (tâche déléguée à `workspace-setup`).
 - Configurer les remotes, les branches ou les commits.
 - Se connecter à l'API d'un fournisseur Git.
-- Interroger ou modifier le contenu des fichiers du projet (tâche déléguée à `repo-discovery-draft`).
+- Interroger ou modifier le contenu des fichiers du projet
+  (tâche déléguée à `project-discovery-finalize`).
 
 ---
 

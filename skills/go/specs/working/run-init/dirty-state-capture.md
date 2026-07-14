@@ -24,8 +24,7 @@ mécanique : lecture seule, pas d'écriture dans le dépôt source.
 ## 2. Position dans le workflow
 
 `dirty-state-capture` s'exécute séquentiellement après `repo-capture` et
-avant le bloc parallèle (`run-capture`, `workspace-setup`,
-`repo-discovery-draft`).
+avant le bloc parallèle (`run-capture`, `workspace-setup`).
 
 ```text
 run-init
@@ -38,7 +37,6 @@ run-init
 │       │
 │       ├─ run-capture (parallèle)
 │       ├─ workspace-setup (parallèle)
-│       └─ repo-discovery-draft (parallèle)
 │                  │
 │                  └──────────┬───────────┘
 │                             ↓

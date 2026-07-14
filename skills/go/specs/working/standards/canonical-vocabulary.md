@@ -132,7 +132,7 @@ primitive generique fournie par Turnlock et elle n'est pas obligatoire pour tous
 les orchestrateurs Turnlock.
 
 Le startup n'est pas un stage. Les travaux `run-capture`, `workspace-setup`,
-`repo-discovery-draft` et `project-discovery-finalize` sont des sous-taches de
+et `project-discovery-finalize` sont des sous-taches de
 la phase Turnlock `run-init`, pas des phases Turnlock separees.
 
 ### Startup task
@@ -143,7 +143,6 @@ Exemples :
 
 - `run-capture`
 - `workspace-setup`
-- `repo-discovery-draft`
 - `project-discovery-finalize`
 
 Une bootstrap task repond a la question :
@@ -171,7 +170,6 @@ bootstrap tasks a l'interieur de `run-init`.
 Exemples :
 
 - `run-capture`
-- `repo-discovery-draft`
 - `workspace-setup`
 
 ### Startup join
@@ -181,8 +179,7 @@ avant la delegation `implementation`.
 
 Exemples :
 
-- `project-discovery-finalize` joint `workspace-setup` et
-  `repo-discovery-draft` ;
+- `project-discovery-finalize` joint `workspace-setup` ;
 
 Un bootstrap join ne reinterprete pas librement une sortie manquante. Il valide un
 artefact, relance une operation autorisee, ouvre une HumanGate, ou echoue
@@ -251,7 +248,6 @@ stage, puis projeté par Turnlock dans `WorkflowState`.
 Exemples :
 
 - `RunCaptureArtifact`
-- `RepositoryDiscoveryDraft`
 - `ReviewFindingsArtifact`
 - `ReviewReportArtifact`
 - `PackagePlan`
@@ -389,9 +385,9 @@ necessairement a la meme phase Turnlock.
 - Ne jamais confondre capture mecanique et analyse semantique : `run-capture`
   fige des preuves, la review interprete l'intention.
 - Ne jamais appeler `run-capture`, `workspace-setup`,
-  `repo-discovery-draft` ou `project-discovery-finalize` des stages.
+  `project-discovery-finalize` des stages.
 - Ne jamais appeler `run-capture`, `workspace-setup`,
-  `repo-discovery-draft` ou `project-discovery-finalize` des phases Turnlock
+  `project-discovery-finalize` des phases Turnlock
   separees du workflow `/go`; ce sont des bootstrap tasks internes a `run-init`.
 - Ne jamais faire ecrire une bootstrap branch directement dans `WorkflowState`;
   la projection passe par le snapshot stable que `run-init` remet a Turnlock.
