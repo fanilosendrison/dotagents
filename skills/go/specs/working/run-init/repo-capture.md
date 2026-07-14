@@ -68,10 +68,10 @@ Le sous-système de résolution de `run-init` produit le contexte en appliquant 
 
 1. **Point de départ :** Utiliser le répertoire courant de la session (`invocationDirectory`) comme unique point de départ.
 2. **Normalisation :** Résoudre et normaliser les liaisons symboliques éventuelles pour obtenir le chemin physique réel.
-3. **Ascension Git :** Remonter les répertoires parents successifs à la recherche du premier dossier `.git/` valide.
+3. **Ascension Git :** Remonter les répertoires parents successifs à la recherche de la première entrée `.git` valide. Celle-ci peut être soit un dossier, soit un fichier régulier (dans le cas d'un worktree Git ou d'un sous-module contenant un lien `gitdir: ` vers les métadonnées réelles). Si l'entrée `.git` trouvée est un dossier, vérifier dans son fichier `config` interne (sans exécuter Git) que l'option `bare = true` sous la section `[core]` n'est pas présente. Si le dépôt est Bare, la résolution échoue. Dans le cas d'un fichier `.git`, suivre le lien `gitdir: ` vers le dossier de métadonnées réel pour confirmer l'autorité et déterminer la racine physique du dépôt.
 4. **Détection Dépôt :**
    - Si un dépôt Git est trouvé, `canonicalRepositoryRoot` est résolu comme la racine de ce dépôt.
-   - Si aucun dépôt n'est trouvé, vérifier que le répertoire résolu n'est pas une gateway symbolique (voir Règles §6). Si ce n'est pas une gateway, assigner `canonicalRepositoryRoot = realpath(invocationDirectory)` et déléguer la création/initialisation du dépôt Git à `workspace-setup`.
+   - Si aucun dépôt n'est trouvé, vérifier que le répertoire résolu n'est pas une gateway symbolique (voir Règles §6). Si ce n'est pas une gateway, appliquer le garde-fou de sécurité : refuser la résolution si le répertoire résolu correspond à un chemin système racine ou au répertoire personnel de l'utilisateur (ex: `/`, `/Users`, `/home`, ou `~` / `os.homedir()`). Si ce garde-fou est enfreint, la résolution échoue avec le statut `failed` (sécurité). Sinon, assigner `canonicalRepositoryRoot = realpath(invocationDirectory)` et déléguer la création/initialisation du dépôt Git à `workspace-setup`.
 5. **Validation du Containment :** Si le parent process n'a pas configuré de `runDirRoot` valide, vérifier que le dossier runtime `runDir` n'est pas contenu dans le dépôt cible résolu (`canonicalRepositoryRoot`). En cas de violation, la validation échoue.
 
 ---
@@ -85,11 +85,11 @@ Si le terminal de la session (`invocationDirectory`) cible un sous-dossier (ex: 
 Le `projectRoot` doit impérativement être un sous-dossier de `canonicalRepositoryRoot`.
 
 ### 6.2 Dépôts Git imbriqués
-La recherche du dépôt cible s'arrête sur le premier dépôt `.git/` trouvé en remontant depuis `invocationDirectory`. Le terminal de la session a toujours raison : se situer dans `workspace/` cible le dépôt parent, alors que se situer dans `workspace/vendor/nested-repo/` cible le sous-dépôt.
+La recherche du dépôt cible s'arrête sur la première entrée `.git` trouvée en remontant depuis `invocationDirectory`. Le terminal de la session a toujours raison : se situer dans `workspace/` cible le dépôt parent, alors que se situer dans `workspace/vendor/nested-repo/` cible le sous-dépôt.
 
 ### 6.3 Gateway Symlinks (Sécurité)
 `run-init` ne doit jamais accepter un répertoire "gateway" global comme dépôt cible.
-- Si aucun dépôt `.git` n'est présent dans le répertoire ou ses parents, et que `realpath(invocationDirectory)` contient un dossier sentinelle (`.agents/`, `.codex/`, `.pi/`, `.gravity/`) ou un fichier sentinelle (`AGENTS.md`, `SKILL.md`, `CODEX.md`, `GRAVITY.md`), le répertoire est identifié comme une gateway. La résolution échoue immédiatement avec le statut `failed`.
+- Si aucun dépôt `.git` n'est présent dans le répertoire ou ses parents, et que le chemin `realpath(invocationDirectory)` contient un composant de chemin exact (segment de dossier) égal à l'un des noms sentinelles (`.agents`, `.codex`, `.pi`, `.gravity`), ou contient un fichier directement enfant de `invocationDirectory` dont le nom exact (basename) est `AGENTS.md`, `SKILL.md`, `CODEX.md`, ou `GRAVITY.md`, le répertoire est identifié comme une gateway. La résolution échoue immédiatement avec le statut `failed`. Cette comparaison par composants exacts évite les faux positifs (par exemple, le segment `.pi` matché dans un répertoire `api/` ou `happy/`, ou le fichier `AGENTS.md` matché dans `PROJECT-AGENTS.md`).
 
 ### 6.4 Autorité Git ultérieure
 `repo-capture` ne valide pas l'intégrité de l'historique ou du dépôt. C'est à la charge de `workspace-setup` de confirmer la conformité physique avec `canonicalRepositoryRoot`.
@@ -149,6 +149,8 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 | Pipeline | Cause de l'échec | Statut du run |
 |---|---|---|
 | 5.1 | `invocationDirectory` ou chemin cible non exploitable | `errored` (crash avant run) |
+| 5.3 | Entrée `.git` détectée résolue comme un dépôt Bare | `failed` (dépôt non supporté) |
+| 5.4 | Aucun dépôt trouvé et CWD est un répertoire système racine ou le dossier utilisateur `~` | `failed` (sécurité) |
 | 5.4 | Aucun dépôt trouvé et répertoire CWD identifié comme une gateway sentinelle | `failed` (invitation à changer de CWD) |
 | 5.5 | `projectRoot` résolu hors de `canonicalRepositoryRoot` | `failed` |
 | 5.5 | `runDir` contenu à l'intérieur du dépôt cible résolu | `failed` |
