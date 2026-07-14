@@ -36,7 +36,7 @@ Cette approche présentait plusieurs inconvénients :
 
 1. **Obligation stricte de `ProviderConfig` :** Le workflow `/go` exige la présence d'une configuration fournisseur valide. Le mode "local-only" (sans plateforme distante configurée) est explicitement rejeté pour le périmètre nominal de `/go`.
 2. **Fail-Fast upfront dans `run-init` :** La validation de la forme, de la présence et de la validité syntaxique de `ProviderConfig` (chargé depuis `~/.go/config.json`) devient la toute première étape synchrone et séquentielle de la phase `run-init`.
-3. **Aucun effet de bord avant validation :** Si la configuration est absente ou invalide, l'orchestrateur s'arrête immédiatement en statut `errored` sans allouer de `runId` définitif sur le disque, sans réserver de répertoires, et sans démarrer les branches de bootstrap parallèles.
+3. **Aucun effet de bord avant validation :** Si la configuration est absente ou invalide, l'orchestrateur s'arrête immédiatement en statut `errored` sans projeter de `runId` dans le `WorkflowState` de `/go`, sans réserver de worktree physique, et sans démarrer les autres branches de bootstrap parallèles. Le `runDir` et `artefactRoot` déjà alloués par Turnlock en amont ne servent qu'à consigner le checkpoint d'échec pour audit.
 
 ---
 
