@@ -119,7 +119,19 @@ Le comportement en cas de retry dépend de la valeur de `skipSetup` :
   1. Valider le lien `.git` du worktree et s'assurer que la branche `work/<runId>` existe.
   2. Valider la continuité d'historique : `git merge-base --is-ancestor <baseHeadSha> HEAD`.
   3. Si un patch a été adopté, vérifier s'il a déjà été appliqué via `git apply --reverse --check <patch>`. Si oui, valider l'état porcelain filtré sur les fichiers du patch. Si non appliqué, tenter de l'appliquer à l'étape 5.6.
-  4. Si cohérent, l'adopter. Si corrompu ou incohérent, nettoyer proprement via `git worktree remove --force` / `git worktree prune` ou en forçant la suppression physique du dossier (`rm -rf`) avant de reconstruire (étapes 5.5-5.7).
+  4. Si cohérent, l'adopter. Si corrompu ou incohérent, nettoyer
+     proprement dans cet ordre strict avant de reconstruire
+     (étapes 5.5-5.7) :
+     a. `git worktree remove --force <worktreeRoot>` — tenter de
+        désenregistrer le worktree côté dépôt principal.
+     b. `git worktree prune` — **impératif** après toute tentative de
+        suppression, pour nettoyer les métadonnées orphelines sous
+        `.git/worktrees/` dans le dépôt principal. Sans cette étape,
+        Git conservera des descripteurs périmés qui bloqueront les
+        tentatives futures de recréer le worktree.
+     c. Supprimer physiquement le dossier résiduel (`rm -rf
+        <worktreeRoot>`) **uniquement en dernier recours** si le
+        dossier persiste après les étapes a et b.
 
 ---
 
@@ -223,7 +235,9 @@ valide declenche `skipSetup: true` ; la re-execution declenche
 | 5.4 | Dirty state détecté mais rejeté par la policy | `failed` | Arrêt |
 | 5.4/5.6 | Le patch capturé ne s'applique pas proprement dans le worktree | `failed` | Arrêt |
 | 5.5 | Création du worktree impossible (chemin occupé par dossier étranger) | `errored` | Arrêt |
-| 5.8 | Nettoyage d'un worktree existant corrompu échoue | `errored` | Arrêt |
+| 5.8.a | `git worktree remove --force` échoue (worktree inconnu de Git) | `errored` | Passer à l'étape 5.8.b — le worktree a pu être supprimé manuellement |
+| 5.8.b | `git worktree prune` échoue | `errored` | Arrêt — corruption du dépôt principal |
+| 5.8.c | Dossier résiduel persiste après 5.8.a et 5.8.b | `errored` | Arrêt — conflit de chemin non résolu |
 | 5.7 | Dossier d'artefacts `workspace-setup/` déjà occupé lors du retry | `errored` | Arrêt |
 
 ---
