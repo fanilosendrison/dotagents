@@ -123,9 +123,10 @@ type WorkflowUnitName = BootstrapTaskName | WorkflowStage;
 type RunInitRecord = {
   schema: "go.run-init.v1";
   runId: string;
-  RepoCapture: RepoCapture;
+  repoCapture: RepoCapture;
   repoCaptureHash: string;
   workflowPolicyHash: string;
+  captureContextHash: string;
   turnlockRun: TurnlockRunRef;
   artefactRootRef: string;
   workflowLogRootRef?: string;
@@ -179,6 +180,7 @@ type RunInitOwnershipMarker = {
   workspaceRootReservedPath: string;
   repoCaptureHash: string;
   workflowPolicyHash: string;
+  captureContextHash: string;
   createdAt: string;
 };
 ```
@@ -230,6 +232,7 @@ type BootstrapTaskCheckpoint = {
   inputHash: string;
   repoCaptureHash: string;
   workflowPolicyHash: string;
+  captureContextHash: string;
   businessArtifactIds: string[];
   evidenceRefs: string[];
   startedAt: string;
