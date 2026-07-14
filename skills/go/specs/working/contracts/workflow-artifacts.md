@@ -132,7 +132,7 @@ type RunInitRecord = {
   workspaceRootReservedPath: string;
   ownershipMarkerRef: string;
   initializedAt: string;
-  dirtyStateCapture?: DirtyStateCaptureArtifact;
+  dirtyStateDiff?: DirtyStateDiffArtifact;
 };
 ```
 
@@ -390,8 +390,8 @@ contraintes, criteres d'acceptation ou specs applicables deduits par LLM.
 referencés, pas des hashes JSON JCS.
 
 ```ts
-type DirtyStateCaptureArtifact = {
-  schema: "go.dirty-state-capture.v1";
+type DirtyStateDiffArtifact = {
+  schema: "go.dirty-state-diff.v1";
   runId: string;
   capturedAt: string;
   initialDirtyState: "clean" | "dirty";
@@ -401,12 +401,10 @@ type DirtyStateCaptureArtifact = {
 };
 ```
 
-`DirtyStateCaptureArtifact` est produit par la bootstrap task
+`DirtyStateDiffArtifact` est produit par la bootstrap task
 `dirty-state-capture`. Si `initialDirtyState` vaut `"clean"`, les champs
 `sourceStatusPorcelainRef`, `sourcePatchRef` et `sourcePatchHash` sont
-absents. Le mapping vers `WorkSession` : `"dirty"` →
-`WorkSession.initialDirtyState = "dirty-adopted"` après replay réussi par
-`workspace-setup`.
+absents.
 
 ```ts
 type RepositoryDiscoveryDraft = {
@@ -496,8 +494,7 @@ type WorkSession = {
   baseHeadSha: string;
   baseRemote?: string;
   defaultTargetBranch: string;
-  initialDirtyState: "clean" | "dirty-adopted";
-  dirtyStateAdoption?: DirtyStateAdoption;
+  dirtyStateDiffAdoption?: DirtyStateDiffAdoption;
   workBranch: `work/${string}`;
   workBranchCreatedAt: string;
 };
@@ -522,18 +519,18 @@ type WorkSession = {
 workspace.
 
 ```ts
-type DirtyStateAdoption = {
+type DirtyStateDiffAdoption = {
   captureArtifactId: string;
   replayedIntoWorkspace: boolean;
   workspaceStatusAfterReplayRef: string;
 };
 ```
 
-`DirtyStateAdoption` référence le `DirtyStateCaptureArtifact` via
+`DirtyStateDiffAdoption` référence le `DirtyStateDiffArtifact` via
 `captureArtifactId`. Les détails de provenance (status porcelain d'origine,
-patch binaire, hash du patch) sont accessibles via le
-`DirtyStateCaptureArtifact` projeté dans
-`RunInitRecord.dirtyStateCapture`.
+patch binaire, hash du diff) sont accessibles via le
+`DirtyStateDiffArtifact` projeté dans
+`RunInitRecord.dirtyStateDiff`.
 
 ---
 

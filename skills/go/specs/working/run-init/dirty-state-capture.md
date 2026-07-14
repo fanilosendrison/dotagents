@@ -2,7 +2,7 @@
 
 `dirty-state-capture` capture l'état dirty du dépôt source avant toute
 création de workspace. Elle s'exécute exclusivement sur l'hôte, en lecture
-seule, et produit un `DirtyStateCaptureArtifact` consommé par
+seule, et produit un `DirtyStateDiffArtifact` consommé par
 `workspace-setup` pour le replay du patch.
 
 C'est une bootstrap task interne à la phase Turnlock `run-init`, et non une
@@ -14,7 +14,7 @@ phase Turnlock séparée.
 
 Détecter et capturer l'état dirty du dépôt source sous forme de patch
 binaire, sans altérer l'index Git réel du dépôt source. Produire un
-`DirtyStateCaptureArtifact` durable dans `artefactRoot`.
+`DirtyStateDiffArtifact` durable dans `artefactRoot`.
 
 Cette bootstrap task ne produit aucun code applicatif. Elle est purement
 mécanique : lecture seule, pas d'écriture dans le dépôt source.
@@ -50,10 +50,9 @@ capturé avant de créer le workspace. Elle est host-side uniquement — elle
 ne pénètre jamais dans le workspace — elle opère exclusivement sur le dépôt
 source.
 
-Le mapping vers `WorkSession` : si `dirty-state-capture` conclut à un état
-`"dirty"`, alors `WorkSession.initialDirtyState` vaudra `"dirty-adopted"`
-après replay réussi par `workspace-setup`. Si `"clean"`, alors
-`WorkSession.initialDirtyState` vaudra `"clean"`.
+Le mapping vers `WorkSession` : la présence de `dirtyStateDiffAdoption` dans
+`WorkSession` indique que le dirty state a été adopté et replayé ; son
+absence indique un workspace clean.
 
 ---
 
@@ -72,8 +71,8 @@ Artefact métier écrit sous
 `artefactRoot/startup/dirty-state-capture/dirty-state-capture.json` :
 
 ```ts
-type DirtyStateCaptureArtifact = {
-  schema: "go.dirty-state-capture.v1";
+type DirtyStateDiffArtifact = {
+  schema: "go.dirty-state-diff.v1";
   runId: string;
   capturedAt: string;
   initialDirtyState: "clean" | "dirty";
@@ -96,7 +95,7 @@ Cette tâche produit également un `WorkflowExecutionRecord` durable.
 1. Lire le dirty state initial (`git status --porcelain`) depuis
    `canonicalRepositoryRoot`.
 2. Si la sortie est vide, le dépôt est clean. Écrire
-   `DirtyStateCaptureArtifact` avec `initialDirtyState: "clean"` et
+   `DirtyStateDiffArtifact` avec `initialDirtyState: "clean"` et
    terminer.
 
 ### 5.2 Validation de la policy
@@ -119,7 +118,7 @@ Cette tâche produit également un `WorkflowExecutionRecord` durable.
    ```
 3. Sauvegarder la sortie du patch dans un fichier d'evidence.
 4. Calculer le hash SHA256 du patch brut.
-5. Écrire le `DirtyStateCaptureArtifact` avec `initialDirtyState:
+5. Écrire le `DirtyStateDiffArtifact` avec `initialDirtyState:
    "dirty"` et les références aux fichiers d'evidence.
 
 ---

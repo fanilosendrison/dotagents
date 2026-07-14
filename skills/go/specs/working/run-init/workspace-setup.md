@@ -58,7 +58,7 @@ découverte de projet dans `project-discovery-finalize`.
 
 - `runId` (identifiant unique Crockford base32 ULID)
 - `RepoCapture` (contexte de dépôt préalablement résolu par `run-init`)
-- `DirtyStateCaptureArtifact` (produit par `dirty-state-capture`)
+- `DirtyStateDiffArtifact` (produit par `dirty-state-capture`)
 - `artefactRoot` (répertoire réservé aux preuves)
 - `workspaceRoot` (chemin réservé pour le workspace privé)
 - `skipSetup` (boolean, défaut: `false` ; utilisé pour bypasser la
@@ -74,15 +74,15 @@ Evidence JSON principale écrite sous
 ```ts
 type WorkspaceSetupEvidence = {
   workSession: WorkSession;
-  dirtyStateAdoption?: DirtyStateAdoption;
+  dirtyStateDiffAdoption?: DirtyStateDiffAdoption;
   createdDirectories: string[];
   workspaceProjectRoot?: string;
 };
 ```
 
-Le champ `dirtyStateAdoption` est présent uniquement si le
-`DirtyStateCaptureArtifact` indique `"dirty"` et que le replay a réussi.
-Il référence le `captureArtifactId` du `DirtyStateCaptureArtifact`.
+Le champ `dirtyStateDiffAdoption` est présent uniquement si le
+`DirtyStateDiffArtifact` indique `"dirty"` et que le replay a réussi.
+Il référence le `captureArtifactId` du `DirtyStateDiffArtifact`.
 
 Cette tâche produit également un `WorkflowExecutionRecord` durable.
 
@@ -100,7 +100,7 @@ Quelle que soit la stratégie, le pipeline logique est :
    `baseBranch`, `defaultTargetBranch`).
 2. Initialiser un nouveau dépôt distant si nécessaire.
 3. Créer le workspace physique via la stratégie.
-4. Si `DirtyStateCaptureArtifact.initialDirtyState === "dirty"`, rejouer
+4. Si `DirtyStateDiffArtifact.initialDirtyState === "dirty"`, rejouer
    le patch dans le workspace.
 5. Persister le `WorkSession` et le `WorkflowExecutionRecord`.
 
@@ -125,7 +125,7 @@ pendant le run. Il est immuable une fois le run démarré.
 ### 6.4 Dirty state adopté [Agnostique]
 Un dirty state adopté ne donne pas le droit d'écrire ou travailler dans le
 dépôt source. Il est encapsulé comme un intrant strict via
-`DirtyStateAdoption`, qui référence le `DirtyStateCaptureArtifact` produit
+`DirtyStateDiffAdoption`, qui référence le `DirtyStateDiffArtifact` produit
 par `dirty-state-capture` et documente le statut de replay dans le
 workspace.
 
@@ -163,7 +163,7 @@ stratégie sandbox délègue le nettoyage à la destruction du conteneur.
   source.
 - `workflowPolicyHash` : pertinent. La tâche consomme
   `WorkflowPolicy.dirtyState` pour valider la cohérence avec le
-  `DirtyStateCaptureArtifact`.
+  `DirtyStateDiffArtifact`.
 - `captureContextHash` : fixé à la valeur sentinelle déterministe
   `sha256:0000000000000000000000000000000000000000000000000000000000000000`
   (64 zéros après le préfixe). Conformément au §6.6, cette tâche est

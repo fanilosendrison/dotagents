@@ -287,7 +287,7 @@ phases Turnlock separees. Elles decrivent les bootstrap tasks internes de
 
 Capture l'etat dirty du depot source avant toute creation de workspace.
 Cette bootstrap task est host-side uniquement et produit un
-`DirtyStateCaptureArtifact` projete dans `RunInitRecord.dirtyStateCapture`.
+`DirtyStateDiffArtifact` projete dans `RunInitRecord.dirtyStateDiff`.
 
 #### 4.1.1 `run-capture`
 

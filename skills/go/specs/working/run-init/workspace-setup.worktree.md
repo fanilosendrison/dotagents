@@ -50,7 +50,7 @@ Si aucun dépôt n'existe à `canonicalRepositoryRoot` :
    `realpath` (Invariant §2.1).
 
 ### 1.5 Application du patch
-Si un `DirtyStateCaptureArtifact` indique `"dirty"`, appliquer le patch
+Si un `DirtyStateDiffArtifact` indique `"dirty"`, appliquer le patch
 dans le workspace privé. Capturer le `git status --porcelain` du
 workspace privé après l'application. Si le patch ne s'applique pas
 proprement, lever un échec `failed`.
