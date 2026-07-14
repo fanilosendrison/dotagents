@@ -102,7 +102,7 @@ Les trois bootstrap tasks suivantes s'executent en parallele une fois
 - **`workspace-setup`** : prepare le worktree Git prive et produit
   `WorkSession`. Contrat dans [`workspace-setup.md`](./workspace-setup.md).
   Si le depot n'existe pas encore, l'initialise et le connecte a un
-  repo distant via [`ProviderConfig`](./provider-config.md).
+  repo distant via [`ProviderConfig`](./provider-config-validation.md).
 - **`repo-discovery-draft`** : lit le dépôt source pour decouvrir les
   commandes et capacites du repo, pendant que le worktree est cree. Ce
   resultat n'est qu'un brouillon. De plus, `repo-discovery-draft` ne doit pas
@@ -643,7 +643,7 @@ persistance atomique. Turnlock est la primitive autoritative.
 
 `ProviderConfig` est une configuration statique fournie a l'installation de
 `/go` et non une primitive runtime. Contrat dans
-[`provider-config.md`](./provider-config.md).
+[`provider-config-validation.md`](./provider-config-validation.md).
 
 ---
 
