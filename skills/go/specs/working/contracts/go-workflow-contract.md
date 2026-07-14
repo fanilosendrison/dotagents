@@ -259,6 +259,8 @@ partie de la phase Turnlock `run-init`.
 ```text
 run-init
 │
+├─ provider-config-validation (séquentiel)
+│       ↓
 ├─ repo-capture (sequentiel)
 │       ↓
 ├─ dirty-state-capture (sequentiel, host-side only)
@@ -497,6 +499,8 @@ Dans `run-init`, le demarrage nominal est :
 ```text
 run-init
 │
+├─ provider-config-validation (séquentiel)
+│       ↓
 ├─ repo-capture (sequentiel)
 │       ↓
 ├─ dirty-state-capture (sequentiel, host-side only)
