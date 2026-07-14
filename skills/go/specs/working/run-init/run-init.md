@@ -34,26 +34,27 @@ delegation `implementation`.
 Dans `run-init`, le graphe nominal est :
 
 ```text
-run-init
-│
-├─ prerequisite-validation (séquentiel)
-│       ↓
-├─ repo-capture (séquentiel)
-│       ↓
-├─ dirty-state-capture (sequentiel, host-side only)
-│       │
-│       ├─ run-capture (parallele) ─────────────────┐
-│       ├─ workspace-setup (parallele) ──┐          │
-│       └─ repo-discovery-draft (parallele)         │
-│                  │                      │          │
-│                  └──────────┬───────────┘          │
-│                             ↓                      │
-│                 project-discovery-finalize         │
-│                             │                      │
-│                             ↓                      │
-│                 join run-capture ◄─────────────────┘
-│                             ↓
-└─ delegate implementation
+              run-init
+                 │
+       prerequisite-validation
+                 │
+            repo-capture
+       ┌─────────┼─────────┐
+       ▼         ▼         ▼
+  run-capture  dirty-  repo-discovery
+               state       -draft
+       │         │            │
+       │         ▼            │
+       │    workspace-        │
+       │    setup             │
+       │         │            │
+       │         └──────┬─────┘
+       │                ▼
+       │   project-discovery-finalize
+       │                │
+       └────────┬───────┘
+                ▼
+       delegate implementation
          ↓ resumeAt
     implementation-settlement
 ```
@@ -91,8 +92,11 @@ internes ne puissent produire une evidence autoritative.
 
 ### 1.2 Branches paralleles
 
-Les trois bootstrap tasks suivantes s'executent en parallele une fois
-`repo-capture` termine :
+Deux des trois branches paralleles — `run-capture` et `repo-discovery-draft`
+— demarrent immediatement apres `repo-capture`, sans attendre
+`dirty-state-capture` dont elles ne dependent pas. La troisieme,
+`workspace-setup`, s'execute sequentiellement apres `dirty-state-capture`,
+dont elle consomme le `DirtyStateDiffArtifact` pour le replay du patch.
 
 - **`run-capture`** : capture les preuves du moment `/go` (reference de session,
   prompt). Contrat dans [`run-capture.md`](./run-capture.md). Elle ne depend
@@ -103,10 +107,12 @@ Les trois bootstrap tasks suivantes s'executent en parallele une fois
   pourra etre ajoute plus tard.
 - **`workspace-setup`** : prepare le worktree Git prive et produit
   `WorkSession`. Contrat dans [`workspace-setup.md`](./workspace-setup.md).
-  Si le depot n'existe pas encore, l'initialise et le connecte a un
-  repo distant via [`ProviderConfig`](./prerequisite-validation.md).
+  Elle est la seule branche a dependre de `dirty-state-capture` (pour le
+  replay du patch dirty). Si le depot n'existe pas encore, l'initialise et
+  le connecte a un repo distant via [`ProviderConfig`](./prerequisite-validation.md).
 - **`repo-discovery-draft`** : lit le dépôt source pour decouvrir les
-  commandes et capacites du repo, pendant que le worktree est cree. Ce
+  commandes et capacites du repo, en parallele de `dirty-state-capture` et
+  `workspace-setup`. Ce
   resultat n'est qu'un brouillon. De plus, `repo-discovery-draft` ne doit pas
   executer de commandes Git sur le dépôt source. Elle lit uniquement des
   fichiers. Si un fichier ou dossier (comme `.git/`) est absent parce que
@@ -383,13 +389,13 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
         "task": "repo-capture",
         "status": "passed",
         "businessArtifactIds": ["repo-capture:<id>"],
-        "requiredBefore": ["dirty-state-capture"]
+        "requiredBefore": ["dirty-state-capture", "run-capture", "repo-discovery-draft"]
       },
       {
         "task": "dirty-state-capture",
         "status": "passed",
         "businessArtifactIds": ["dirty-state-capture:<id>"],
-        "requiredBefore": ["run-capture", "workspace-setup", "repo-discovery-draft"]
+        "requiredBefore": ["workspace-setup"]
       },
       {
         "task": "run-capture",

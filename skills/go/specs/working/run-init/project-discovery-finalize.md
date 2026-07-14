@@ -19,24 +19,23 @@ Le résultat durable de cette validation est l'artefact `ProjectDiscovery`.
 `project-discovery-finalize` est le bootstrap join de la phase `run-init`. Elle s'exécute immédiatement après la complétion de `workspace-setup` et `repo-discovery-draft`.
 
 ```text
-run-init
-│
-├─ prerequisite-validation (séquentiel)
-│       ↓
-├─ repo-capture (séquentiel)
-│       ↓
-├─ dirty-state-capture (séquentiel, host-side only)
-│       │
-│       ├─ run-capture (parallèle)
-│       ├─ workspace-setup (parallèle) ──┐
-│       └─ repo-discovery-draft (parallèle)
-│                  │                      │
-│                  └──────────┬───────────┘
-│                             ↓
-│                 project-discovery-finalize
-│                             │
-│                             ↓
-│                 delegate implementation
+            repo-capture
+       ┌─────────┼─────────┐
+       ▼         ▼         ▼
+  run-capture  dirty-  repo-discovery
+               state       -draft
+       │         │            │
+       │         ▼            │
+       │    workspace-        │
+       │    setup             │
+       │         │            │
+       │         └──────┬─────┘
+       │                ▼
+       │   project-discovery-finalize
+       │                │
+       └────────┬───────┘
+                ▼
+       delegate implementation
 ```
 
 Elle s'exécute de manière bloquante : la délégation de l'étape `implementation` ne peut pas être émise tant que `project-discovery-finalize` n'a pas validé et publié la matrice de checks définitive.

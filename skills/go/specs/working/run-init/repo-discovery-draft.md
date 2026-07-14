@@ -22,21 +22,19 @@ Produire un `RepositoryDiscoveryDraft` contenant :
 `repo-discovery-draft` s'exécute en parallèle avec `run-capture` et `workspace-setup` au sein de la phase Turnlock `run-init`.
 
 ```text
-run-init
-│
-├─ prerequisite-validation (séquentiel)
-│       ↓
-├─ repo-capture (séquentiel)
-│       ↓
-├─ dirty-state-capture (séquentiel, host-side only)
-│       │
-│       ├─ run-capture (parallèle)
-│       ├─ workspace-setup (parallèle) ──┐
-│       └─ repo-discovery-draft (parallèle)
-│                  │                      │
-│                  └──────────┬───────────┘
-│                             ↓
-│                 project-discovery-finalize
+            repo-capture
+       ┌─────────┼─────────┐
+       ▼         ▼         ▼
+  run-capture  dirty-  repo-discovery
+               state       -draft
+       │         │            │
+       │         ▼            │
+       │    workspace-        │
+       │    setup             │
+       │         │            │
+       │         └──────┬─────┘
+       │                ▼
+       │   project-discovery-finalize
 ```
 
 Elle ne dépend pas de la tâche `workspace-setup` ou de la création physique du worktree, car elle lit uniquement le dépôt source d'origine. Ses résultats sont ensuite consommés et vérifiés par `project-discovery-finalize`.

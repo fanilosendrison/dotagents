@@ -23,24 +23,23 @@ Produire un `RunCaptureArtifact` mécanique contenant :
 `run-capture` s'exécute en parallèle avec `workspace-setup` et `repo-discovery-draft` au sein de la phase Turnlock `run-init`.
 
 ```text
-run-init
-│
-├─ prerequisite-validation (séquentiel)
-│       ↓
-├─ repo-capture (séquentiel)
-│       ↓
-├─ dirty-state-capture (séquentiel, host-side only)
-│       │
-│       ├─ run-capture (parallèle) ─────────────────┐
-│       ├─ workspace-setup (parallèle)              │
-│       └─ repo-discovery-draft (parallèle)         │
-│                  │                                │
-│                  └──────────┬─────────────────────┘
-│                             ↓                     │
-│                 project-discovery-finalize        │
-│                             │                     │
-│                             ↓                     │
-│                 join run-capture ◄────────────────┘
+            repo-capture
+       ┌─────────┼─────────┐
+       ▼         ▼         ▼
+  run-capture  dirty-  repo-discovery
+               state       -draft
+       │         │            │
+       │         ▼            │
+       │    workspace-        │
+       │    setup             │
+       │         │            │
+       │         └──────┬─────┘
+       │                ▼
+       │   project-discovery-finalize
+       │                │
+       └────────┬───────┘
+                ▼
+       delegate implementation
 ```
 
 Bien qu'elle s'exécute en parallèle, la délégation `implementation` ne peut pas être émise tant que `RunCaptureArtifact` n'est pas terminal, schéma-valide et hash-vérifié.
