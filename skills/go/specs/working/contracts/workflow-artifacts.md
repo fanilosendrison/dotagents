@@ -85,6 +85,7 @@ dans le `WorkflowState` donne a Turnlock avec la delegation `implementation`.
 type BootstrapTaskName =
   | "provider-config-validation"
   | "repo-capture"
+  | "dirty-state-capture"
   | "run-capture"
   | "repo-discovery-draft"
   | "workspace-setup"
@@ -128,11 +129,17 @@ type RunInitRecord = {
   turnlockRun: TurnlockRunRef;
   artefactRootRef: string;
   workflowLogRootRef?: string;
-  worktreeRootReservedPath: string;
+  workspaceRootReservedPath: string;
   ownershipMarkerRef: string;
   initializedAt: string;
+  dirtyStateCapture?: DirtyStateCaptureArtifact;
 };
 ```
+
+> **Alias rétrocompatible :** `worktreeRootReservedPath` est conservé
+> comme alias déprécié optionnel pour `workspaceRootReservedPath`. Un
+> producteur écrit `workspaceRootReservedPath` ; un consommateur lit
+> `workspaceRootReservedPath` avec fallback sur `worktreeRootReservedPath`.
 
 ```ts
 type RepoCapture = {
@@ -169,7 +176,7 @@ type RunInitOwnershipMarker = {
   turnlockRun: TurnlockRunRef;
   artefactRootRef: string;
   workflowLogRootRef?: string;
-  worktreeRootReservedPath: string;
+  workspaceRootReservedPath: string;
   repoCaptureHash: string;
   workflowPolicyHash: string;
   createdAt: string;
@@ -294,14 +301,14 @@ type WorkflowPolicy = {
 type DirtyStatePolicy = {
   mode: "require-clean" | "adopt-as-input" | "human-gate-if-dirty";
   adoptionRequiresPatchEvidence: boolean;
-  adoptionRequiresWorktreeReplay: boolean;
+  adoptionRequiresWorkspaceReplay: boolean;
 };
 ```
 
 ```ts
 type DiscoveryPolicy = {
   allowSourceCheckoutDraft: boolean;
-  allowWorktreeRerun: boolean;
+  allowWorkspaceRerun: boolean;
   noReliableGateBehavior: "fail" | "human-gate" | "allow-with-evidence";
 };
 ```
@@ -341,7 +348,7 @@ type ReviewPolicy = {
 
 ```ts
 type PackagingPolicy = {
-  requireCleanWorktreeForPackaging: boolean;
+  requireCleanWorkspaceForPackaging: boolean;
   allowPublishPr: boolean;
   requirePackageReconstructionProof: boolean;
 };
@@ -381,6 +388,25 @@ contraintes, criteres d'acceptation ou specs applicables deduits par LLM.
 `promptHash` et `excerptHash` sont des hashes de contenu
 `sha256:<lowercase-hex>` calcules sur les octets exacts des fichiers
 referencés, pas des hashes JSON JCS.
+
+```ts
+type DirtyStateCaptureArtifact = {
+  schema: "go.dirty-state-capture.v1";
+  runId: string;
+  capturedAt: string;
+  initialDirtyState: "clean" | "dirty";
+  sourceStatusPorcelainRef?: string;
+  sourcePatchRef?: string;
+  sourcePatchHash?: string;
+};
+```
+
+`DirtyStateCaptureArtifact` est produit par la bootstrap task
+`dirty-state-capture`. Si `initialDirtyState` vaut `"clean"`, les champs
+`sourceStatusPorcelainRef`, `sourcePatchRef` et `sourcePatchHash` sont
+absents. Le mapping vers `WorkSession` : `"dirty"` →
+`WorkSession.initialDirtyState = "dirty-adopted"` après replay réussi par
+`workspace-setup`.
 
 ```ts
 type RepositoryDiscoveryDraft = {
@@ -439,6 +465,8 @@ type CandidateMechanicalCommand = {
 type RepositoryContext = {
   repositoryRoot: string;
   projectRoot?: string;
+  workspaceProjectRoot?: string;
+  /** @deprecated use workspaceProjectRoot */
   worktreeProjectRoot?: string;
   provider?: "github" | "gitlab" | "local-only";
   remoteName?: string;
@@ -460,9 +488,9 @@ Produit par la bootstrap task `workspace-setup`.
 type WorkSession = {
   runId: string;
   repositoryRoot: string;
-  sourceRepo: string;
-  worktreeRoot: string;
-  worktreeProjectRoot?: string;
+  sourceRepo?: string;
+  workspaceRoot: string;
+  workspaceProjectRoot?: string;
   artefactRoot: string;
   baseBranch: string;
   baseHeadSha: string;
@@ -475,23 +503,37 @@ type WorkSession = {
 };
 ```
 
-`worktreeRoot` est un checkout physique privé. `artefactRoot` est hors du
-worktree.
+> **Alias rétrocompatibles :** `worktreeRoot`, `worktreeProjectRoot`,
+> `worktreeRootReservedPath`, `adoptionRequiresWorktreeReplay`,
+> `allowWorktreeRerun`, `requireCleanWorktreeForPackaging`,
+> `finalizedAgainstWorktreeRoot`, `"worktree-rerun"` (valeur d'enum),
+> `replayedIntoWorktree`, et `worktreeStatusAfterReplayRef` sont
+> conservés comme alias dépréciés pour leurs équivalents agnostiques
+> (`workspaceRoot`, `workspaceProjectRoot`, `workspaceRootReservedPath`,
+> `adoptionRequiresWorkspaceReplay`, `allowWorkspaceRerun`,
+> `requireCleanWorkspaceForPackaging`,
+> `finalizedAgainstWorkspaceRoot`, `"workspace-rerun"`,
+> `replayedIntoWorkspace`, `workspaceStatusAfterReplayRef`).
+> `sourceRepo` est optionnel (obligatoire en
+> stratégie worktree, absent en stratégie sandbox). Voir
+> [ADR-go-workspace-agnostic-terminology.md](../../adr/ADR-go-workspace-agnostic-terminology.md).
+
+`workspaceRoot` est un checkout physique privé. `artefactRoot` est hors du
+workspace.
 
 ```ts
 type DirtyStateAdoption = {
-  sourceStatusPorcelainRef: string;
-  sourcePatchRef: string;
-  sourcePatchHash: string;
-  replayedIntoWorktree: boolean;
-  worktreeStatusAfterReplayRef: string;
+  captureArtifactId: string;
+  replayedIntoWorkspace: boolean;
+  workspaceStatusAfterReplayRef: string;
 };
 ```
 
-Si `initialDirtyState` vaut `"dirty-adopted"`, `dirtyStateAdoption` est
-obligatoire. L'adoption signifie que le dirty state du dépôt source est
-capture comme patch, hashe, puis rejoue dans le worktree prive avant toute
-delegation agentique.
+`DirtyStateAdoption` référence le `DirtyStateCaptureArtifact` via
+`captureArtifactId`. Les détails de provenance (status porcelain d'origine,
+patch binaire, hash du patch) sont accessibles via le
+`DirtyStateCaptureArtifact` projeté dans
+`RunInitRecord.dirtyStateCapture`.
 
 ---
 
@@ -502,9 +544,9 @@ contre le worktree prive.
 
 ```ts
 type ProjectDiscovery = {
-  source: "draft-finalized" | "worktree-rerun";
+  source: "draft-finalized" | "workspace-rerun";
   finalizedFromDraftId?: string;
-  finalizedAgainstWorktreeRoot: string;
+  finalizedAgainstWorkspaceRoot: string;
   inspectedFiles: InspectedFileRef[];
   packageManager?:
     | "bun"
@@ -613,6 +655,7 @@ type BusinessArtifactRecord = {
 type BusinessArtifactKind =
   | "provider-config-validation"
   | "repo-capture"
+  | "dirty-state-capture"
   | "run-capture"
   | "repository-discovery-draft"
   | "work-session"

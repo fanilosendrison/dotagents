@@ -1,5 +1,12 @@
 # Concurrence multi-agent dans `/go`
 
+> **Terminologie :** Dans ce document, « worktree » désigne le répertoire
+> de travail isolé du run (le principe d'isolation physique), pas la commande
+> `git worktree add` (le mécanisme). Les principes d'isolation, de branches
+> namespacées, et de merge séquentiel s'appliquent à toute stratégie de
+> workspace (worktree Git ou clone sandbox). Voir
+> [ADR-go-workspace-agnostic-terminology.md](../../adr/ADR-go-workspace-agnostic-terminology.md).
+
 Ce document décrit comment plusieurs runs `/go` peuvent travailler sur le même
 repository sans partager de working directory.
 

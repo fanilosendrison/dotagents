@@ -1,6 +1,6 @@
 # Startup task `project-discovery-finalize`
 
-`project-discovery-finalize` produit le `ProjectDiscovery` autoritatif du run. Il ne se contente pas de lire des manifestes : il prouve que les commandes de gates retenues correspondent au worktree physique privé qui sera modifié et vérifié.
+`project-discovery-finalize` produit le `ProjectDiscovery` autoritatif du run. Il ne se contente pas de lire des manifestes : il prouve que les commandes de gates retenues correspondent au workspace physique privé qui sera modifié et vérifié.
 
 Cette bootstrap task agit comme un join synchronisant la tâche `workspace-setup` (qui produit `WorkSession`) et la tâche `repo-discovery-draft` (qui pré-analyse le dépôt source).
 
@@ -8,7 +8,7 @@ Cette bootstrap task agit comme un join synchronisant la tâche `workspace-setup
 
 ## 1. Objectif
 
-Produire une matrice de gates mécaniques adaptée au dépôt, validée directement contre le worktree privé et isolé du run. 
+Produire une matrice de gates mécaniques adaptée au dépôt, validée directement contre le workspace privé et isolé du run. 
 
 Le résultat durable de cette validation est l'artefact `ProjectDiscovery`.
 
@@ -24,6 +24,8 @@ run-init
 ├─ provider-config-validation (séquentiel)
 │       ↓
 ├─ repo-capture (séquentiel)
+│       ↓
+├─ dirty-state-capture (séquentiel, host-side only)
 │       │
 │       ├─ run-capture (parallèle)
 │       ├─ workspace-setup (parallèle) ──┐
@@ -44,7 +46,7 @@ Elle s'exécute de manière bloquante : la délégation de l'étape `implementat
 ## 3. Inputs
 
 - `WorkSession` (générée par `workspace-setup`).
-- `worktreeRoot` (chemin physique résolu du worktree isolé).
+- `workspaceRoot` (chemin physique résolu du workspace isolé).
 - `artefactRoot` (répertoire réservé aux preuves).
 - `WorkflowPolicy.discovery` (règles de découverte).
 - `WorkflowPolicy.gates` (règles des gates mécaniques).
@@ -59,9 +61,9 @@ Artefact métier écrit sous `artefactRoot/startup/project-discovery-finalize/pr
 
 ```ts
 type ProjectDiscovery = {
-  source: "draft-finalized" | "worktree-rerun";
+  source: "draft-finalized" | "workspace-rerun";
   finalizedFromDraftId?: string;
-  finalizedAgainstWorktreeRoot: string;
+  finalizedAgainstWorkspaceRoot: string;
   inspectedFiles: InspectedFileRef[];
   packageManager?:
     | "bun"
@@ -89,20 +91,20 @@ Fichiers de preuves (dans le sous-dossier `project-discovery-finalize/`) contena
 Le pipeline de finalisation exécute les opérations suivantes :
 
 ### 5.1 Vérification des prérequis
-S'assurer que la `WorkSession` et le répertoire physique du worktree privé `worktreeRoot` sont bien présents et accessibles.
+S'assurer que la `WorkSession` et le répertoire physique du workspace privé `workspaceRoot` sont bien présents et accessibles.
 
 ### 5.2 Comparaison et finalisation du draft
 Si un `RepositoryDiscoveryDraft` est fourni :
-1. Pour chaque fichier du draft (`inspectedFiles`), vérifier sa présence sous `worktreeRoot`.
-2. Calculer le hash SHA256 de ces fichiers dans le worktree et s'assurer qu'ils correspondent exactement à ceux du draft.
-3. Valider que les commandes candidates peuvent s'exprimer avec un `workingDirectory` pointant dans le worktree.
+1. Pour chaque fichier du draft (`inspectedFiles`), vérifier sa présence sous `workspaceRoot`.
+2. Calculer le hash SHA256 de ces fichiers dans le workspace et s'assurer qu'ils correspondent exactement à ceux du draft.
+3. Valider que les commandes candidates peuvent s'exprimer avec un `workingDirectory` pointant dans le workspace.
 4. Si les hashes correspondent, le draft est finalisé. `ProjectDiscovery.source` est défini à `"draft-finalized"`.
 
 ### 5.3 Redécouverte (Rerun)
 Si le draft est absent, invalide, ou que les hashes ne correspondent pas :
-1. Si `WorkflowPolicy.discovery.allowWorktreeRerun` est `false`, lever une erreur `failed`.
-2. Si autorisé, relancer l'analyse complète (discovery) directement depuis le répertoire `worktreeRoot`.
-3. Produire la matrice de commandes et définir `ProjectDiscovery.source` à `"worktree-rerun"`.
+1. Si `WorkflowPolicy.discovery.allowWorkspaceRerun` est `false`, lever une erreur `failed`.
+2. Si autorisé, relancer l'analyse complète (discovery) directement depuis le répertoire `workspaceRoot`.
+3. Produire la matrice de commandes et définir `ProjectDiscovery.source` à `"workspace-rerun"`.
 
 ### 5.4 Filtrage et persistance
 1. Filtrer et limiter les commandes de checks en fonction du sous-périmètre `projectRoot` et des obligations de la policy `WorkflowPolicy.gates`.
@@ -113,7 +115,7 @@ Si le draft est absent, invalide, ou que les hashes ne correspondent pas :
 ## 6. Règles & Invariants
 
 ### 6.1 Non-modification du dépôt
-La finalisation ne doit en aucun cas modifier le code du dépôt ou écrire dans le worktree privé. Les fichiers d'évidences ou de rapports doivent être écrits exclusivement dans `artefactRoot`.
+La finalisation ne doit en aucun cas modifier le code du dépôt ou écrire dans le workspace privé. Les fichiers d'évidences ou de rapports doivent être écrits exclusivement dans `artefactRoot`.
 
 ### 6.2 Priorité aux scripts locaux
 La discovery doit préférer les scripts et configurations déclarés par le projet (ex: scripts `package.json`, tâches `cargo`, configs de linter locales) aux conventions génériques du harness.
@@ -122,7 +124,7 @@ La discovery doit préférer les scripts et configurations déclarés par le pro
 Pour analyser les dépendances et structures du projet, la tâche doit privilégier les commandes et APIs officielles des gestionnaires de paquets (ex: `cargo metadata`, `go list -json`) et rejeter les parseurs "maison" de fichiers de verrouillage.
 
 ### 6.4 Frontière de validation du draft
-Un draft n'a aucune autorité. Il n'est adopté que si sa conformité physique par rapport aux fichiers du worktree est formellement prouvée par la correspondance des hashes.
+Un draft n'a aucune autorité. Il n'est adopté que si sa conformité physique par rapport aux fichiers du workspace est formellement prouvée par la correspondance des hashes.
 
 ### 6.5 Checkpoints et comportement au retry
 
@@ -130,7 +132,7 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 `artefactRoot/startup/project-discovery-finalize/task-record.json`.
 
 **Composition des hashes :**
-- `inputHash` : empreinte JCS de `{ runId, artefactRoot, worktreeRoot,
+- `inputHash` : empreinte JCS de `{ runId, artefactRoot, workspaceRoot,
   projectRoot }`, les inputs directs non couverts par les hashes
   partages. `projectRoot` est optionnel et normalise a `null` si absent.
 - `repoCaptureHash` : **pertinent**. Le contexte du depot cible
@@ -147,9 +149,9 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 - Checkpoint terminal present et tous les hashes pertinents identiques
   (`inputHash`, `repoCaptureHash`, `workflowPolicyHash`) → adoption
   directe du `ProjectDiscovery` precedent. La verification de
-  correspondance draft↔worktree a deja ete prouvee.
+  correspondance draft↔workspace a deja ete prouvee.
 - Checkpoint absent → execution complete (finalisation du draft ou
-  rerun discovery depuis le worktree, cf. §5.2-5.3).
+  rerun discovery depuis le workspace, cf. §5.2-5.3).
 - `inputHash`, `repoCaptureHash` ou `workflowPolicyHash` different
   (mismatch) → echec ferme (`failed`). Les inputs de la tache ont
   change entre deux executions du meme `runId`.
@@ -169,8 +171,8 @@ final fait foi.
 
 - `load-work-session`
 - `load-repository-discovery-draft`
-- `validate-draft-file-hashes-against-worktree`
-- `rerun-discovery-from-worktree-if-needed`
+- `validate-draft-file-hashes-against-workspace`
+- `rerun-discovery-from-workspace-if-needed`
 - `build-mechanical-gate-matrix`
 - `write-discovery-evidence`
 - `persist-execution-record`
@@ -182,7 +184,7 @@ final fait foi.
 | Pipeline | Cause de l'échec | Statut du run | Action corrective / comportement |
 |---|---|---|---|
 | 5.1 | `WorkSession` absent ou illisible | `errored` | Arrêt de la tâche |
-| 5.1 | Répertoire physique `worktreeRoot` introuvable | `errored` | Arrêt de la tâche |
+| 5.1 | Répertoire physique `workspaceRoot` introuvable | `errored` | Arrêt de la tâche |
 | 5.2/5.3 | Draft incohérent (hashes différents) et rerun non autorisé | `failed` | Arrêt de la phase |
 | 5.3 | Aucun check de validation fiable détecté alors que requis par la policy | `failed` | Arrêt |
 | 5.4 | Commande candidate détectée impossible à exprimer sous forme d'argv | `failed` | Arrêt |

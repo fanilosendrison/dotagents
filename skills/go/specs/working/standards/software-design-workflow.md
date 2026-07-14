@@ -1,5 +1,11 @@
 # Workflow logiciel `/go`
 
+> **Terminologie :** Dans ce document, « worktree » désigne le répertoire
+> de travail isolé du run (le concept), pas la commande `git worktree add`
+> (le mécanisme). Les principes décrits s'appliquent à toute stratégie de
+> workspace (worktree Git ou clone sandbox). Voir
+> [ADR-go-workspace-agnostic-terminology.md](../../adr/ADR-go-workspace-agnostic-terminology.md).
+
 Ce document décrit le cycle complet d'un `/go` dans le vocabulaire canonique :
 bootstrap tasks, stages, phases Turnlock, délégations, et stage harness.
 

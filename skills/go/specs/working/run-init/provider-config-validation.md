@@ -31,11 +31,13 @@ run-init
 ├─ provider-config-validation (sequentiel)
 │       ↓
 ├─ repo-capture (sequentiel)
+│       ↓
+├─ dirty-state-capture (sequentiel, host-side only)
 │       │
 │       ├─ run-capture (parallele)
-│       ├─ workspace-setup (parallele)
+│       ├─ workspace-setup (parallele) ──┐
 │       └─ repo-discovery-draft (parallele)
-│                  │
+│                  │                      │
 │                  └──────────┬───────────┘
 │                             ↓
 │                 project-discovery-finalize

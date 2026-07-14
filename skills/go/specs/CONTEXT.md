@@ -51,6 +51,9 @@ Ces documents sont normatifs pour construction RED/GREEN.
   - Paramètre `skipSetup` pour la reprise sans reconstruction du worktree.
 - [`ADR-go-review-before-packaging-with-package-verify.md`](./adr/ADR-go-review-before-packaging-with-package-verify.md)
   - Review globale avant packaging, avec vérification obligatoire du split.
+- [`ADR-go-workspace-agnostic-terminology.md`](./adr/ADR-go-workspace-agnostic-terminology.md)
+  - Terminologie agnostique du workspace : découplage vocabulaire vs mécanisme
+    worktree, préparation à la swapabilité sandbox.
 
 ---
 
@@ -85,10 +88,14 @@ quand leur niveau de détail sera suffisant pour construction.
   - Phase Turnlock de bootstrap : bootstrap tasks, joins et projection fail-closed.
 - [`repo-capture.md`](./working/run-init/repo-capture.md)
   - Resolution mecanique du repo cible depuis le CWD.
+- [`dirty-state-capture.md`](./working/run-init/dirty-state-capture.md)
+  - Capture du dirty state host-side avant création du workspace.
 - [`run-capture.md`](./working/run-init/run-capture.md)
   - Capture du prompt `/go`, extrait de session et hashes.
 - [`workspace-setup.md`](./working/run-init/workspace-setup.md)
-  - Creation du worktree physique et `WorkSession`.
+  - Contrat commun du workspace et `WorkSession`.
+- [`workspace-setup.worktree.md`](./working/run-init/workspace-setup.worktree.md)
+  - Stratégie Git Worktree : pipeline `git worktree add`.
 - [`repo-discovery-draft.md`](./working/run-init/repo-discovery-draft.md)
   - Discovery repo non autoritative depuis le checkout source.
 - [`project-discovery-finalize.md`](./working/run-init/project-discovery-finalize.md)

@@ -1,5 +1,11 @@
 # Vocabulaire canonique du workflow `/go`
 
+> **Terminologie :** Dans ce document, « worktree » désigne le répertoire
+> de travail isolé du run (le concept), pas la commande `git worktree add`
+> (le mécanisme). Les principes décrits s'appliquent à toute stratégie de
+> workspace (worktree Git ou clone sandbox). Voir
+> [ADR-go-workspace-agnostic-terminology.md](../../adr/ADR-go-workspace-agnostic-terminology.md).
+
 Ce document fixe les mots que les specs `/go` doivent utiliser. Son objectif est
 d'éviter de mélanger le récit fonctionnel du workflow, les phases exécutables
 Turnlock, les délégations agentiques, et le contrat de sortie du stage harness.

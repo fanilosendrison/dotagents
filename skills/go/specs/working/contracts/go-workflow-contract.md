@@ -62,7 +62,7 @@ La policy durable couvre notamment :
 
 - dirty state ;
 - correction des hints parent ;
-- discovery et rerun depuis le worktree ;
+- discovery et rerun depuis le workspace ;
 - gates requises ;
 - delegation agentique et remediation ;
 - review et HumanGates ;
@@ -111,8 +111,15 @@ des artefacts métier typés, validés par Turnlock avant projection dans
 
 ### 2.6 Workspace physique exclusif
 
-Chaque run `/go` travaille dans un worktree Git physique privé. Une simple
+Chaque run `/go` travaille dans un workspace Git physique privé. Une simple
 branche dans le checkout courant ne suffit pas pour la cible du workflow.
+
+La stratégie actuelle utilise `git worktree add` ; une stratégie future
+pourra utiliser un clone en sandbox. Le contrat commun (workspace isolé,
+artefacts hors workspace, baseHeadSha figé) est décrit dans
+[workspace-setup.md](../run-init/workspace-setup.md).
+
+Voir [ADR-go-workspace-agnostic-terminology.md](../adr/ADR-go-workspace-agnostic-terminology.md).
 
 ### 2.7 Run-init idempotent par `runId`
 
@@ -125,7 +132,7 @@ Le retry ne doit jamais :
 - changer `RepoCapture` ;
 - changer `WorkflowPolicy` ;
 - reutiliser un `artefactRoot` sans ownership marker valide ;
-- transformer un `worktreeRootReservedPath` deja materialise en worktree
+- transformer un `workspaceRootReservedPath` deja materialise en workspace
   autoritatif.
 
 Deux invocations `/go` distinctes produisent deux runs distincts. L'idempotence
@@ -161,7 +168,7 @@ dépend jamais d'une phrase libre.
 
 ### 2.12 Toute mutation invalide les gates
 
-Après toute délégation qui modifie le worktree, les checks précédents ne sont
+Après toute délégation qui modifie le workspace, les checks précédents ne sont
 plus autoritaires. Le workflow revient à `change-snapshot`, puis aux gates
 requises.
 
@@ -244,7 +251,8 @@ resumeAt: implementation-settlement
 
 `run-init` ne cree pas l'enveloppe runtime Turnlock et ne resout pas le repo
 cible. Ces responsabilites appartiennent respectivement a Turnlock et au parent
-process. En revanche, les bootstrap tasks `workspace-setup`,
+process. En revanche, les bootstrap tasks `dirty-state-capture`,
+`workspace-setup`,
 `repo-discovery-draft`, `project-discovery-finalize` et `run-capture` font bien
 partie de la phase Turnlock `run-init`.
 
@@ -252,6 +260,8 @@ partie de la phase Turnlock `run-init`.
 run-init
 │
 ├─ repo-capture (sequentiel)
+│       ↓
+├─ dirty-state-capture (sequentiel, host-side only)
 │       │
 │       ├─ run-capture (parallele) ─────────────────┐
 │       ├─ workspace-setup (parallele) ──┐          │
@@ -273,18 +283,31 @@ Les sous-sections `4.1.x` ne sont pas des stages canoniques et ne sont pas des
 phases Turnlock separees. Elles decrivent les bootstrap tasks internes de
 `run-init`.
 
+#### 4.1.0 `dirty-state-capture`
+
+Capture l'etat dirty du depot source avant toute creation de workspace.
+Cette bootstrap task est host-side uniquement et produit un
+`DirtyStateCaptureArtifact` projete dans `RunInitRecord.dirtyStateCapture`.
+
 #### 4.1.1 `run-capture`
 
 Fige le prompt `/go`, une reference de session, un extrait minimal de session
 et leurs hashes.
 
-Cette bootstrap branch ne modifie pas le repo cible, ne lit pas le worktree, et
+Cette bootstrap branch ne modifie pas le repo cible, ne lit pas le workspace, et
 ne produit aucune interpretation semantique. Pour v1, elle doit etre jointe
 avant la delegation `implementation`.
 
 #### 4.1.2 `workspace-setup`
 
-Prépare le terrain isolé du run. En mode `execute` (nominal), elle crée le worktree Git physique privé, enregistre `WorkSession`, et fixe `baseHeadSha` (les dépôts sans commit / HEAD non né étant initialisés avec un premier commit vide pour établir `baseHeadSha` en toute sécurité). En mode `validate` (retry/resume), elle valide le worktree sans reconstruction (vérifiant uniquement les chemins d'intégrité) en utilisant un contrôle d'ancêtre (`git merge-base --is-ancestor`) au lieu de l'égalité stricte de HEAD, et en filtrant les vérifications porcelain sur les fichiers du patch d'adoption (via `git apply --numstat`).
+Prépare le terrain isolé du run. En mode `execute` (nominal), elle crée le workspace Git physique privé, enregistre `WorkSession`, et fixe `baseHeadSha` (les dépôts sans commit / HEAD non né étant initialisés avec un premier commit vide pour établir `baseHeadSha` en toute sécurité). En mode `validate` (retry/resume), elle valide le workspace sans reconstruction (vérifiant uniquement les chemins d'intégrité) en utilisant un contrôle d'ancêtre (`git merge-base --is-ancestor`) au lieu de l'égalité stricte de HEAD, et en filtrant les vérifications porcelain sur les fichiers du patch d'adoption (via `git apply --numstat`).
+
+> **Stratégie actuelle : Git Worktree.** Le pipeline interne utilise
+> `git worktree add`. Le contrat commun (workspace isolé, invariants
+> agnostiques) est décrit dans
+> [workspace-setup.md](../run-init/workspace-setup.md). Une stratégie
+> alternative (clone-in-sandbox) peut remplacer le pipeline sans modifier
+> le contrat.
 
 Cette bootstrap task est la frontière de départ de toutes les preuves de diff.
 
@@ -301,8 +324,8 @@ en parallele de `workspace-setup`.
 Détecte les commandes et capacités du repo : package manager, lint, typecheck,
 tests, build, scans disponibles, conventions Git et provider.
 
-Ce bootstrap join finalise le brouillon de discovery contre le worktree prive, ou
-relance la discovery depuis `worktreeRoot` si le brouillon ne peut pas etre
+Ce bootstrap join finalise le brouillon de discovery contre le workspace privé, ou
+relance la discovery depuis `workspaceRoot` si le brouillon ne peut pas etre
 prouve.
 
 Ce join produit le `ProjectDiscovery` autoritatif et la matrice de gates
@@ -312,7 +335,7 @@ mecaniques à executer.
 
 `implementation` est le label de delegation qui confie la création ou
 modification à l'agent principal, à partir du contexte de session courant, du
-worktree prive, des specs disponibles et du `ProjectDiscovery`.
+workspace prive, des specs disponibles et du `ProjectDiscovery`.
 
 Le stage est sémantique et encadré par Turnlock, mais son coeur est agentique.
 Dans le chemin nominal, la delegation est emise par `run-init` et reprise par
@@ -321,14 +344,14 @@ Dans le chemin nominal, la delegation est emise par `run-init` et reprise par
 ### 4.3 `implementation-settlement`
 
 Consomme le resultat de la delegation `implementation`, verifie que les
-evidences attendues existent, controle que le worktree prive est toujours le
-worktree du run, puis route vers le prochain segment mecanique.
+evidences attendues existent, controle que le workspace privé est toujours le
+workspace du run, puis route vers le prochain segment mecanique.
 
 Cette phase ne juge pas encore la conformite semantique finale du changement.
 Elle reconcilie seulement :
 
 - le resultat JSON de delegation ;
-- l'etat reel du worktree ;
+- l'etat reel du workspace ;
 - les fichiers modifies ;
 - les evidences produites par l'agent ;
 - les conditions necessaires pour capturer un snapshot.
@@ -366,7 +389,7 @@ applicables, le diff final et les gates mecaniques. Il produit un
 
 Objet reviewé :
 
-- le worktree prive du run ;
+- le workspace privé du run ;
 - le dernier `ChangeSnapshot` global ;
 - le diff complet entre `baseHeadSha` et l'etat final local ;
 - les gates mecaniques locales executees sur ce snapshot.
@@ -467,14 +490,16 @@ nettoie les branches quand les preuves nécessaires sont conservées.
 stocke le `RepoCapture` fourni par le parent process dans
 `WorkflowState`, initialise les refs `/go`, execute le bootstrap/onboarding, puis
 emet la delegation `implementation`. L'enveloppe runtime est fournie par
-Turnlock. Lors de la reprise après interruption de `run-init`, la bootstrap task `workspace-setup` est ré-exécutée en mode `"validate"`. Toute reconstruction ou restauration ultérieure du worktree après la finalisation de `run-init` (en cours d'implémentation) est une responsabilité de niveau Turnlock ; `workspace-setup` ne doit pas être ré-invoquée dans les phases subséquentes.
+Turnlock. Lors de la reprise après interruption de `run-init`, la bootstrap task `workspace-setup` est ré-exécutée en mode `"validate"`. Toute reconstruction ou restauration ultérieure du workspace après la finalisation de `run-init` (en cours d'implémentation) est une responsabilité de niveau Turnlock ; `workspace-setup` ne doit pas être ré-invoquée dans les phases subséquentes.
 
-Dans `run-init`, le demarrage nominal est parallele :
+Dans `run-init`, le demarrage nominal est :
 
 ```text
 run-init
 │
 ├─ repo-capture (sequentiel)
+│       ↓
+├─ dirty-state-capture (sequentiel, host-side only)
 │       │
 │       ├─ run-capture (parallele)
 │       ├─ workspace-setup (parallele)
@@ -505,14 +530,14 @@ project-discovery-finalize
 ```
 
 `project-discovery-finalize` exige `WorkSession` et soit un `RepositoryDiscoveryDraft`
-valide, soit l'autorisation de relancer la discovery depuis `worktreeRoot`.
+valide, soit l'autorisation de relancer la discovery depuis `workspaceRoot`.
 
 Pour v1, la delegation `implementation` exige aussi un `RunCaptureArtifact`
 valide. `run-capture` peut s'executer en parallele des autres bootstrap tasks, mais
 son absence bloque la sortie finale de `run-init`.
 
 `implementation-settlement` exige un resultat de delegation `implementation`
-valide et un worktree toujours rattache au run. Elle ne remplace pas
+valide et un workspace toujours rattache au run. Elle ne remplace pas
 `change-snapshot` : elle decide seulement comment reprendre apres l'agent.
 
 `pre-package-review` exige toujours un `RunCaptureArtifact` valide et projeté.

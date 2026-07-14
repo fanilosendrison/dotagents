@@ -29,6 +29,8 @@ run-init
 ├─ provider-config-validation (séquentiel)
 │       ↓
 ├─ repo-capture (séquentiel)
+│       ↓
+├─ dirty-state-capture (séquentiel, host-side only)
 │       │
 │       ├─ run-capture (parallèle) ─────────────────┐
 │       ├─ workspace-setup (parallèle)              │

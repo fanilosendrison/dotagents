@@ -39,6 +39,8 @@ run-init
 ├─ provider-config-validation (sequentiel)
 │       ↓
 ├─ repo-capture (sequentiel)
+│       ↓
+├─ dirty-state-capture (sequentiel, host-side only)
 │       │
 │       ├─ run-capture (parallele) ─────────────────┐
 │       ├─ workspace-setup (parallele) ──┐          │
@@ -382,6 +384,12 @@ Exemple conceptuel apres le snapshot stable emis par `run-init` :
         "task": "repo-capture",
         "status": "passed",
         "businessArtifactIds": ["repo-capture:<id>"],
+        "requiredBefore": ["dirty-state-capture"]
+      },
+      {
+        "task": "dirty-state-capture",
+        "status": "passed",
+        "businessArtifactIds": ["dirty-state-capture:<id>"],
         "requiredBefore": ["run-capture", "workspace-setup", "repo-discovery-draft"]
       },
       {
