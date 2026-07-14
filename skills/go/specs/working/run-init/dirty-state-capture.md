@@ -91,35 +91,65 @@ Cette tâche produit également un `WorkflowExecutionRecord` durable.
 
 ## 5. Pipeline
 
-### 5.1 Détection du dirty state
-1. Lire le dirty state initial (`git status --porcelain`) depuis
-   `canonicalRepositoryRoot`.
-2. Si la sortie est vide, le dépôt est clean. Écrire
-   `DirtyStateDiffArtifact` avec `initialDirtyState: "clean"` et
-   terminer.
+### 5.1 Diagnostic du dépôt source
+
+1. **Vérification HEAD** : exécuter `git rev-parse --verify HEAD`. Si HEAD
+   n'existe pas (dépôt vide sans commit), lever un échec `failed` (baseline
+   committable obligatoire).
+2. **Détection des conflits** : lire le dirty state initial
+   (`git -c core.quotePath=false status --porcelain`) depuis
+   `canonicalRepositoryRoot`. Le flag `core.quotePath=false` garantit que
+   les chemins contenant des caractères non-ASCII ou des espaces sont
+   restitués tels quels (sans échappement octal ni guillemets), afin
+   d'être consommables par les appels `fs.stat` ultérieurs. Si la sortie
+   contient des fichiers en conflit non résolu (codes d'état `DD`, `AU`,
+   `UD`, `UA`, `DU`, `AA`, `UU`), lever un échec `failed`.
+3. **Vérification des fichiers masqués** :
+   - Lister les fichiers flaggés via `git -c core.quotePath=false ls-files
+     -v`. Le flag `core.quotePath=false` garantit des chemins non échappés,
+     consommables par `git ls-files -s` et `git hash-object` ci-dessous.
+   - Pour chaque fichier préfixé par `h` (assume-unchanged) ou `S`
+     (skip-worktree) en première colonne :
+     - Récupérer son hash dans l'index via `git ls-files -s <chemin>`.
+     - Calculer le hash du fichier sur le disque via
+       `git hash-object <chemin>`.
+     - Si les hashes diffèrent, le fichier masqué a été modifié localement.
+       Lever un échec `failed` (arrêt de sécurité).
+4. **Vérification d'état clean** : si `git status --porcelain` est vide et
+   qu'aucun fichier masqué n'est modifié, le dépôt est clean. Écrire
+   `DirtyStateDiffArtifact` avec `initialDirtyState: "clean"` et terminer.
 
 ### 5.2 Validation de la policy
+
 1. Si `WorkflowPolicy.dirtyState.mode` refuse le dirty state, lever un
    échec `failed`.
 2. Si l'adoption est autorisée (`"adopt-as-input"` ou
    `"human-gate-if-dirty"`), continuer.
 
 ### 5.3 Capture du patch
-1. Sauvegarder le `git status --porcelain` brut dans un fichier d'evidence
-   sous `artefactRoot/startup/dirty-state-capture/evidence/`.
-2. Capturer le dirty state sous forme de patch binaire sans altérer
-   l'index réel du dépôt source :
+
+1. **Initialisation du répertoire** : créer récursivement le dossier
+   temporaire de travail
+   (`mkdir -p "${artefactRoot}/startup/dirty-state-capture/tmp/"`).
+2. **Capture du patch** : capturer l'état dirty sous forme de patch binaire
+   sans altérer l'index réel du dépôt source :
    ```bash
-   TMP=$(mktemp)
-   GIT_INDEX_FILE="$TMP" git read-tree HEAD
-   GIT_INDEX_FILE="$TMP" git add -A
-   GIT_INDEX_FILE="$TMP" git diff --cached --binary --full-index
-   rm "$TMP"
+   INDEX_TMP="${artefactRoot}/startup/dirty-state-capture/tmp/index"
+   GIT_INDEX_FILE="$INDEX_TMP" git read-tree HEAD
+   GIT_INDEX_FILE="$INDEX_TMP" git add -A
+   GIT_INDEX_FILE="$INDEX_TMP" git diff --cached --binary --full-index
+   rm "$INDEX_TMP"
    ```
-3. Sauvegarder la sortie du patch dans un fichier d'evidence.
-4. Calculer le hash SHA256 du patch brut.
-5. Écrire le `DirtyStateDiffArtifact` avec `initialDirtyState:
-   "dirty"` et les références aux fichiers d'evidence.
+3. **Sauvegarde et preuves** :
+   - Écrire la sortie de `git -c core.quotePath=false status --porcelain`
+     dans
+     `artefactRoot/startup/dirty-state-capture/evidence/status.txt`,
+     garantissant des chemins lisibles dans les preuves d'audit.
+   - Écrire la sortie du patch dans
+     `artefactRoot/startup/dirty-state-capture/evidence/patch.diff`.
+   - Calculer le hash SHA256 du patch brut.
+   - Écrire le `DirtyStateDiffArtifact` avec `initialDirtyState: "dirty"`,
+     `sourceStatusPorcelainRef`, `sourcePatchRef` et `sourcePatchHash`.
 
 ---
 
@@ -145,7 +175,10 @@ La tâche écrit un `BootstrapTaskCheckpoint` atomique sous
 
 **Composition des hashes :**
 - `inputHash` : empreinte JCS de
-  `{ runId, RepoCapture, WorkflowPolicy.dirtyState, artefactRoot }`.
+  `{ runId, RepoCapture, WorkflowPolicy.dirtyState, artefactRoot,
+  gitStateDigest }`, où `gitStateDigest` est calculé comme
+  `sha256(git rev-parse HEAD + "\n" + git status --porcelain)`. Tout
+  changement physique du dépôt source invalidera le checkpoint au retry.
 - `repoCaptureHash` : pertinent. La tâche consomme `RepoCapture` pour
   accéder au dépôt source.
 - `workflowPolicyHash` : pertinent. La tâche consomme
@@ -159,11 +192,24 @@ La tâche écrit un `BootstrapTaskCheckpoint` atomique sous
 - Checkpoint absent → ré-exécution complète.
 - Mismatch → échec ferme (`failed`).
 
+### 6.5 Compromis de race condition (non-verrouillage)
+La tâche capture le dirty state de manière non bloquante. Si des
+modifications concurrentes surviennent sur l'hôte pendant la capture, la
+cohérence temporelle absolue n'est pas garantie. C'est un compromis de
+conception acceptable pour éviter d'acquérir des verrous système intrusifs
+sur le dépôt de l'utilisateur.
+
 ---
 
 ## 7. Opérations internes typiques
 
-- `detect-source-dirty-state` (via `git status --porcelain`)
+- `verify-head-exists` (via `git rev-parse --verify HEAD`)
+- `detect-source-dirty-state` (via `git -c core.quotePath=false status
+  --porcelain`)
+- `detect-merge-conflicts` (via patterns `DD|AU|UD|UA|DU|AA|UU` dans
+  `git status --porcelain`)
+- `detect-masked-file-modifications` (via `git -c core.quotePath=false
+  ls-files -v` + `git ls-files -s` + `git hash-object`)
 - `validate-dirty-state-policy`
 - `capture-dirty-patch` (via index Git temporaire)
 - `hash-dirty-patch`
@@ -178,9 +224,12 @@ La tâche écrit un `BootstrapTaskCheckpoint` atomique sous
 |---|---|---|---|
 | 5.1 | `RepoCapture` absent ou invalide | `errored` | Arrêt immédiat |
 | 5.1 | `canonicalRepositoryRoot` inaccessible | `errored` | Arrêt |
+| 5.1.1 | Référence HEAD absente (dépôt vide) | `failed` | Arrêt |
+| 5.1.2 | Conflits de merge non résolus détectés | `failed` | Arrêt |
+| 5.1.3 | Fichiers assume-unchanged ou skip-worktree modifiés détectés | `failed` | Arrêt de sécurité |
 | 5.2 | Dirty state détecté mais rejeté par la policy | `failed` | Arrêt |
-| 5.3 | Échec de la capture du patch (index temporaire, diff) | `errored` | Arrêt |
-| 5.3 | Fichiers d'evidence écrits hors de l'`artefactRoot` | `errored` | Arrêt de sécurité |
+| 5.3.2 | Échec de la capture du patch (index temporaire, diff) | `errored` | Arrêt |
+| 5.3.4 | Fichiers d'evidence ou temporaires écrits hors de l'`artefactRoot` | `errored` | Arrêt de sécurité |
 
 ---
 
@@ -190,6 +239,10 @@ La tâche écrit un `BootstrapTaskCheckpoint` atomique sous
 - Appliquer le patch (responsabilité de `workspace-setup`).
 - Modifier le dépôt source.
 - Interpréter l'intention utilisateur.
+- Garantir la cohérence atomique contre des modifications concurrentes de
+  l'hôte pendant la capture.
+- Supporter ou réintégrer les configurations et fichiers sous drapeau
+  `assume-unchanged` ou `skip-worktree`.
 
 ---
 
