@@ -16,6 +16,61 @@ Voir [`working/standards/canonical-vocabulary.md`](./working/standards/canonical
 
 ---
 
+## Folder Structure
+
+```text
+specs/
+├── CONTEXT.md                  ← Vous êtes ici
+├── adr/                        ← Architecture Decision Records (actifs)
+│   ├── ADR-go-workflow-vocabulary.md
+│   ├── ADR-go-stages-vs-turnlock-phases.md
+│   ├── ADR-go-stage-harness-v1-non-goals.md
+│   ├── ADR-go-stage-output-envelope-and-typed-business-artifacts.md
+│   ├── ADR-go-physical-worktree-isolation.md
+│   ├── ADR-go-token-propagation-git-askpass.md
+│   ├── ADR-go-mandatory-provider-config-fail-fast.md
+│   ├── ADR-go-prerequisite-validation.md
+│   ├── ADR-go-implicit-repo-capture-control.md
+│   ├── ADR-go-repo-capture-robustness.md
+│   ├── ADR-go-workspace-setup-skip-setup.md
+│   ├── ADR-go-review-before-packaging-with-package-verify.md
+│   └── ADR-go-workspace-agnostic-terminology.md
+├── briefs/                     ← Normative Implementation Briefs (NIB)
+│   └── stage-harness/
+├── working/                    ← Specs de conception en cours
+│   ├── standards/              ← Vocabulaire, hashing, conventions
+│   │   ├── canonical-vocabulary.md
+│   │   ├── canonical-hashing.md
+│   │   ├── external-primitives.md
+│   │   ├── software-design-workflow.md
+│   │   └── multi-agent-concurrency.md
+│   ├── contracts/              ← Contrats workflow
+│   │   ├── go-workflow-contract.md
+│   │   └── workflow-artifacts.md
+│   ├── run-init/               ← Phase Turnlock run-init : bootstrap tasks
+│   │   ├── run-init.md
+│   │   ├── prerequisite-validation.md
+│   │   ├── repo-capture.md
+│   │   ├── dirty-state-capture.md
+│   │   ├── run-capture.md
+│   │   ├── workspace-setup.md
+│   │   ├── workspace-setup.worktree.md
+│   │   ├── repo-discovery-draft.md
+│   │   └── project-discovery-finalize.md
+│   └── stages/                 ← Stages métier (après run-init)
+│       ├── implementation.md
+│       ├── agent-conduct-check.md
+│       ├── mechanical-gates.md
+│       ├── review-remediation.md
+│       ├── ideal-review.md
+│       ├── pr-ci-review.md
+│       └── package-and-publish.md
+└── legacy/                     ← Archives historiques
+    └── working-pre-semantic-turnlock-split/
+```
+
+---
+
 ## Briefs NIB
 
 Ces documents sont normatifs pour construction RED/GREEN.
@@ -88,6 +143,8 @@ quand leur niveau de détail sera suffisant pour construction.
 
 - [`run-init.md`](./working/run-init/run-init.md)
   - Phase Turnlock de bootstrap : bootstrap tasks, joins et projection fail-closed.
+- [`prerequisite-validation.md`](./working/run-init/prerequisite-validation.md)
+  - Validation des prérequis : ProviderConfig + version Git, fail-fast.
 - [`repo-capture.md`](./working/run-init/repo-capture.md)
   - Resolution mecanique du repo cible depuis le CWD.
 - [`dirty-state-capture.md`](./working/run-init/dirty-state-capture.md)

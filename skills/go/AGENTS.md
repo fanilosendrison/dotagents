@@ -63,16 +63,52 @@ skills/go/
 └── specs/
     ├── CONTEXT.md                 # Spec index — canonical vocabulary, ADRs, NIBs
     ├── roadmap.md                 # Development roadmap
-    ├── adr/                       # Active Architecture Decision Records (6 ADRs)
-    ├── briefs/stage-harness/      # Normative Implementation Briefs (NIB, DC, NX)
+    ├── adr/                       # Active Architecture Decision Records (13 ADRs)
+    │   ├── ADR-go-workflow-vocabulary.md
+    │   ├── ADR-go-stages-vs-turnlock-phases.md
+    │   ├── ADR-go-stage-harness-v1-non-goals.md
+    │   ├── ADR-go-stage-output-envelope-and-typed-business-artifacts.md
+    │   ├── ADR-go-physical-worktree-isolation.md
+    │   ├── ADR-go-token-propagation-git-askpass.md
+    │   ├── ADR-go-mandatory-provider-config-fail-fast.md
+    │   ├── ADR-go-prerequisite-validation.md
+    │   ├── ADR-go-implicit-repo-capture-control.md
+    │   ├── ADR-go-repo-capture-robustness.md
+    │   ├── ADR-go-workspace-setup-skip-setup.md
+    │   ├── ADR-go-review-before-packaging-with-package-verify.md
+    │   └── ADR-go-workspace-agnostic-terminology.md
+    ├── briefs/                    # Normative Implementation Briefs (NIB)
+    │   └── stage-harness/
     ├── legacy/                    # Historical documents (pre stage/phase vocabulary split)
+    │   └── working-pre-semantic-turnlock-split/
     └── working/                   # In-progress design specs
-        ├── workflow/              # Canonical vocabulary, hashing, contract, concurrency
-        ├── startup/               # run-init, workspace-setup, repo discovery
-        ├── stages/                # implementation, agent-conduct, mechanical-gates, review
-        ├── artifacts/             # Workflow artifact types
-        ├── packaging/             # package-plan, package-verify, PRs
-        └── review/                # ideal-review, PR CI gate
+        ├── standards/             # Canonical vocabulary, hashing, conventions
+        │   ├── canonical-vocabulary.md
+        │   ├── canonical-hashing.md
+        │   ├── external-primitives.md
+        │   ├── software-design-workflow.md
+        │   └── multi-agent-concurrency.md
+        ├── contracts/             # Workflow contracts
+        │   ├── go-workflow-contract.md
+        │   └── workflow-artifacts.md
+        ├── run-init/              # Bootstrap tasks (prerequisite-validation → project-discovery-finalize)
+        │   ├── run-init.md
+        │   ├── prerequisite-validation.md
+        │   ├── repo-capture.md
+        │   ├── dirty-state-capture.md
+        │   ├── run-capture.md
+        │   ├── workspace-setup.md
+        │   ├── workspace-setup.worktree.md
+        │   ├── repo-discovery-draft.md
+        │   └── project-discovery-finalize.md
+        └── stages/                # Métier stages (implementation → package-and-publish)
+            ├── implementation.md
+            ├── agent-conduct-check.md
+            ├── mechanical-gates.md
+            ├── review-remediation.md
+            ├── ideal-review.md
+            ├── pr-ci-review.md
+            └── package-and-publish.md
 ```
 
 ## 3. Manual Testing and Temporary Repositories
