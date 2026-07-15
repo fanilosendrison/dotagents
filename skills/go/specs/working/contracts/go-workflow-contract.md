@@ -479,16 +479,24 @@ Turnlock. Lors de la reprise après interruption de `run-init`, la bootstrap tas
 Dans `run-init`, le demarrage nominal est :
 
 ```text
-run-init
-│
-├─ prerequisite-validation (séquentiel)
-│       ↓
-├─ repo-capture (sequentiel)
-│       ↓
-├─ dirty-state-capture (sequentiel, host-side only)
-│       │
-│       ├─ run-capture (parallele)
-│       ├─ workspace-setup (parallele)
+              run-init
+                 │
+       prerequisite-validation
+                 │
+            repo-capture
+          ┌──────┴──────┐
+          ▼             ▼
+     run-capture    dirty-state
+          │             │
+          │             ▼
+          │        workspace-setup
+          │             │
+          │             ▼
+          │   project-discovery-finalize
+          │             │
+          └──────┬──────┘
+                 ▼
+        delegate implementation
 ```
 
 Le bootstrap joint ensuite les branches necessaires avant la premiere delegation
