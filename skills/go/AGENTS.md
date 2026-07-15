@@ -99,6 +99,7 @@ skills/go/
         │   ├── run-capture.md
         │   ├── workspace-setup.md
         │   ├── workspace-setup.worktree.md
+        │   ├── workspace-setup.sandbox.md
         │   ├── repo-discovery-draft.md
         │   └── project-discovery-finalize.md
         └── stages/                # Métier stages (implementation → package-and-publish)
@@ -115,3 +116,25 @@ skills/go/
 When running manual command-line dry-runs or test scripts that initialize local Git repositories (e.g., via agent command execution), always perform them inside `test-temp/` or `tmp/` directories. 
 
 These directories are ignored by the local `.gitignore` to prevent Git from treating empty initialized subdirectories as untracked submodules.
+
+## 4. macOS Constraint for OCI Sandbox (Phase 1.b)
+
+### Problem
+The `workspace-setup.sandbox.md` strategy requires an OCI runtime (OrbStack, Colima, Docker Engine). All current OCI runtimes for macOS require **macOS 13 (Ventura) or newer**. The development environment runs macOS Monterey 12.7.6.
+
+### Consequence
+Phase 1.b (OCI Sandbox strategy) implementation is **blocked** until macOS is upgraded to Ventura (13) or Sonoma (14). Phase 1.a (Git Worktree strategy) is unaffected — it is 100% host-side and requires only Git ≥ 2.18.
+
+### Verified runtimes (all blocked on Monterey 12.7.6)
+| Runtime        | Minimum macOS  |
+|----------------|----------------|
+| OrbStack       | macOS 14       |
+| Colima         | macOS 13       |
+| Docker Desktop | macOS 13       |
+| Podman machine | macOS 13       |
+| Lima           | macOS 13       |
+
+### References
+- [`specs/roadmap.md`](./specs/roadmap.md) Phase 1.b — blocked notice with cross-reference
+- [`specs/working/run-init/workspace-setup.sandbox.md` §2](./specs/working/run-init/workspace-setup.sandbox.md#2-prérequis-techniques) — macOS constraint callout
+- [`operational-rules/implementation.md` §5](../../operational-rules/implementation.md) — environmental constraints (No Docker on this system)
