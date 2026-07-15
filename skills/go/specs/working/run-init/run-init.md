@@ -146,11 +146,11 @@ evite les courses d'ecriture entre branches de demarrage.
 
 - si `workspace-setup` echoue, `run-init` annule les branches encore actives,
   attend leur terminaison controlee ou leur timeout court, puis echoue ;
-- si `project-discovery-finalize` produit un `BootstrapFindings`
-  contenant un finding `blocking`, `run-init` suspend la délégation
+- si `project-discovery-finalize` produit un `BootstrapFinding`
+  contenant une severite `blocking`, `run-init` suspend la délégation
   `implementation` et requiert une résolution humaine avant de
   continuer ;
-- si `project-discovery-finalize` echoue (hors `BootstrapFindings`),
+- si `project-discovery-finalize` echoue (hors `BootstrapFinding`),
   `run-init` echoue ;
 - si `run-capture` echoue, `run-init` echoue ou ouvre la HumanGate prevue par
   policy ; v1 ne delegue pas `implementation` sans `RunCaptureArtifact` valide ;
