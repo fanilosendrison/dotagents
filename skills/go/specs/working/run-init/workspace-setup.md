@@ -31,20 +31,24 @@ Cette bootstrap task ne produit aucun code applicatif.
 avec `run-capture`, au sein de la phase Turnlock `run-init`.
 
 ```text
-run-init
-│
-├─ prerequisite-validation (séquentiel)
-│       ↓
-├─ repo-capture (séquentiel)
-│       ↓
-├─ dirty-state-capture (séquentiel, host-side only)
-│       │
-│       ├─ run-capture (parallèle)
-│       ├─ workspace-setup (parallèle) ──┐
-│                  │                      │
-│                  └──────────┬───────────┘
-│                             ↓
-│                 project-discovery-finalize
+              run-init
+                 │
+       prerequisite-validation
+                 │
+            repo-capture
+          ┌──────┴──────┐
+          ▼             ▼
+     run-capture    dirty-state
+          │             │
+          │             ▼
+          │        workspace-setup
+          │             │
+          │             ▼
+          │   project-discovery-finalize
+          │             │
+          └──────┬──────┘
+                 ▼
+        delegate implementation
 ```
 
 Ses extrants sont requis comme intrants indispensables pour finaliser la
@@ -73,6 +77,12 @@ Evidence JSON principale écrite sous
 `artefactRoot/startup/workspace-setup/work-session.json` :
 
 ```ts
+type DirtyStateDiffAdoption = {
+  captureArtifactId: string;
+  replayStatus: "applied" | "failed";
+  replayedAt: string;
+};
+
 type WorkspaceSetupEvidence = {
   workSession: WorkSession;
   dirtyStateDiffAdoption?: DirtyStateDiffAdoption;
@@ -83,7 +93,9 @@ type WorkspaceSetupEvidence = {
 
 Le champ `dirtyStateDiffAdoption` est présent uniquement si le
 `DirtyStateDiffArtifact` indique `"dirty"` et que le replay a réussi.
-Il référence le `captureArtifactId` du `DirtyStateDiffArtifact`.
+`captureArtifactId` référence l'artefact `DirtyStateDiffArtifact` produit
+par `dirty-state-capture` ; `replayStatus` vaut `"applied"` si le patch a
+été appliqué avec succès dans le workspace.
 
 Cette tâche produit également un `WorkflowExecutionRecord` durable.
 
