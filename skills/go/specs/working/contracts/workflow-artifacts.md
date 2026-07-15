@@ -43,6 +43,7 @@ type WorkflowState = {
   runCapture?: RunCaptureArtifact;
   workSession?: WorkSession;
   projectDiscovery?: ProjectDiscovery;
+  bootstrapFindings?: BootstrapFindings[];
   snapshots: ChangeSnapshot[];
   executionRecords: WorkflowExecutionRecord[];
   businessArtifacts: BusinessArtifactRecord[];
@@ -516,9 +517,11 @@ contre le worktree prive.
 
 ```ts
 type ProjectDiscovery = {
-  source: "draft-finalized" | "workspace-rerun";
+  provenance?: "draft-finalized" | "workspace-rerun";
   finalizedFromDraftId?: string;
   finalizedAgainstWorkspaceRoot: string;
+  discoveryMethod: "stack-eval" | "ecosystem-scan";
+  stackEvalRef?: string;
   inspectedFiles: InspectedFileRef[];
   packageManager?:
     | "bun"
@@ -527,13 +530,21 @@ type ProjectDiscovery = {
     | "yarn"
     | "cargo"
     | "go"
-    | "python"
+    | "uv"
+    | "pip"
+    | "poetry"
+    | "make"
+    | "just"
+    | "maven"
+    | "gradle"
+    | "dotnet"
+    | "bundler"
+    | "composer"
+    | "mix"
+    | "deno"
     | "unknown";
   lockfiles: string[];
-  checkCommands: MechanicalCheckDefinition[];
-  testCommands: MechanicalCheckDefinition[];
-  buildCommands: MechanicalCheckDefinition[];
-  providerCapabilities: ProviderCapabilities;
+  commands: MechanicalCheckDefinition[];
 };
 ```
 
@@ -553,15 +564,6 @@ type MechanicalCheckDefinition = {
   command: string[];
   required: boolean;
   workingDirectory: string;
-};
-```
-
-```ts
-type ProviderCapabilities = {
-  canPushBranches: boolean;
-  canOpenPullRequests: boolean;
-  canReadCiStatus: boolean;
-  supportsStackedPrs: boolean;
 };
 ```
 
@@ -642,7 +644,8 @@ type BusinessArtifactKind =
   | "package-plan"
   | "package-verification"
   | "pull-request-publication"
-  | "pr-ci-review";
+  | "pr-ci-review"
+  | "bootstrap-findings";
 ```
 
 Un artefact métier typé est toujours référencé par `ref`, validé par son
@@ -677,7 +680,8 @@ export const businessArtifactRecordSchema = z.object({
     "package-plan",
     "package-verification",
     "pull-request-publication",
-    "pr-ci-review"
+    "pr-ci-review",
+    "bootstrap-findings"
   ]),
   schema: z.string().min(1),
   ref: z.string().min(1),
@@ -870,7 +874,33 @@ dans le `StageOutput`.
 
 ---
 
-## 12. `HumanGate`
+## 12. `BootstrapFindings`
+
+Produit par les bootstrap tasks pour signaler des diagnostics nécessitant une
+intervention humaine avant la délégation `implementation`.
+
+```ts
+type BootstrapFinding = {
+  code: string;
+  task: BootstrapTaskName;
+  severity: "blocking" | "warning";
+  message: string;
+  detail?: string;
+  resolution: "human-gate" | "fail" | "ignore";
+};
+
+type BootstrapFindings = {
+  schema: "go.bootstrap-findings.v1";
+  runId: string;
+  task: BootstrapTaskName;
+  findings: BootstrapFinding[];
+  createdAt: string;
+};
+```
+
+---
+
+## 13. `HumanGate`
 
 ```ts
 type HumanGate = {
@@ -887,7 +917,7 @@ type HumanGate = {
 
 ---
 
-## 13. `RemediationAttempt`
+## 14. `RemediationAttempt`
 
 ```ts
 type RemediationAttempt = {
@@ -906,7 +936,7 @@ type RemediationAttempt = {
 
 ---
 
-## 14. `PackagePlan`
+## 15. `PackagePlan`
 
 ```ts
 type PackagePlan = {
@@ -947,7 +977,7 @@ type CommitPlanRecord = {
 
 ---
 
-## 15. `PackageVerification`
+## 16. `PackageVerification`
 
 ```ts
 type PackageVerification = {
@@ -972,7 +1002,7 @@ type PackageVerificationResult = {
 
 ---
 
-## 16. Branches, commits, PRs
+## 17. Branches, commits, PRs
 
 ```ts
 type BranchRecord = {
