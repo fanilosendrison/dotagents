@@ -71,6 +71,12 @@ Le type `ProjectDiscovery` est défini dans le contrat
 [`workflow-artifacts.md`](../contracts/workflow-artifacts.md#6-projectdiscovery).
 La tâche écrit le payload conforme au contrat, sans envelope
 (`schema`, `id`, `runId` sont portés par le `BusinessArtifactRecord`).
+
+Résumé des champs principaux :
+- `discoveryMethod`: `"stack-eval"` | `"ecosystem-scan"`
+- `ecosystems`: Ecosysteme[]  (langage, packageManager, lockfiles)
+- `gates`: MechanicalGate[]  (kind, command, workingDirectory)
+- `inspectedFiles`: { path, hash }[]
 ```
 
 Fichiers de preuves (dans le sous-dossier `project-discovery-finalize/`)
@@ -243,6 +249,11 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 - `repoCaptureHash` : **pertinent**. Le contexte du depot cible
   (`canonicalRepositoryRoot`, `projectRoot`) est verifie
   indirectement via la `WorkSession` produite par `workspace-setup`.
+  La verification est transitive : `repoCaptureHash` dans le checkpoint
+  doit correspondre au `repoCaptureHash` du `RunInitRecord`. Comme
+  `WorkSession` embarque le `RepoCapture` valide par `workspace-setup`,
+  l'egalite des hashes garantit que le worktree scanne est bien celui
+  du run courant.
 - `workflowPolicyHash` : **pertinent**. La tache consomme
   `WorkflowPolicy.discovery` et `WorkflowPolicy.gates` pour decider
   du filtrage des gates et du comportement en cas d'absence de gates
