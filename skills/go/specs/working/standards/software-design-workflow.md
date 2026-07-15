@@ -1,6 +1,6 @@
 # Workflow logiciel `/go`
 
-> **Terminologie :** Dans ce document, « worktree » désigne le répertoire
+> **Terminologie :** Dans ce document, « workspace » désigne le répertoire
 > de travail isolé du run (le concept), pas la commande `git worktree add`
 > (le mécanisme). Les principes décrits s'appliquent à toute stratégie de
 > workspace (worktree Git ou clone sandbox). Voir
@@ -29,14 +29,23 @@ des hashes.
 ```text
 /go
   -> run-init
-     ├─ run-capture
-     └─ workspace-setup
-          ↓
-        project-discovery-finalize
-          ↓
-        join run-capture
-          ↓
-        delegate implementation
+        │
+  prerequisite-validation
+        │
+     repo-capture
+   ┌──────┴──────┐
+   ▼             ▼
+run-capture  dirty-state
+   │             │
+   │             ▼
+   │       workspace-setup
+   │             │
+   │             ▼
+   │   project-discovery-finalize
+   │             │
+   └──────┬──────┘
+          ▼
+  delegate implementation
           ↓ resumeAt
         implementation-settlement
           ↓
@@ -93,12 +102,12 @@ atomique.
 
 `run-init` remplace ensuite `BootstrapState` par `WorkflowState` dans
 `StateFile.data` : `RepoCapture`, `WorkflowPolicy`, hashes JCS des
-inputs JSON, `artefactRoot`, marqueur d'ownership, chemin de worktree reserve et
+inputs JSON, `artefactRoot`, marqueur d'ownership, chemin de workspace reserve et
 bootstrap task records initiaux.
 
 `run-init` stocke le `RepoCapture`, mais ne le decouvre pas lui-meme
 et ne cree pas l'enveloppe runtime Turnlock. Il orchestre ensuite les startup
-tasks internes, dont `workspace-setup` pour materialiser le worktree et
+tasks internes, dont `workspace-setup` pour materialiser le workspace et
 `project-discovery-finalize` pour produire le `ProjectDiscovery` autoritatif.
 Il delegue `implementation` seulement si le bootstrap/onboarding requis est
 prouve.
@@ -109,7 +118,7 @@ deux invocations `/go` distinctes.
 
 Ce n'est pas une analyse de la demande. C'est la condition de securite qui
 permet aux bootstrap branches d'ecrire leurs preuves au bon endroit et a l'agent
-de travailler dans le bon worktree.
+de travailler dans le bon workspace.
 
 ### Startup branch: `run-capture`
 
@@ -128,17 +137,17 @@ quand le diff reel existe.
 ### Startup task: `workspace-setup`
 
 Le point de départ Git doit être figé avant toute mutation. Le workflow crée un
-worktree physique privé pour éviter les collisions entre sessions et les dirty
+workspace physique privé pour éviter les collisions entre sessions et les dirty
 states partagés.
 
 `workspace-setup` ne depend pas de `run-capture`. Il peut avancer pendant que la
 capture de session s'ecrit.
 
-### Startup branch: `project-discovery-finalize`
+### Startup task: `project-discovery-finalize`
 
-`project-discovery-finalize` scanne directement le worktree prive pour
-decouvrir le projet :
-mecaniques.
+`project-discovery-finalize` scanne directement le workspace prive pour
+decouvrir le projet : package manager, lockfiles, commandes de gates
+mecaniques candidates, et configuration de tooling.
 
 ### Delegation: `implementation`
 
@@ -156,7 +165,7 @@ avec `resumeAt: "implementation-settlement"`.
 
 Apres l'agent, Turnlock reprend dans `implementation-settlement`. Cette phase
 consomme le resultat de delegation, verifie les evidences attendues, confirme
-que le worktree prive est toujours celui du run, puis route vers
+que le workspace prive est toujours celui du run, puis route vers
 `change-snapshot`, une HumanGate, une remediation immediate autorisee, ou un
 echec ferme.
 

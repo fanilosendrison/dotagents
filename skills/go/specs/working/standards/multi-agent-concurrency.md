@@ -55,20 +55,20 @@ checkout, cette hypothèse est fausse.
   .git/
   ...
 
-<repo-parent>/.go-worktrees/
+<go-run-root>/runs/
   <runId-a>/
+    worktree/
+    artefactRoot/
   <runId-b>/
-
-<repo-parent>/.go-artifacts/
-  <runId-a>/
-  <runId-b>/
+    worktree/
+    artefactRoot/
 ```
 
 Les chemins exacts peuvent évoluer, mais les invariants restent :
 
-- worktree hors du checkout principal ou clairement isolé ;
-- artefacts hors du worktree ;
-- un run ne lit pas ou n'écrit pas dans le worktree d'un autre run.
+- workspace hors du checkout principal ou clairement isolé ;
+- artefacts hors du workspace ;
+- un run ne lit pas ou n'écrit pas dans le workspace d'un autre run.
 
 ---
 

@@ -1,9 +1,9 @@
 # Vocabulaire canonique du workflow `/go`
 
-> **Terminologie :** Dans ce document, « worktree » désigne le répertoire
-> de travail isolé du run (le concept), pas la commande `git worktree add`
-> (le mécanisme). Les principes décrits s'appliquent à toute stratégie de
-> workspace (worktree Git ou clone sandbox). Voir
+> **Terminologie :** Dans ce document, « workspace » désigne le répertoire
+> de travail isolé du run (le concept), et « worktree » la commande
+> `git worktree add` (le mécanisme). Les principes décrits s'appliquent à
+> toute stratégie de workspace (worktree Git ou clone sandbox). Voir
 > [ADR-go-workspace-agnostic-terminology.md](../../adr/ADR-go-workspace-agnostic-terminology.md).
 
 Ce document fixe les mots que les specs `/go` doivent utiliser. Son objectif est
@@ -25,7 +25,7 @@ persistée, reprenable et bornée par un `transition`, une `delegation`, un
 `done` ou un `fail`.
 
 Le deuxieme niveau est le **startup**. Il amorce le run : identifiant, lock,
-artefacts, capture de session, worktree prive et discovery projet. Dans `/go`,
+artefacts, capture de session, workspace prive et discovery projet. Dans `/go`,
 le startup est realise a l'interieur de la phase Turnlock `run-init`.
 
 Le troisieme niveau est le **stage**. Il décrit ce que le workflow fait du point
@@ -114,7 +114,7 @@ bootstrap/onboarding, puis s'arrete sur la delegation `implementation` :
 - reference vers le run Turnlock ;
 - `artefactRoot` ;
 - marqueur d'ownership de `run-init` ;
-- chemin de worktree reserve, sans checkout Git ;
+- chemin de workspace reserve, sans checkout Git ;
 - etat initial minimal ;
 - schema/version de l'etat ;
 - bootstrap task records ;
@@ -141,6 +141,9 @@ Une bootstrap task est un travail d'amorcage execute a l'interieur de `run-init`
 
 Exemples :
 
+- `prerequisite-validation`
+- `repo-capture`
+- `dirty-state-capture`
 - `run-capture`
 - `workspace-setup`
 - `project-discovery-finalize`
@@ -170,7 +173,6 @@ bootstrap tasks a l'interieur de `run-init`.
 Exemples :
 
 - `run-capture`
-- `workspace-setup`
 
 ### Startup join
 
@@ -179,7 +181,7 @@ avant la delegation `implementation`.
 
 Exemples :
 
-- `project-discovery-finalize` joint `workspace-setup` ;
+- `run-capture` avant la délégation `implementation` ;
 
 Un bootstrap join ne reinterprete pas librement une sortie manquante. Il valide un
 artefact, relance une operation autorisee, ouvre une HumanGate, ou echoue
@@ -222,7 +224,7 @@ Une délégation doit toujours avoir :
 - une phase de reprise `resumeAt`, par exemple `implementation-settlement` ;
 - un artefact de sortie attendu ;
 - une validation déterministe après retour ;
-- un snapshot de repo si elle peut modifier le worktree.
+- un snapshot de repo si elle peut modifier le workspace.
 
 ### Stage harness
 
@@ -349,7 +351,7 @@ persist-remediation-attempt
 decide-return-to-gates
 ```
 
-La décision humaine, la délégation agentique, et la mutation du worktree ne sont
+La décision humaine, la délégation agentique, et la mutation du workspace ne sont
 pas confondues. Elles appartiennent au meme stage logique, mais pas
 necessairement a la meme phase Turnlock.
 
