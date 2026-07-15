@@ -23,24 +23,29 @@ mécanique : lecture seule, pas d'écriture dans le dépôt source.
 
 ## 2. Position dans le workflow
 
-`dirty-state-capture` s'exécute séquentiellement après `repo-capture` et
-avant le bloc parallèle (`run-capture`, `workspace-setup`).
+`dirty-state-capture` s'exécute en parallèle avec `run-capture`, après
+`repo-capture`. Elle est séquentielle par rapport à `workspace-setup` qui
+dépend de son patch — c'est le seul maillon linéaire de la branche.
 
 ```text
-run-init
-│
-├─ prerequisite-validation (séquentiel)
-│       ↓
-├─ repo-capture (séquentiel)
-│       ↓
-├─ dirty-state-capture (séquentiel, host-side only)
-│       │
-│       ├─ run-capture (parallèle)
-│       ├─ workspace-setup (parallèle)
-│                  │
-│                  └──────────┬───────────┘
-│                             ↓
-│                 project-discovery-finalize
+              run-init
+                 │
+       prerequisite-validation
+                 │
+            repo-capture
+          ┌──────┴──────┐
+          ▼             ▼
+     run-capture    dirty-state
+          │             │
+          │             ▼
+          │        workspace-setup
+          │             │
+          │             ▼
+          │   project-discovery-finalize
+          │             │
+          └──────┬──────┘
+                 ▼
+        delegate implementation
 ```
 
 Elle est séquentielle pour garantir que `workspace-setup` dispose du patch
@@ -85,15 +90,33 @@ Si `initialDirtyState` vaut `"clean"`, les champs `sourceStatusPorcelainRef`,
 
 Cette tâche produit également un `WorkflowExecutionRecord` durable.
 
+> **Note pour les consommateurs :** le hash JCS canonique du
+> `DirtyStateDiffArtifact` est utilisé par `workspace-setup` comme
+> `dirtyStateDiffHash` dans son `inputHash` de checkpoint. Si
+> `initialDirtyState === "clean"`, le hash JCS vaut la sentinelle
+> déterministe (64 zéros).
+
 ---
 
 ## 5. Pipeline
 
+### 5.0 Dépôt inexistant
+
+Si `canonicalRepositoryRoot` ne contient aucun `.git`, le dépôt n'existe
+pas encore (`repo-capture` a délégué sa création à `workspace-setup`).
+Dans ce cas, écrire un `DirtyStateDiffArtifact` avec
+`initialDirtyState: "clean"` et terminer immédiatement. Il n'y a rien à
+capturer.
+
 ### 5.1 Diagnostic du dépôt source
 
 1. **Vérification HEAD** : exécuter `git rev-parse --verify HEAD`. Si HEAD
-   n'existe pas (dépôt vide sans commit), lever un échec `failed` (baseline
-   committable obligatoire).
+   n'existe pas (dépôt vide avec `.git` mais sans commit), le dépôt n'a
+   aucun état à capturer. Écrire un `DirtyStateDiffArtifact` avec
+   `initialDirtyState: "clean"` et terminer. Le commit initial sera créé
+   par `workspace-setup`.
+   > Note : le cas « aucun dépôt » (pas de `.git`) est traité en amont par
+   > l'étape 5.0.
 2. **Détection des conflits** : lire le dirty state initial
    (`git -c core.quotePath=false status --porcelain`) depuis
    `canonicalRepositoryRoot`. Le flag `core.quotePath=false` garantit que
@@ -177,6 +200,8 @@ La tâche écrit un `BootstrapTaskCheckpoint` atomique sous
   gitStateDigest }`, où `gitStateDigest` est calculé comme
   `sha256(git rev-parse HEAD + "\n" + git status --porcelain)`. Tout
   changement physique du dépôt source invalidera le checkpoint au retry.
+  **Note de déviation :** `gitStateDigest` n'est pas un hachage JCS
+  (les sorties Git sont du texte brut, pas du JSON structuré).
 - `repoCaptureHash` : pertinent. La tâche consomme `RepoCapture` pour
   accéder au dépôt source.
 - `workflowPolicyHash` : pertinent. La tâche consomme
@@ -220,9 +245,8 @@ sur le dépôt de l'utilisateur.
 
 | Pipeline | Échec rencontré | Statut | Action |
 |---|---|---|---|
-| 5.1 | `RepoCapture` absent ou invalide | `errored` | Arrêt immédiat |
+| 5.0 | `RepoCapture` absent ou invalide (avant accès au dépôt) | `errored` | Arrêt immédiat |
 | 5.1 | `canonicalRepositoryRoot` inaccessible | `errored` | Arrêt |
-| 5.1.1 | Référence HEAD absente (dépôt vide) | `failed` | Arrêt |
 | 5.1.2 | Conflits de merge non résolus détectés | `failed` | Arrêt |
 | 5.1.3 | Fichiers assume-unchanged ou skip-worktree modifiés détectés | `failed` | Arrêt de sécurité |
 | 5.2 | Dirty state détecté mais rejeté par la policy | `failed` | Arrêt |
