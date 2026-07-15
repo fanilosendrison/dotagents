@@ -62,7 +62,7 @@ Turnlock v0.8.0 utilise `zod: "^3.22.0"`, tandis que `/go` utilise
 paramètres typés avec le `ZodSchema` de Zod v3 en raison d'un discriminant de
 version interne (`_zod.version.minor` incompatible).
 
-### 2.2 Résolution : Option C.2 (Casting avec `as any`)
+### 2.2 Résolution : Casting Zod v4 → v3
 
 - **Runtime** : Compatible pour la surface utilisée par Turnlock (`safeParse`
   et `error.issues`). Ces deux API sont stables entre Zod v3 et v4. Le reste
@@ -87,11 +87,10 @@ const config: OrchestratorConfig<object> = {
 
 ## 3. `OrchestratorConfig` et Stratégie de Typage du State
 
-### 3.1 Choix de Typage : Option B (Pragmatique)
+### 3.1 Stratégie de Typage : Config minimale + Zod discriminée
 
 Turnlock attend un type `State` unique pour toutes ses phases. Pour gérer la
 transition de schéma `BootstrapState` → `WorkflowState` de manière simple et
-propre, nous choisissons l'**Option B** :
 
 - L'orchestrateur est configuré avec un type d'état générique `object` :
   `OrchestratorConfig<object>`.
@@ -162,13 +161,15 @@ const config: OrchestratorConfig<object> = {
 function buildInitialState(): object {
   const isResume = process.argv.includes("--resume");
   if (isResume) {
-    // Turnlock valide initialState contre stateSchema même en mode resume.
-    // On fournit un BootstrapState syntaxiquement valide mais sémantiquement
-    // vide — Turnlock le remplace par le state lu sur disque avant dispatch.
+    // En mode resume, Turnlock lit le state directement depuis state.json
+    // (runResumeMode) sans repasser par la validation initialState.
+    // Le dummy ci-dessous sert uniquement à satisfaire le typage du config
+    // — Il n'est jamais dispatché. Il doit être syntaxiquement valide selon
+    // bootstrapStateSchema et construit sans side-effect (pas d'I/O).
     return {
       schema: "go.bootstrap-state.v1",
       invocationDirectory: process.cwd(),
-      policy: buildDefaultWorkflowPolicy(),
+      policy: buildDefaultWorkflowPolicy(), // pure in-memory, pas d'I/O
       captureContext: {
         schema: "go.capture-context.v1",
         sessionRef: "",
