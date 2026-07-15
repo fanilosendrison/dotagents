@@ -74,9 +74,10 @@ La tâche écrit le payload conforme au contrat, sans envelope
 
 Résumé des champs principaux :
 - `discoveryMethod`: `"stack-eval"` | `"ecosystem-scan"`
-- `ecosystems`: Ecosysteme[]  (langage, packageManager, lockfiles)
-- `gates`: MechanicalGate[]  (kind, command, workingDirectory)
-- `inspectedFiles`: { path, hash }[]
+- `packageManager`: string (bun, npm, pnpm, cargo, go, uv, poetry…)
+- `lockfiles`: string[]
+- `commands`: MechanicalCheckDefinition[]  (id, kind, command, required, workingDirectory)
+- `inspectedFiles`: InspectedFileRef[]  (path, hash, requiredForFinalization)
 ```
 
 Fichiers de preuves (dans le sous-dossier `project-discovery-finalize/`)
