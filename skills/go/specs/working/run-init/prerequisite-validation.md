@@ -30,24 +30,24 @@ Si un prérequis est absent ou invalide, le run échoue immédiatement avec
 s'exécute de manière séquentielle et synchrone, avant `repo-capture`.
 
 ```text
-run-init
-│
-├─ prerequisite-validation (séquentiel)
-│       ↓
-├─ repo-capture (séquentiel)
-│       ↓
-├─ dirty-state-capture (séquentiel, host-side only)
-│       │
-│       ├─ run-capture (parallèle)
-│       ├─ workspace-setup (parallèle) ──┐
-│                  │                      │
-│                  └──────────┬───────────┘
-│                             ↓
-│                 project-discovery-finalize
-│                             ↓
-│                 join run-capture
-│                             ↓
-└─ delegate implementation
+              run-init
+                 │
+       prerequisite-validation
+                 │
+            repo-capture
+          ┌──────┴──────┐
+          ▼             ▼
+     run-capture    dirty-state
+          │             │
+          │             ▼
+          │        workspace-setup
+          │             │
+          │             ▼
+          │   project-discovery-finalize
+          │             │
+          └──────┬──────┘
+                 ▼
+        delegate implementation
 ```
 
 Elle ne dépend d'aucune autre bootstrap task et ne consomme aucun artefact.
@@ -242,6 +242,9 @@ La tâche écrit un `BootstrapTaskCheckpoint` atomique sous
      lus, avant parsing JSON).
   2. La sortie de `git --version`.
   Ces deux inputs sont les seuls sémantiquement pertinents pour cette tâche.
+  **Note de déviation :** le hachage JCS ne s'applique pas ici car les
+  inputs ne sont pas du JSON structuré ; on utilise SHA-256 sur les octets
+  bruts. C'est la seule bootstrap task avec cette particularité.
 - `repoCaptureHash`, `workflowPolicyHash`, `captureContextHash` : fixés à
   la valeur sentinelle déterministe
   `sha256:0000000000000000000000000000000000000000000000000000000000000000`
