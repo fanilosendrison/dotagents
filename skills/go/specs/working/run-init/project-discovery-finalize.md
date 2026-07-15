@@ -66,43 +66,11 @@ la matrice de checks définitive.
 Artefact métier écrit sous
 `artefactRoot/startup/project-discovery-finalize/project-discovery.json` :
 
-```ts
-type ProjectDiscovery = {
-  schema: "go.project-discovery.v1";
-  id: string;
-  runId: string;
-  source: "stack-eval" | "ecosystem-scan";
-  stackEvalRef?: string;
-  finalizedAgainstWorkspaceRoot: string;
-  inspectedFiles: InspectedFileRef[];
-  packageManager?: PackageManager;
-  lockfiles: string[];
-  checkCommands: MechanicalCheckDefinition[];
-  testCommands: MechanicalCheckDefinition[];
-  buildCommands: MechanicalCheckDefinition[];
-  providerCapabilities: ProviderCapabilities;
-};
-
-type PackageManager =
-  | "bun"
-  | "npm"
-  | "pnpm"
-  | "yarn"
-  | "cargo"
-  | "go"
-  | "uv"
-  | "pip"
-  | "poetry"
-  | "make"
-  | "just"
-  | "maven"
-  | "gradle"
-  | "dotnet"
-  | "bundler"
-  | "composer"
-  | "mix"
-  | "deno"
-  | "unknown";
+```text
+Le type `ProjectDiscovery` est défini dans le contrat
+[`workflow-artifacts.md`](../contracts/workflow-artifacts.md#6-projectdiscovery).
+La tâche écrit le payload conforme au contrat, sans envelope
+(`schema`, `id`, `runId` sont portés par le `BusinessArtifactRecord`).
 ```
 
 Fichiers de preuves (dans le sous-dossier `project-discovery-finalize/`)
@@ -122,7 +90,9 @@ sous-périmètre est spécifié.
 
 ### 5.2 Chemin déclaratif : `STACK_EVAL.yaml`
 
-1. Vérifier l'existence de `STACK_EVAL.yaml` à la racine du worktree.
+1. Vérifier l'existence de `STACK_EVAL.yaml` dans le répertoire de
+   travail effectif (défini au §5.1). Si absent et que `projectRoot`
+   est défini, vérifier également à `workspaceRoot` (fallback).
 2. Si présent, le parser. Extraire :
    - `decisions.language`, `decisions.language_version`
    - `decisions.runtime`, `decisions.runtime_version`
@@ -132,13 +102,15 @@ sous-périmètre est spécifié.
    - `decisions.type_checker`
    - `decisions.ci`
 3. Construire les commandes de check à partir de ces champs (voir registre
-   §9 pour la correspondance décision → commande).
+   §9 pour la correspondance décision → commande). Les commandes du §9.0
+   utilisant `npx` doivent être adaptées au package manager déclaré dans
+   `decisions.package_manager` (ex: `pnpm exec`, `yarn run`, `bun run`).
 4. Valider que les fichiers de configuration attendus pour ces décisions
    sont présents dans le worktree (ex: si `linter: biome`, vérifier que
    `biome.json` existe).
 5. Hasher chaque fichier de configuration inspecté.
-6. Définir `source: "stack-eval"` et `stackEvalRef` pointant vers la copie
-   du fichier dans les preuves.
+6. Définir `discoveryMethod: "stack-eval"` et `stackEvalRef` pointant
+   vers la copie du fichier dans les preuves.
 7. Aller directement à §5.4 (pas de scan heuristique).
 
 ### 5.3 Chemin heuristique : scan par écosystème
@@ -152,7 +124,8 @@ un appel `readdir` coûte ~1 ms. En comparaison, 60 `existsSync` individuels
 coûtent ~60 ms. L'approche est donc :
 
 ```text
-1. entries = fs.readdir(worktreeRoot)  → 1 appel I/O
+1. entries = fs.readdir(effectiveDir)  → 1 appel I/O
+   (où `effectiveDir` est le répertoire de travail effectif du §5.1)
 2. set     = new Set(entries)           → 0 appel I/O
 3. pour chaque ecosysteme dans le registre :
      si set.has(lockfile) ou set.has(manifeste) → ecosysteme detecte
@@ -167,23 +140,59 @@ est détecté.
 Pour chaque écosystème détecté, dans l'ordre de priorité défini :
 
 1. Détecter les signaux de présence (lockfiles, manifestes).
-2. Si un écosystème est détecté, identifier :
+2. Si un manifeste est détecté dans le répertoire effectif mais aucun
+   lockfile n'y est présent, effectuer une recherche ascendante
+   répertoire par répertoire jusqu'à `workspaceRoot`. Si aucun
+   lockfile n'est trouvé sur l'ensemble du chemin, `packageManager`
+   vaut `"unknown"` (fallback explicite documenté dans les preuves).
+3. Si un écosystème est détecté, identifier :
    - Le package manager.
    - Les lockfiles associés.
    - Les fichiers de configuration de tooling pertinents.
    - Les commandes de check, test et build candidates.
+4. Pour les projets Python sans gestionnaire de paquets natif
+   (`requirements.txt` ou `pyproject.toml` sans lockfile) :
+   vérifier la présence d'un environnement virtuel local (`.venv/`,
+   `venv/`, `.virtualenvs/`). Si un virtualenv est détecté, résoudre
+   les exécutables via `<venv>/bin/<tool>` plutôt que les commandes
+   globales nues.
 3. Si plusieurs écosystèmes sont détectés (projet multi-langage), les
    traiter tous.
-4. Hasher chaque fichier inspecté.
-5. Définir `source: "ecosystem-scan"`.
+4. Filtrer les fichiers gitignorés (vérifiés via `git check-ignore`)
+   avant hachage. Seuls les fichiers suivis ou non ignorés sont inclus
+   dans `inspectedFiles`.
+5. Hasher chaque fichier inspecté (non gitignoré).
+6. Définir `discoveryMethod: "ecosystem-scan"`.
 
-### 5.4 Filtrage et construction de la matrice
+### 5.4 Filtrage, vérification et construction de la matrice
 1. Filtrer les commandes selon `WorkflowPolicy.gates.requiredKinds`.
-2. Si un type de gate requis n'est pas détectable, et que
-   `WorkflowPolicy.discovery.noReliableGateBehavior` vaut `"human-gate"`,
-   ouvrir une HumanGate. Sinon, échouer avec `failed`.
+2. Si un type de gate requis n'est pas détectable :
+   - Si `noReliableGateBehavior` vaut `"human-gate"` → écrire un
+     `BootstrapFinding` avec `severity: "blocking"` et
+     `resolution: "human-gate"`. `run-init` bloquera avant la
+     délégation `implementation`.
+   - Si `noReliableGateBehavior` vaut `"fail"` → `failed`.
+   - Si `noReliableGateBehavior` vaut `"allow-with-evidence"` →
+     continuer avec les gates détectées, en documentant l'absence
+     dans les preuves.
 3. Préférer les scripts déclarés par le projet (ex: `scripts` dans
    `package.json`) aux conventions génériques.
+4. Déduplication des commandes de même `kind` :
+   - Les commandes spécifiques à l'écosystème (ex: `cargo test`)
+     priment sur les commandes de task runners génériques
+     (ex: `make test`).
+   - La commande générique n'est pas supprimée silencieusement :
+     elle est conservée dans les preuves avec le statut
+     `"disabled-by-precedence"` et la raison documentée.
+5. Vérification de disponibilité des outils : pour chaque commande
+   retenue, vérifier que le binaire (premier élément de `command[]`)
+   est présent et exécutable dans le `PATH` du runner.
+   - Si absent → logguer un avertissement dans les preuves. La
+     commande reste enregistrée (le binaire peut être installé entre
+     la discovery et l'exécution des gates).
+   - Si le binaire est un chemin relatif résolu (ex:
+     `.venv/bin/pytest`) → vérifier l'existence du fichier à ce
+     chemin dans le workspace.
 
 ### 5.5 Persistance
 1. Écrire le `ProjectDiscovery` validé contre son schéma.
@@ -213,8 +222,8 @@ donné.
 
 ### 6.4 Priorité aux scripts locaux
 Dans le chemin heuristique, les scripts et configurations déclarés par le
-projet (ex: `scripts` dans `package.json`, `[scripts]` dans `Cargo.toml`)
-sont préférés aux conventions génériques du harness.
+projet (ex: `scripts` dans `package.json`, alias `[alias]` dans
+`.cargo/config.toml`) sont préférés aux conventions génériques du harness.
 
 ### 6.5 Outils et resolveurs officiels
 Pour analyser les dépendances et structures du projet, la tâche doit
@@ -243,9 +252,14 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
   (64 zeros). Cette tache ne consomme pas le `CaptureContext`.
 
 **Comportement au retry :**
-- Checkpoint terminal present et tous les hashes pertinents identiques
-  (`inputHash`, `repoCaptureHash`, `workflowPolicyHash`) → adoption
-  directe du `ProjectDiscovery` precedent.
+- Checkpoint terminal présent et hashes (`inputHash`, `repoCaptureHash`,
+  `workflowPolicyHash`) identiques → re-hasher les `inspectedFiles`
+  listés dans le checkpoint précédent contre les fichiers actuels du
+  workspace :
+  - Si tous les hashes correspondent → adoption directe du
+    `ProjectDiscovery` précédent.
+  - Si au moins un hash diffère → invalidation du cache,
+    ré-exécution complète.
 - Checkpoint absent → execution complete.
 - `inputHash`, `repoCaptureHash` ou `workflowPolicyHash` different
   (mismatch) → echec ferme (`failed`). Les inputs de la tache ont
@@ -264,8 +278,10 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 - `scan-ecosystem-signals` → détection par lockfile/manifeste
 - `resolve-package-manager`
 - `resolve-tooling-configs` → `.eslintrc.*`, `biome.json`, etc.
+- `detect-virtualenv` → `.venv/`, `venv/`, `.virtualenvs/`
 - `extract-candidate-commands`
 - `build-mechanical-gate-matrix`
+- `verify-tool-availability` → `PATH` + venv path check
 - `write-discovery-evidence`
 - `persist-execution-record`
 
@@ -281,8 +297,10 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 | 5.2 | Décision dans `STACK_EVAL.yaml` non reconnue (package manager inconnu) | `failed` | Arrêt |
 | 5.2 | Fichier de config attendu par `STACK_EVAL.yaml` absent du worktree | `failed` | Arrêt — incohérence entre déclaration et réalité |
 | 5.3 | Aucun écosystème détectable (aucun signal) | `failed` | Arrêt — projet non reconnu |
-| 5.4 | Type de gate requis par la policy non détectable | `failed` ou HumanGate | Selon `noReliableGateBehavior` |
+| 5.4 | Type de gate requis par la policy non détectable + `noReliableGateBehavior: "human-gate"` | BootstrapFinding `blocking` | run-init bloque, intervention humaine requise |
+| 5.4 | Type de gate requis par la policy non détectable + `noReliableGateBehavior: "allow-with-evidence"` | `passed` | Continuation avec gates partielles documentées |
 | 5.5 | Commande candidate impossible à exprimer en argv | `failed` | Arrêt |
+| 5.4 | Binaire d'une commande retenue absent du `PATH` | `passed` avec avertissement | Loggué dans les preuves ; la commande reste enregistrée |
 | 5.5 | Fichiers d'évidence écrits hors de l'`artefactRoot` | `errored` | Arrêt de sécurité |
 | 5.5 | Artefact JSON produit invalide selon son schéma | `errored` | Arrêt |
 
@@ -294,17 +312,21 @@ La tache ecrit un `BootstrapTaskCheckpoint` atomique sous
 
 | Champ `decisions` | Gate | Commande |
 |---|---|---|
-| `linter: biome` | lint | `npx biome check` |
-| `linter: eslint` | lint | `npx eslint .` |
+| `linter: biome` | lint | `<pm-runner> biome check` |
+| `linter: eslint` | lint | `<pm-runner> eslint .` |
 | `linter: ruff` | lint | `uv run ruff check` ou `ruff check` |
 | `test_runner: "bun:test"` | test | `bun test` |
-| `test_runner: jest` | test | `npx jest` |
-| `test_runner: vitest` | test | `npx vitest` |
+| `test_runner: jest` | test | `<pm-runner> jest` |
+| `test_runner: vitest` | test | `<pm-runner> vitest` |
 | `test_runner: pytest` | test | `uv run pytest` ou `pytest` |
 | `test_runner: "cargo test"` | test | `cargo test` |
-| `type_checker: tsc` | typecheck | `npx tsc --noEmit` |
+| `type_checker: tsc` | typecheck | `<pm-runner> tsc --noEmit` |
 | `type_checker: mypy` | typecheck | `uv run mypy` ou `mypy` |
 | `package_manager` | build | Déduit : `bun run build`, `npm run build`, `cargo build`, etc. |
+
+> **Note** : `<pm-runner>` est résolu depuis `decisions.package_manager` :
+> `bun` → `bun run`, `npm` → `npx`, `pnpm` → `pnpm exec`,
+> `yarn` → `yarn run`.
 
 ### 9.1 JavaScript / TypeScript
 
@@ -366,8 +388,8 @@ Tooling additionnel :
 | `uv.lock` | uv | `pyproject.toml` | `uv run pytest`, `uv run ruff check`, `uv run mypy` |
 | `poetry.lock` | poetry | `pyproject.toml` | `poetry run pytest`, `poetry run ruff check` |
 | `Pipfile.lock` | pipenv | `Pipfile` | `pipenv run pytest` |
-| `requirements.txt` | pip | `setup.py` ou `pyproject.toml` | `pytest`, `ruff check` |
-| `pyproject.toml` (sans lock) | pip/uv | `pyproject.toml` | `pytest`, `ruff check` |
+| `requirements.txt` | pip | `setup.py` ou `pyproject.toml` | `<venv>/bin/pytest` (si `.venv/`), sinon `pytest` ; `<venv>/bin/ruff check` (si `.venv/`), sinon `ruff check` |
+| `pyproject.toml` (sans lock) | pip/uv | `pyproject.toml` | `<venv>/bin/pytest` (si `.venv/`), sinon `pytest` ; `<venv>/bin/ruff check` (si `.venv/`), sinon `ruff check` |
 
 Tooling additionnel :
 
@@ -472,7 +494,9 @@ Tooling additionnel :
 Les task runners génériques sont détectés **en complément** d'un écosystème
 spécifique, pas à la place. Si un `Makefile` est présent à côté d'un
 `Cargo.toml`, les deux sont inspectés ; les commandes `make test` et
-`cargo test` sont toutes deux candidates, et le filtrage (§5.4) décide.
+`cargo test` sont toutes deux candidates. La règle de précédence du §5.4
+s'applique : `cargo test` (écosystème) prime, `make test` est conservé
+désactivé dans les preuves avec la raison documentée.
 
 ---
 
