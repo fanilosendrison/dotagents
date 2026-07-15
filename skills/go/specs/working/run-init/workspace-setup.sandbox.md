@@ -79,6 +79,27 @@ utilise un triplet de montages et de variables d'environnement.
 | `GIT_DIR`        | `.git/worktrees/work-<runId>/` (index, HEAD)     | Volume RW (`/worktree-git`)|
 | `GIT_COMMON_DIR` | `.git/` (dépôt principal : objets, refs)         | Volume RO (`/parent-git`)  |
 
+### 4.2 Isolation des dépendances (Volumes anonymes)
+
+Pour éviter tout conflit entre les binaires compilés pour l'hôte macOS (Darwin)
+et ceux compilés pour le conteneur Linux (ex: `esbuild`, `sharp`, `prisma`,
+`sqlite3`), les répertoires de dépendances et de build du projet doivent être
+isolés au niveau du conteneur par des volumes anonymes. Un volume anonyme
+écrase le contenu du répertoire correspondant dans le bind mount hôte par un
+volume vierge interne au conteneur, garantissant que les binaires compilés dans
+le conteneur ne contaminent jamais le filesystem hôte :
+
+| Gestionnaire / Framework        | Dossier à isoler dans le conteneur |
+|---------------------------------|------------------------------------|
+| Node.js (npm / yarn / bun / pnpm)| `/workspace/node_modules`         |
+| Python (pip / poetry / uv)      | `/workspace/.venv`                 |
+| Rust (cargo)                    | `/workspace/target`                |
+| Next.js / Gatsby                | `/workspace/.next`                 |
+| ESLint / Prettier               | `/workspace/node_modules/.cache`   |
+
+Toute installation de dépendances (`npm install`, `pip install`, `cargo
+build`) doit avoir lieu à l'intérieur du conteneur, jamais sur l'hôte.
+
 ---
 
 ## 5. Alignement avec les extrants du contrat parent
@@ -166,7 +187,24 @@ s'exécutent avec des variables `$HOME` et `$USER` cohérentes et fonctionnelles
 
 ## 8. Pipeline logique et étapes détaillées
 
-### 8.0 Initialisation du dépôt (si nécessaire)
+### 8.0 Nettoyage des conteneurs orphelins (GC au démarrage)
+Avant toute création de worktree ou de conteneur, exécuter un scan de
+nettoyage des conteneurs résiduels issus de runs `/go` interrompus (crash,
+kill -9, coupure de courant). Le flag `--rm` ne survit pas à un arrêt brutal
+du daemon.
+
+1. Lister tous les conteneurs portant le label `go-run-id` :
+   `docker ps -a --filter "label=go-run-id" --format '{{.Label "go-run-id"}} {{.ID}}'`
+2. Pour chaque entrée, vérifier si le `runId` correspond à un processus
+   Turnlock encore vivant sur l'hôte. Si le processus n'existe plus, supprimer
+   le conteneur : `docker rm -f <containerId>`.
+3. Logger chaque conteneur supprimé (avec `runId` et `containerId`) dans les
+   diagnostics du run.
+
+Ce scan est exécuté une fois par `workspace-setup`, au début du pipeline.
+Il ne remplace pas le nettoyage normal de fin de run (§8.5).
+
+### 8.1 Initialisation du dépôt (si nécessaire)
 Si aucun dépôt Git n'existe à `canonicalRepositoryRoot`, exécuter le protocole
 d'initialisation identique à la stratégie worktree (voir
 [`workspace-setup.worktree.md`](./workspace-setup.worktree.md) §1.2) : `git
@@ -175,7 +213,7 @@ du remote `origin`, et `git push -u origin <defaultBranch>`. Cette
 initialisation s'exécute intégralement sur l'hôte, avant toute création de
 worktree ou démarrage de conteneur.
 
-### 8.1 Création du worktree host-side
+### 8.2 Création du worktree host-side
 1. Résoudre le parent de `workspaceRoot` via `realpath`, puis y apposer le
    basename pour construire `resolvedWorkspaceRoot`. Ce protocole est identique
    à la stratégie worktree (voir
@@ -191,7 +229,7 @@ worktree ou démarrage de conteneur.
    Git LFS (`git lfs pull`) si nécessaire, en neutralisant les hooks via
    `-c core.hooksPath=/dev/null`.
 
-### 8.2 Application du dirty-state
+### 8.3 Application du dirty-state
 1. Si `DirtyStateDiffArtifact` indique `"dirty"`, appliquer le patch sur
    l'hôte dans le workspace :
    `git -C <workspaceRoot> -c core.hooksPath=/dev/null apply --binary <patch>`.
@@ -200,7 +238,7 @@ worktree ou démarrage de conteneur.
    `replayStatus: "applied"`, `replayedAt`) dans l'artefact
    `work-session.json`.
 
-### 8.3 Démarrage du conteneur
+### 8.4 Démarrage du conteneur
 1. Résoudre l'image OCI à utiliser (configuration locale `WorkflowPolicy` >
    `.devcontainer/` ou `Dockerfile.dev` > image par défaut).
 2. Résoudre l'UID/GID courant de l'hôte pour le mode Docker fallback (§7.2).
@@ -210,9 +248,15 @@ worktree ou démarrage de conteneur.
      -v <workspaceRoot>:/workspace \
      -v <gitDir>:/worktree-git \
      -v <gitCommonDir>:/parent-git:ro \
+     -v /workspace/node_modules \
+     -v /workspace/.venv \
+     -v /workspace/target \
+     -v /workspace/.next \
      -w /workspace \
      --network bridge \
      --rm \
+     --init \
+     --label go-run-id=<runId> \
      --name go-sandbox-<runId> \
      -e GIT_WORK_TREE=/workspace \
      -e GIT_DIR=/worktree-git \
@@ -225,22 +269,31 @@ worktree ou démarrage de conteneur.
      <image> tail -f /dev/null
    ```
    Le `tail -f /dev/null` maintient le conteneur en vie pour les `docker exec`
-   ultérieurs. En mode OrbStack natif, le flag `--user` est omis (userns-remap
+   ultérieurs. Les volumes anonymes (`-v /workspace/node_modules` sans
+   deux-points) isolent les dépendances compilées (voir §4.2). Le flag
+   `--init` assure qu'un processus `tini` récolte les processus zombies
+   internes au conteneur. Le label `go-run-id=<runId>` permet le nettoyage GC
+   des conteneurs orphelins (§8.0).
+
+   En mode OrbStack natif, le flag `--user` est omis (userns-remap
    automatique). En mode Docker fallback, ajouter `--user $(id -u):$(id -g)`.
    Si la policy `WorkflowPolicy.sandbox.network` vaut `"none"`, remplacer
    `--network bridge` par `--network none`.
 4. Valider que le statut du conteneur est `running` :
    `docker ps --filter "name=go-sandbox-<runId>" --format '{{.Status}}'`.
 
-### 8.4 Exécution des commandes de stage
+### 8.5 Exécution des commandes de stage
 1. Transmettre les commandes à exécuter au conteneur via
    `docker exec -w /workspace go-sandbox-<runId> <cmd>`.
 2. Les logs et preuves de stage sont écrits sous `artefactRoot/` sur l'hôte
    (hors conteneur).
-3. Le stage harness utilise `workDir = workspaceRoot` (chemin host) pour ses
-   validations de fin de stage (`trackedWorktreeHash`, `worktreeClean`).
+3. Les validations Git de fin de stage (calcul de `trackedWorktreeHash` et
+   `worktreeClean`) sont exécutées **à l'intérieur du conteneur** via
+   `docker exec`, et non sur l'hôte. Cette approche élimine tout risque de
+   décalage lié à la latence de synchronisation du filesystem entre la VM
+   Linux et l'hôte macOS (VirtioFS / gRPC-FUSE).
 
-### 8.5 Destruction et nettoyage
+### 8.6 Destruction et nettoyage
 1. Envoyer un signal d'arrêt au conteneur :
    `docker stop --time 10 go-sandbox-<runId>` (SIGTERM, puis SIGKILL après
    timeout de 10 secondes).
@@ -271,13 +324,17 @@ conteneur ni altérer le disque :
 
 ### 9.2 `skipSetup = false` (Reconstruction au retry)
 En cas de retry de tâche demandant une reconstruction :
-1. Supprimer de force tout conteneur résiduel :
+1. Exécuter le scan GC des conteneurs orphelins (§8.0) pour supprimer tout
+   conteneur résiduel portant le label `go-run-id=<runId>` — que son nom
+   corresponde exactement ou non au run courant (un run interrompu peut avoir
+   laissé un conteneur avec un label identique).
+2. Supprimer explicitement tout conteneur nommé `go-sandbox-<runId>` :
    `docker rm -f go-sandbox-<runId>` (ignore les erreurs si le conteneur
    n'existe pas).
-2. Nettoyer le worktree sur l'hôte selon le protocole standard (unlock →
+3. Nettoyer le worktree sur l'hôte selon le protocole standard (unlock →
    remove → prune → suppression physique avec containment check).
-3. Relancer le pipeline complet à partir de l'étape 8.0.
-4. Un compteur `retryAttempt` est maintenu dans le `BootstrapTaskCheckpoint`.
+4. Relancer le pipeline complet à partir de l'étape 8.1.
+5. Un compteur `retryAttempt` est maintenu dans le `BootstrapTaskCheckpoint`.
    Si `retryAttempt > 1`, lever `errored` sans reconstruction (pas de boucle
    infinie).
 
@@ -308,6 +365,12 @@ Le conteneur ne reçoit **jamais** :
 - Les variables d'environnement du host (le conteneur démarre avec un
   environnement vierge ; seules les variables Git explicitées aux §4.1 et §6.3
   sont injectées).
+- **Le socket Docker de l'hôte** (`/var/run/docker.sock` ne doit jamais être
+  monté). Monter ce socket donnerait à l'agent un accès root au daemon Docker
+  de l'hôte, brisant intégralement le confinement. Les tests d'intégration
+  nécessitant un daemon Docker (ex: Testcontainers, `docker-compose` dans les
+  tests) doivent être remplacés par des mocks ou sautés en environnement
+  sandbox.
 
 Cet invariant est conforme à
 l'[ADR-GO-TOKEN-PROPAGATION-GIT-ASKPASS](../../adr/ADR-go-token-propagation-git-askpass.md).
@@ -321,14 +384,14 @@ est exécutée sur l'hôte **après** destruction du conteneur.
 | Pipeline | Échec rencontré                                            | Statut    | Action                    |
 |----------|------------------------------------------------------------|-----------|---------------------------|
 | 3        | Image introuvable ou échec du pull                         | `failed`  | Arrêt                     |
-| 8.0      | Échec de l'initialisation du dépôt (`git init`, remote)    | `errored` | Arrêt                     |
-| 8.1      | `git worktree add` échoue (chemin occupé, disque plein)    | `errored` | Arrêt                     |
-| 8.2      | Patch dirty-state incompatible (`git apply --check`)       | `failed`  | Arrêt                     |
-| 8.3      | Échec du démarrage du conteneur (daemon indisponible)      | `errored` | Arrêt                     |
-| 8.3      | Image OCI introuvable localement après pull                | `failed`  | Arrêt                     |
-| 8.4      | Échec d'une commande de stage dans le conteneur            | `failed`  | Arrêt ou remédiation      |
-| 8.5      | Échec de la destruction du conteneur                       | `errored` | Nettoyage forcé           |
-| 8.5.3    | Dossier worktree résiduel après `remove --force` + `prune` | `errored` | Vérification containment  |
+| 8.1      | Échec de l'initialisation du dépôt (`git init`, remote)    | `errored` | Arrêt                     |
+| 8.2      | `git worktree add` échoue (chemin occupé, disque plein)    | `errored` | Arrêt                     |
+| 8.3      | Patch dirty-state incompatible (`git apply --check`)       | `failed`  | Arrêt                     |
+| 8.4      | Échec du démarrage du conteneur (daemon indisponible)      | `errored` | Arrêt                     |
+| 8.4      | Image OCI introuvable localement après pull                | `failed`  | Arrêt                     |
+| 8.5      | Échec d'une commande de stage dans le conteneur            | `failed`  | Arrêt ou remédiation      |
+| 8.6      | Échec de la destruction du conteneur                       | `errored` | Nettoyage forcé           |
+| 8.6.3    | Dossier worktree résiduel après `remove --force` + `prune` | `errored` | Vérification containment  |
 | 9.2      | `retryAttempt > 1` (boucle reconstruction)                 | `errored` | Arrêt sans reconstruction |
 
 ---
@@ -341,6 +404,8 @@ est exécutée sur l'hôte **après** destruction du conteneur.
 - Autoriser l'agent à reconfigurer le daemon Docker de l'hôte.
 - Remplacer le protocole de nettoyage du worktree host-side (le worktree reste
   créé sur l'hôte et doit être nettoyé selon le protocole standard).
+- Fournir un daemon Docker à l'intérieur du conteneur (Docker-in-Docker,
+  Testcontainers, ou tout socket Docker monté).
 
 ---
 
