@@ -20,7 +20,7 @@ Produire un `RunCaptureArtifact` mécanique contenant :
 
 ## 2. Position dans le workflow
 
-`run-capture` s'exécute en parallèle avec `workspace-setup` au sein de la phase Turnlock `run-init`.
+`run-capture` s'exécute en parallèle avec la chaîne `dirty-state-capture` → `workspace-setup`, depuis `repo-capture`, au sein de la phase Turnlock `run-init`.
 
 ```text
             repo-capture
