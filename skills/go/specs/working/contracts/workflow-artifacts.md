@@ -23,6 +23,7 @@ type BootstrapState = {
   schema: "go.bootstrap-state.v1";
   invocationDirectory: string;
   policy: WorkflowPolicy;
+  captureContext: CaptureContext;
 };
 ```
 
@@ -389,6 +390,18 @@ contraintes, criteres d'acceptation ou specs applicables deduits par LLM.
 octets exacts du fichier reference, pas un hash JSON JCS.
 
 ```ts
+type CaptureContext = {
+  schema: "go.capture-context.v1";
+  sessionRef: string;
+  promptAtGo: string;
+};
+```
+
+`CaptureContext` est fourni par le parent process dans `BootstrapState`.
+Il est consommé par `run-capture` pour produire le `RunCaptureArtifact`
+et hashé dans `RunInitRecord.captureContextHash`.
+
+```ts
 type DirtyStateDiffArtifact = {
   schema: "go.dirty-state-diff.v1";
   runId: string;
@@ -466,7 +479,7 @@ type WorkSession = {
   workspaceRoot: string;
   workspaceProjectRoot?: string;
   artefactRoot: string;
-  baseBranch: string;
+  baseBranch: string | null;
   baseHeadSha: string;
   baseRemote?: string;
   defaultTargetBranch: string;
