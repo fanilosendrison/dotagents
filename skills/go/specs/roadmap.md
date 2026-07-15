@@ -14,6 +14,9 @@
      - Initialize paths and resolve directories (`runDir`, `artefactRoot`).
      - Write the run-ownership marker file (`run-init-ownership.json`).
      - Validate the target repository root.
+     - **Workspace Setup Strategy Sequencing**:
+       - **Phase 1.a (Core)**: Implement the host-side **Git Worktree strategy** ([`workspace-setup.worktree.md`](./working/run-init/workspace-setup.worktree.md)) to handle repository resolution, worktree creation, LFS/submodules, dirty-state patch replay, and host-side cleanup.
+       - **Phase 1.b (Isolation)**: Implement the **OCI Sandbox strategy** ([`workspace-setup.sandbox.md`](./working/run-init/workspace-setup.sandbox.md)) as a containerized wrapper (OrbStack/Docker) around the host-side worktree, ensuring network/process isolation. **⚠️ Blocked on macOS upgrade**: All OCI runtimes (OrbStack, Colima, Docker Desktop, Podman machine) require macOS 13 (Ventura) or newer. The current development environment runs macOS Monterey 12.7.6. Phase 1.b implementation is deferred until macOS is upgraded. See [`workspace-setup.sandbox.md` §2](./working/run-init/workspace-setup.sandbox.md#2-prérequis-techniques) for details.
      - Transition to the `dummy-phase` to verify state transfer.
   4. **Verify Onboarding**: Write integration tests verifying that the FSM starts, completes `run-init` successfully, and transitions to the placeholder phase with the correct base state.
 

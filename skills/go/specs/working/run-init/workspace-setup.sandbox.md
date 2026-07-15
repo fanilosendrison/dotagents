@@ -20,6 +20,13 @@ montage Read-Only) toute mutation non autorisée du dépôt parent.
 
 ## 2. Prérequis techniques
 
+> **⚠️ Contrainte macOS** : Tous les runtimes OCI compatibles (OrbStack,
+> Colima, Docker Desktop, Podman machine) requièrent **macOS 13 (Ventura)
+> ou supérieur**. L'environnement de développement actuel (macOS Monterey
+> 12.7.6) ne supporte aucun de ces runtimes. L'implémentation de cette
+> stratégie est donc **bloquée en attente d'un upgrade macOS**.
+> Voir [`roadmap.md`](../../roadmap.md) Phase 1.b pour le séquencement.
+
 La stratégie sandbox nécessite que les composants suivants soient disponibles
 sur l'hôte :
 - **Runtime OCI** : OrbStack (recommandé sur macOS pour le mappage
