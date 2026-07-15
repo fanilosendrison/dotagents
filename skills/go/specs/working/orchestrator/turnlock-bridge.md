@@ -42,6 +42,15 @@ on utilise une liaison fichier relative dans le package.json :
 > cd ../../../VegaCorp/turnlock && bun run build
 > ```
 
+### 1.3 Future : CI et packaging
+
+Le lien `file:` est acceptable pour le développement local Phase 1. Avant
+release, il devra être remplacé par :
+
+- Un package npm publié (`"turnlock": "^0.8.0"`), ou
+- Un lien conditionnel (npm `link:` en dev, npm registry en CI), ou
+- Un vendor bundle si Turnlock n'est pas publié publiquement.
+
 ---
 
 ## 2. Compatibilité de Version Zod (Zod 3 ↔ Zod 4)
@@ -55,14 +64,15 @@ version interne (`_zod.version.minor` incompatible).
 
 ### 2.2 Résolution : Option C.2 (Casting avec `as any`)
 
-- **Runtime** : Entièrement compatible. L'interface de validation de Zod est
-  stable entre la v3 et la v4. L'appel à `schema.safeParse(data)` retourne le
-  même format de résultat (`{ success: true, data }` ou
-  `{ success: false, error }`), et la structure de `ZodError.issues` est
-  identique.
+- **Runtime** : Compatible pour la surface utilisée par Turnlock (`safeParse`
+  et `error.issues`). Ces deux API sont stables entre Zod v3 et v4. Le reste
+  de l'API Zod n'est pas consommé par le runtime Turnlock.
 - **TypeScript** : Pour compiler sans erreur, tous les schémas Zod v4 passés à
   Turnlock (comme `stateSchema` ou les schémas passés à `consumePendingResult`)
   doivent être castés avec `as any` ou `as unknown as ZodSchema<any>`.
+  Idéalement, aligner les versions Zod entre `/go` et Turnlock éliminerait
+  ces casts ; en attendant, un adaptateur de validation explicite est une
+  alternative plus propre que `as any`.
 
 Exemple :
 
@@ -90,12 +100,13 @@ propre, nous choisissons l'**Option B** :
 - Les phases effectuent un transtypage (cast) interne pour manipuler le schéma
   adéquat.
 
-> [!NOTE]
-> **GO_ENTRY_PATH en Phase 1** : `import.meta.dirname` est résolu dynamiquement.
-> En Phase 1, l'exécution directe des fichiers `.ts` via Bun (sans compilation
-> préalable de `/go`) est l'approche de développement standard. La gestion fine
-> des chemins de distribution de `/go` (`dist/index.js`) sera intégrée en
-> Phase 2.
+> [!IMPORTANT]
+> **GO_ENTRY_PATH** : Dans l'environnement de développement avec gateways
+> symlink (`~/.agents/`), `import.meta.dirname` résout vers le chemin
+> physique `dotagents/`. Le harness parent (wrapper Antigravity) doit
+> fournir le chemin logique via la variable d'environnement
+> `GO_ENTRY_PATH`. L'absence de cette variable en mode harness est une
+> erreur de configuration Phase 1.
 
 ```ts
 import { runOrchestrator, definePhase } from "turnlock";
@@ -105,9 +116,16 @@ import { runInitPhase } from "./phases/run-init.js";
 import { implementationSettlementStub } from "./phases/implementation-settlement.js";
 import { dummyPhase } from "./phases/dummy-phase.js";
 
-// Constante globale résolue pour la commande de reprise
-// (exécute directement le point d'entrée TS avec Bun)
-const GO_ENTRY_PATH = `${import.meta.dirname}/index.js`;
+// Chemin logique fourni par le harness parent (obligatoire sous gateway).
+function resolveGoEntryPath(): string {
+  if (process.env.GO_ENTRY_PATH) return process.env.GO_ENTRY_PATH;
+  // Fallback pour les tests hors gateway uniquement
+  if (process.argv[1]) return process.argv[1];
+  throw new Error(
+    "GO_ENTRY_PATH: missing env var (required under gateway harness)"
+  );
+}
+const GO_ENTRY_PATH = resolveGoEntryPath();
 
 const config: OrchestratorConfig<object> = {
   name: "go",
@@ -117,8 +135,11 @@ const config: OrchestratorConfig<object> = {
     "implementation-settlement": implementationSettlementStub as Phase<object, any, any>,
     "dummy-phase": dummyPhase as Phase<object, any, any>,
   },
-  // initialState doit obligatoirement passer la validation de bootstrapStateSchema
-  initialState: buildBootstrapState(/* from parent process args */),
+  // initialState : doit être resume-aware (cf. §4).
+  // En mode fresh, construit le vrai BootstrapState depuis les args.
+  // En mode resume, produit un dummy valide (Turnlock lit le state depuis
+  // le disque ; le dummy n'est jamais consommé).
+  initialState: buildInitialState(),
   stateSchema: runtimeStateSchema as any, // Cast Zod 4 -> Zod 3
   resumeCommand: (runId) =>
     `bun run ${GO_ENTRY_PATH} --run-id ${runId} --resume`,
@@ -128,6 +149,35 @@ const config: OrchestratorConfig<object> = {
     persistEventLog: true,
   },
 };
+
+/**
+ * Construit l'état initial en fonction du mode d'exécution.
+ *
+ * - Mode fresh (pas de `--resume`) : construit le BootstrapState à
+ *   partir des arguments du parent process.
+ * - Mode resume (`--resume`) : retourne un BootstrapState dummy valide
+ *   selon bootstrapStateSchema. Turnlock ne consomme jamais cet objet
+ *   en mode resume — il lit le state depuis le StateFile sur disque.
+ */
+function buildInitialState(): object {
+  const isResume = process.argv.includes("--resume");
+  if (isResume) {
+    // Turnlock valide initialState contre stateSchema même en mode resume.
+    // On fournit un BootstrapState syntaxiquement valide mais sémantiquement
+    // vide — Turnlock le remplace par le state lu sur disque avant dispatch.
+    return {
+      schema: "go.bootstrap-state.v1",
+      invocationDirectory: process.cwd(),
+      policy: buildDefaultWorkflowPolicy(),
+      captureContext: {
+        schema: "go.capture-context.v1",
+        sessionRef: "",
+        promptAtGo: "",
+      },
+    };
+  }
+  return buildBootstrapState(/* from parent process args */);
+}
 
 await runOrchestrator(config);
 ```
@@ -163,7 +213,9 @@ const workflowStateSchema = z.object({
   commits: z.array(z.unknown()),
   pullRequests: z.array(z.unknown()),
   mergeTracking: z.array(z.unknown()),
-});
+}).passthrough(); // Phase 1 : accepte les champs supplémentaires non listés
+                  // (runCapture, workSession, projectDiscovery, etc.).
+                  // À remplacer par .strict() quand le contrat se stabilise.
 
 // Union discriminée validée par Turnlock à chaque transaction
 export const runtimeStateSchema = z.discriminatedUnion("schema", [
@@ -226,6 +278,13 @@ export const runInitPhase = definePhase<object>(
 
 ### 4.2 Phase `implementation-settlement` (Stub Phase 1)
 
+> [!WARNING]
+> **Échafaudage temporaire** : cette phase est un stub Phase 1 uniquement.
+> En Phase 2, `implementation-settlement` transitionnera vers
+> `change-snapshot` conformément au
+> [workflow contract](../contracts/go-workflow-contract.md).
+> Le `dummy-phase` sera supprimé.
+
 Pour tester la boucle complète de délégation en Phase 1, cette phase sert de
 point de reprise :
 
@@ -258,7 +317,18 @@ export const implementationSettlementStub = definePhase<object>(
 
 Les bootstrap tasks s'exécutent in-process. La séquence asynchrone est découpée
 en deux branches asymétriques exécutées en parallèle pour respecter les
-dépendances de données :
+dépendances de données.
+
+### 5.1 Contrat de cancellation
+
+Le contrat `run-init` §1.3 exige : *"si une branche échoue, run-init annule
+les branches encore actives, attend leur terminaison contrôlée ou leur timeout
+court, puis échoue"*. L'implémentation ci-dessous utilise :
+
+- Un `AbortController` partagé entre les deux branches.
+- Un wrapper `abortOnReject` qui déclenche l'annulation au premier échec.
+- `Promise.allSettled` qui attend la terminaison des deux branches (même
+  après annulation).
 
 ```ts
 async function executeBootstrapPipeline(
@@ -266,47 +336,66 @@ async function executeBootstrapPipeline(
 ): Promise<WorkflowState> {
   const ac = new AbortController();
 
-  // Propagation de l'annulation Turnlock
-  ctx.signal.addEventListener(
-    "abort",
-    () => ac.abort(ctx.signal.reason),
-    { once: true }
-  );
+  // Propagation de l'annulation Turnlock vers le contrôleur enfant
+  const onTurnlockAbort = () => ac.abort(ctx.signal.reason);
+  ctx.signal.addEventListener("abort", onTurnlockAbort, { once: true });
 
-  // 1. Séquentiel : pré-requis obligatoires pour identifier le dépôt
-  const prereqResult = await runPrerequisiteValidation(ctx, ac.signal);
-  const repoCapture = await runRepoCapture(ctx, ac.signal);
-
-  // 2. Parallélisation : run-capture file en tâche de fond pendant que
-  //    la chaîne Git s'exécute
-  let runCapturePromise = runRunCapture(ctx, repoCapture, ac.signal);
-
-  // Chaîne Git séquentielle
-  const runGitChain = async () => {
-    const dirty = await runDirtyStateCapture(ctx, repoCapture, ac.signal);
-    // workspace-setup répare/valide physiquement même si skipSetup est vrai
-    const workspace = await runWorkspaceSetup(
-      ctx, repoCapture, dirty, ac.signal
-    );
-    const discovery = await runProjectDiscovery(ctx, workspace, ac.signal);
-    return { dirty, workspace, discovery };
+  // Wrapper : au premier rejet, annule le contrôleur partagé
+  const abortOnReject = async <T>(promise: Promise<T>): Promise<T> => {
+    try {
+      return await promise;
+    } catch (err) {
+      ac.abort(err);
+      throw err;
+    }
   };
 
-  const gitChainPromise = runGitChain();
+  try {
+    // 1. Séquentiel : pré-requis obligatoires pour identifier le dépôt
+    const prereqResult = await runPrerequisiteValidation(ctx, ac.signal);
+    const repoCapture = await runRepoCapture(ctx, ac.signal);
 
-  // On attend la résolution des deux branches
-  const [runCaptureResult, gitChainResult] = await Promise.all([
-    runCapturePromise,
-    gitChainPromise,
-  ]);
+    // 2. Parallélisation avec cancellation au premier échec
+    const runCapturePromise = abortOnReject(
+      runRunCapture(ctx, repoCapture, ac.signal)
+    );
 
-  // 3. Join, validation finale et projection
-  return projectWorkflowState(ctx, {
-    prereqResult,
-    repoCapture,
-    runCaptureResult,
-    ...gitChainResult,
-  });
+    const runGitChain = async () => {
+      const dirty = await runDirtyStateCapture(ctx, repoCapture, ac.signal);
+      const workspace = await runWorkspaceSetup(
+        ctx, repoCapture, dirty, ac.signal
+      );
+      const discovery = await runProjectDiscovery(
+        ctx, workspace, ac.signal
+      );
+      return { dirty, workspace, discovery };
+    };
+    const gitChainPromise = abortOnReject(runGitChain());
+
+    // allSettled attend la terminaison des deux branches même après abort
+    const [runCaptureSettled, gitChainSettled] = await Promise.allSettled([
+      runCapturePromise,
+      gitChainPromise,
+    ]);
+
+    // Propagation des erreurs après terminaison des deux branches
+    if (runCaptureSettled.status === "rejected") {
+      throw runCaptureSettled.reason;
+    }
+    if (gitChainSettled.status === "rejected") {
+      throw gitChainSettled.reason;
+    }
+
+    // 3. Join, validation finale et projection
+    return projectWorkflowState(ctx, {
+      prereqResult,
+      repoCapture,
+      runCaptureResult: runCaptureSettled.value,
+      ...gitChainSettled.value,
+    });
+  } finally {
+    ctx.signal.removeEventListener("abort", onTurnlockAbort);
+  }
 }
 ```
 
@@ -351,11 +440,60 @@ contrat étendu `DC-GIT-CLI-BOOTSTRAP.md` dans `specs/briefs/orchestrator/`.
 
 ## 7. Gestion du Lock et des Signaux
 
-### 7.1 Refresh du Lock
+### 7.1 Refresh du Lock et opérations Git asynchrones
 
-Comme les étapes de clonage Git et LFS peuvent dépasser le lease de lock par
-défaut de Turnlock (30 minutes), les bootstrap tasks appellent périodiquement
-`ctx.refreshLock()` pendant les opérations bloquantes.
+Le lease de lock par défaut de Turnlock est de 30 minutes. Les opérations Git
+longues (clone, LFS pull, submodule update) peuvent le dépasser.
+
+**Règle impérative** : les opérations Git bloquantes doivent utiliser
+`Bun.spawn()` asynchrone (jamais `spawnSync`/`execSync`). Un `setInterval`
+rafraîchit le lock pendant l'exécution, et l'annulation tue le sous-processus :
+
+```ts
+const refreshInterval = setInterval(
+  () => ctx.refreshLock(),
+  25 * 60 * 1000  // 25 minutes
+);
+
+try {
+  const proc = Bun.spawn(["git", ...args], {
+    cwd: workDir,
+    // Jamais hériter stdout enfant : stdout est réservé au protocole
+    // Turnlock. Capturer ou rediriger vers stderr / fichiers d'evidence.
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  // Propager l'annulation au sous-processus
+  const onAbort = () => { proc.kill(); };
+  ctx.signal.addEventListener("abort", onAbort, { once: true });
+
+  try {
+    // Drainer stdout/stderr en parallèle pour éviter le blocage du
+    // sous-processus sur un pipe plein.
+    const [exitCode, _stdout, _stderr] = await Promise.all([
+      proc.exited,
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+    ]);
+
+    if (exitCode !== 0) {
+      throw new Error(
+        `Git command failed with exit code ${exitCode}: ${_stderr}`
+      );
+    }
+  } finally {
+    ctx.signal.removeEventListener("abort", onAbort);
+  }
+} finally {
+  clearInterval(refreshInterval);
+}
+```
+
+**Contrat stdout** : `stdout` enfant ne doit jamais être hérité (`"inherit"`)
+car `process.stdout` est réservé au protocole `@@TURNLOCK@@`. Les sorties
+standard des commandes Git doivent être capturées (`"pipe"`) et redirigées
+vers `stderr`, les fichiers d'evidence, ou les logs.
 
 ### 7.2 Signaux
 
