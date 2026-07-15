@@ -79,8 +79,8 @@ Evidence JSON principale écrite sous
 ```ts
 type DirtyStateDiffAdoption = {
   captureArtifactId: string;
-  replayStatus: "applied" | "failed";
-  replayedAt: string;
+  replayedIntoWorkspace: boolean;
+  workspaceStatusAfterReplayRef: string;
 };
 
 type WorkspaceSetupEvidence = {
@@ -94,8 +94,9 @@ type WorkspaceSetupEvidence = {
 Le champ `dirtyStateDiffAdoption` est présent uniquement si le
 `DirtyStateDiffArtifact` indique `"dirty"` et que le replay a réussi.
 `captureArtifactId` référence l'artefact `DirtyStateDiffArtifact` produit
-par `dirty-state-capture` ; `replayStatus` vaut `"applied"` si le patch a
-été appliqué avec succès dans le workspace.
+par `dirty-state-capture` ; `replayedIntoWorkspace` indique si le replay a
+abouti ; `workspaceStatusAfterReplayRef` pointe vers le `git status
+--porcelain` du workspace après application.
 
 Cette tâche produit également un `WorkflowExecutionRecord` durable.
 
