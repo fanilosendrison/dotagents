@@ -20,16 +20,24 @@ La capture garantit que le run a une cible unique et valide avant le démarrage 
 `repo-capture` s'exécute de manière synchrone et séquentielle au début de la phase Turnlock `run-init`, juste après la validation de la configuration fournisseur (`ProviderConfig`).
 
 ```text
-run-init
-│
-├─ prerequisite-validation (séquentiel)
-│       ↓
-├─ repo-capture (séquentiel)
-│       ↓
-├─ dirty-state-capture (séquentiel, host-side only)
-│       │
-│       ├─ run-capture (parallèle)
-│       ├─ workspace-setup (parallèle)
+              run-init
+                 │
+       prerequisite-validation
+                 │
+            repo-capture
+          ┌──────┴──────┐
+          ▼             ▼
+     run-capture    dirty-state
+          │             │
+          │             ▼
+          │        workspace-setup
+          │             │
+          │             ▼
+          │   project-discovery-finalize
+          │             │
+          └──────┬──────┘
+                 ▼
+        delegate implementation
 ```
 
 Aucune tâche parallèle de démarrage (notamment `workspace-setup`) ne peut démarrer avant que `repo-capture` ne soit finalisée, car elle fournit la racine Git cible et le sous-périmètre nécessaires pour la création et la configuration du worktree.
