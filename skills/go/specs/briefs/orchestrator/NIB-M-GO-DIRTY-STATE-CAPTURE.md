@@ -28,6 +28,7 @@ type DirtyStateInput = {
   artefactRoot: string;
   repoCapture: RepoCapture;
   policy: WorkflowPolicy;
+  clock: { nowWallIso: () => string };
 };
 ```
 
@@ -41,76 +42,110 @@ type DirtyStateInput = {
 
 ## 3. Outputs
 
-```ts
-type DirtyStateDiffArtifact = {
-  schema: "go.dirty-state-diff.v1";
-  id: string;
-  runId: string;
-  sourceStatusPorcelainRef: string; // Relative path matching "dirty-state-status.txt"
-  sourcePatchRef: string; // Relative path matching "dirty-state-patch.patch"
-  patchHash: string; // sha256 hex digest of the patch file
-  capturedAt: string;
-};
-```
-
-- Returns a Promise resolving to `DirtyStateDiffArtifact` if modifications are found, or `null` if the repository is clean.
+- Writes the parsed `DirtyStateDiffArtifact` file `dirty-state-capture.json` to:
+  `<artefactRoot>/startup/dirty-state-capture/`
+- Writes the evidence files `status.txt` and `patch.diff` under:
+  `<artefactRoot>/startup/dirty-state-capture/evidence/`
+- Writes the `BootstrapTaskCheckpoint` file `task-record.json` to:
+  `<artefactRoot>/startup/dirty-state-capture/`
+- Returns a Promise resolving to `DirtyStateDiffArtifact`:
+  ```ts
+  type DirtyStateDiffArtifact = {
+    schema: "go.dirty-state-diff.v1";
+    runId: string;
+    capturedAt: string;
+    initialDirtyState: "clean" | "dirty";
+    sourceStatusPorcelainRef?: string; // Relative path matching "startup/dirty-state-capture/evidence/status.txt"
+    sourcePatchRef?: string; // Relative path matching "startup/dirty-state-capture/evidence/patch.diff"
+    sourcePatchHash?: string; // sha256 hex digest of the patch file
+  };
+  ```
 - Throws a blocking `PhaseError` if dirty policy is violated or if unmerged conflicts are detected.
 
 ---
 
 ## 4. Algorithm
 
-### 4.1 Check Clean Status
-1. Run `git -C <canonicalRepositoryRoot> status --porcelain=v1 -z --ignore-submodules=none` asynchronously.
-2. If the output stream is empty, the repository is clean. Return `null`.
+### 4.1 Check Repository Existence and Empty HEAD
+### 4.1 Check Repository Existence and Empty HEAD
+1. If the target repository has no `.git` anchor (e.g. `canonicalRepositoryRoot` does not exist or has no `.git` subdirectory), proceed directly to Section 4.5 to construct and write the clean artifact and checkpoint, then terminate.
+2. Run `git -C <canonicalRepositoryRoot> rev-parse --verify HEAD` asynchronously.
+3. If the command fails (indicating an empty repository with no commits), proceed directly to Section 4.5 to construct and write the clean artifact and checkpoint, then terminate.
 
-### 4.2 Enforce Policy Check
-If status output is non-empty (repository is dirty):
-1. Evaluate `policy.dirtyState`:
-   - If `require-clean`: Throw a blocking error: "Workflow policy requires a clean repository. Uncommitted changes detected".
-   - If `human-gate-if-dirty`: Trigger a blocking human gate finding and abort execution.
-   - If `adopt-as-input`: Proceed with patch extraction.
+### 4.2 Check Merge Conflicts and Masked Files
+1. Run `git -C <canonicalRepositoryRoot> -c core.quotePath=false status --porcelain` asynchronously.
+   - The flag `-c core.quotePath=false` prevents octal escaping of non-ASCII file paths.
+2. Scan the output line-by-line:
+   - Check if any line starts with merge conflict status codes: `DD`, `AU`, `UD`, `UA`, `DU`, `AA`, `UU`.
+   - If a conflict is found, throw a blocking error: "Repository contains unresolved merge conflicts" (resolves to `failed`).
+3. Scan for modifications in hidden files:
+   - Run `git -C <canonicalRepositoryRoot> -c core.quotePath=false ls-files -v`.
+   - For every output line where the first character is `h` (assume-unchanged) or `S` (skip-worktree):
+     - Extract the file path.
+     - Query index metadata using `git -C <canonicalRepositoryRoot> ls-files -s <filePath>`.
+     - Calculate the disk hash using `git -C <canonicalRepositoryRoot> hash-object <filePath>`.
+     - Compare the index hash and the disk hash. If they are different, the hidden file is mutated. Throw a blocking error: "Modified skip-worktree or assume-unchanged files detected" (resolves to `failed`).
 
-### 4.3 Setup Isolated Index
-To generate the patch without modifying the developer's workspace index:
-1. Define a temporary index file path under the artifacts folder:
-   `tempIndex = path.join(artefactRoot, "git-dirty.index")`
-2. Configure the subprocess execution environment to include:
-   `GIT_INDEX_FILE: tempIndex`
-3. Execute the following Git commands sequentially:
-   - `git read-tree HEAD`: Writes the HEAD tree structure to `tempIndex`.
-   - `git add --all`: Populates `tempIndex` with all on-disk modifications (tracked and untracked) without modifying the main `.git/index` file.
-   - `git diff --cached --binary --full-index`: Outputs the binary diff patch stream comparing `tempIndex` against HEAD.
-4. Delete the `tempIndex` file immediately upon completion, regardless of success or failure.
+### 4.3 Evaluate Policy and Check Clean Status
+1. If the status output is empty and no hidden files are mutated, the repository is clean:
+   - Proceed directly to Section 4.5 to construct and write the clean artifact and checkpoint, then terminate.
+2. If modifications are found, evaluate `policy.dirtyState.mode`:
+   - If `"require-clean"`: Throw a blocking error: "Workspace policy requires a clean repository" (resolves to `failed`).
+   - If `"human-gate-if-dirty"`: Register human gate and abort (resolves to `failed`).
+   - If `"adopt-as-input"`: Proceed with patch capture.
 
-### 4.4 Check Conflicts and Assume-Unchanged
-Before compiling results:
-1. Run `git ls-files -v` to check for skip-worktree or assume-unchanged markers:
-   - If any file has status tag `S` or lowercase ASCII characters, throw a blocking error: "Unsupported repository state: skip-worktree or assume-unchanged files detected".
-2. If the diff command output contains conflict marker indicators or unmerged index entries (stage values $> 0$), throw a blocking error: "Repository contains unresolved merge conflicts".
+### 4.4 Capture Patch Using Temporary Index
+1. Create the target folders:
+   - `evidenceDir = path.join(artefactRoot, "startup", "dirty-state-capture", "evidence")`
+   - `tmpDir = path.join(artefactRoot, "startup", "dirty-state-capture", "tmp")`
+2. Create both directories recursively.
+3. Define the temporary index path:
+   `tempIndex = path.join(tmpDir, "index")`
+4. Setup environment variables: `GIT_INDEX_FILE: tempIndex`.
+5. Execute the Git sequence sequentially:
+   - `git read-tree HEAD` to write the tree to the temp index.
+   - `git add --all` to add modifications.
+   - `git diff --cached --binary --full-index` to print the binary patch bytes.
+6. Delete the file `tempIndex` inside a `finally` block to prevent leaks.
 
-### 4.5 Save Evidence and Create Artifact
-1. Write the porcelain status output to `<artefactRoot>/dirty-state-status.txt` atomically.
-2. Write the binary patch stream bytes to `<artefactRoot>/dirty-state-patch.patch` atomically.
-3. Compute the SHA-256 hash of the patch bytes.
-4. Generate a unique Crockford ULID string for the artifact `id`.
-5. Construct and return the `DirtyStateDiffArtifact` object.
+### 4.5 Save Evidence and Create Artifact (Clean and Dirty States)
+1. **Clean State Execution**: If the repository is clean (as directed by Sections 4.1 or 4.3):
+   - Define `DirtyStateDiffArtifact` with `initialDirtyState: "clean"` (omitting status porcelain and patch references).
+   - Save the artifact atomically to `<artefactRoot>/startup/dirty-state-capture/dirty-state-capture.json`.
+   - Set `gitStateDigest` to the 64-zero sentinel value `sha256:0000000000000000000000000000000000000000000000000000000000000000`.
+   - Compute `inputHash` as the JCS hash of `{ runId, RepoCapture, WorkflowPolicy.dirtyState, artefactRoot, gitStateDigest }`.
+   - Compute the other checkpoint hashes as described in Step 3.
+   - Write the `BootstrapTaskCheckpoint` file `task-record.json` atomically inside the task directory as described in Step 4, recording `startedAt` (task start time) and `endedAt` (`clock.nowWallIso()`).
+   - Terminate task successfully.
+2. **Dirty State Execution**: If the repository has modifications:
+   - Write the porcelain status output to `<evidenceDir>/status.txt` atomically.
+   - Write the binary patch output stream bytes to `<evidenceDir>/patch.diff` atomically.
+   - Calculate the SHA-256 hash of the patch bytes.
+   - Construct the `DirtyStateDiffArtifact` object with `initialDirtyState: "dirty"`, `sourceStatusPorcelainRef: "startup/dirty-state-capture/evidence/status.txt"`, `sourcePatchRef: "startup/dirty-state-capture/evidence/patch.diff"`, and `sourcePatchHash` set to the patch hash.
+   - Save the artifact atomically to `<artefactRoot>/startup/dirty-state-capture/dirty-state-capture.json`.
+   - Compute `gitStateDigest` as the SHA-256 hash of the string `git rev-parse HEAD` output concatenated with the porcelain status output.
+   - Compute `inputHash` as the JCS hash of `{ runId, RepoCapture, WorkflowPolicy.dirtyState, artefactRoot, gitStateDigest }`.
+3. Compute the other checkpoint hashes:
+   - `repoCaptureHash`: JCS hash of the input `RepoCapture` object.
+   - `workflowPolicyHash`: JCS hash of the input `WorkflowPolicy.dirtyState` object.
+   - `captureContextHash`: Set to the deterministic 64-zero sentinel value `sha256:0000000000000000000000000000000000000000000000000000000000000000` (this task does not consume the capture context).
+4. Write the `BootstrapTaskCheckpoint` file `task-record.json` atomically inside `<artefactRoot>/startup/dirty-state-capture/`, using the computed hashes and capturing `startedAt` and `endedAt` via the pipeline clock context (`clock.nowWallIso()`).
 
 ---
 
 ## 5. Example
 
 ### 5.1 Dirty State Diff Artifact
-Expected output when modifications exist:
+Saved `dirty-state-capture.json` when modifications exist:
 ```json
 {
   "schema": "go.dirty-state-diff.v1",
-  "id": "01JTESTRUNID0000000000000B",
   "runId": "01JTESTRUNID00000000000000",
-  "sourceStatusPorcelainRef": "dirty-state-status.txt",
-  "sourcePatchRef": "dirty-state-patch.patch",
-  "patchHash": "sha256:d8e9a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1",
-  "capturedAt": "2026-07-16T15:28:00.000Z"
+  "capturedAt": "2026-07-16T15:28:00.000Z",
+  "initialDirtyState": "dirty",
+  "sourceStatusPorcelainRef": "startup/dirty-state-capture/evidence/status.txt",
+  "sourcePatchRef": "startup/dirty-state-capture/evidence/patch.diff",
+  "sourcePatchHash": "sha256:d8e9a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1"
 }
 ```
 
@@ -118,15 +153,15 @@ Expected output when modifications exist:
 
 ## 6. Edge cases
 
-- **Untracked files deletion**: If a file is untracked on the host, `git add --all` records its content to `tempIndex` and `git diff` serializes it as a creation patch. This is fully supported.
-- **Empty Patch**: If status is dirty but diff output is empty (e.g. only untracked empty directories or ignored file modifications), write empty files and return the sentinel hash.
+- **Untracked Files**: Untracked files are added to the temporary index and captured as additions, which is correct.
+- **Empty Patch**: If status has dirty items but patch diff is empty, return the clean state or write empty evidence files.
 
 ---
 
 ## 7. Constraints
 
-- **Source Immutability**: The on-disk index file `.git/index` of the developer's repository must **never** be touched or locked. The `tempIndex` file must be used for all operations.
-- **Index Cleanup**: The `tempIndex` file must be deleted within a `finally` block to ensure filesystem cleanup even if Git commands fail.
+- **Absolute Read-Only Source**: Under no circumstances should the source repository's primary index file `.git/index` be touched.
+- **Strict Cleanup**: The temp index file must be cleaned up in a `finally` block to prevent leaving locks or files.
 
 ---
 
@@ -139,9 +174,10 @@ import { captureDirtyState } from "./dirty-state.js";
 
 const dirtyStateDiff = await captureDirtyState({
   runId: state.runId,
-  artefactRoot: runInit.artefactRootRef,
+  artefactRoot: state.artefactRoot,
   repoCapture,
-  policy: state.policy
+  policy: state.policy,
+  clock: context.clock
 });
 ```
 
