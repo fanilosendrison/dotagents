@@ -16,7 +16,7 @@ VegaCorp — July 2026
 
 ## 1. Purpose
 
-This module implements the repository discovery and validation logic for the `/go` workspace. It inspects the directory hierarchy upward from the invocation directory, verifies repository characteristics, and rejects execution contexts that cross agent sentinel boundaries.
+This module implements the repository discovery and validation logic for the `/go` workspace. It inspects the directory hierarchy upward from the invocation directory to identify the Git root without running Git commands, checks path containment against the run directory, and rejects contexts that match agent sentinel boundaries.
 
 ---
 
@@ -25,78 +25,108 @@ This module implements the repository discovery and validation logic for the `/g
 ```ts
 type RepoCaptureInput = {
   invocationDirectory: string;
-  policy: WorkflowPolicy;
+  runDir: string;
+  runDirRoot?: string;
+  artefactRoot: string;
+  clock: { nowWallIso: () => string };
 };
 ```
 
 - **Dependency Contracts**:
-  - [DC-GIT-CLI-BOOTSTRAP.md](../DC-GIT-CLI-BOOTSTRAP.md) for target verification.
-  - [DC-BUN-SPAWN-ASYNC-RUNTIME.md](../DC-BUN-SPAWN-ASYNC-RUNTIME.md) for path normalization.
+  - [DC-BUN-SPAWN-ASYNC-RUNTIME.md](../DC-BUN-SPAWN-ASYNC-RUNTIME.md) for filesystem traversal, file checking, and path normalization.
 
 ---
 
 ## 3. Outputs
 
-```ts
-type RepoCaptureOutput = {
-  schema: "go.repo-capture.v1";
-  invocationDirectory: string;
-  canonicalRepositoryRoot: string;
-  projectRoot?: string;
-  symlinkResolved: boolean;
-  resolvedAt: string;
-};
-```
-
-- Returns a Promise resolving to `RepoCaptureOutput`.
+- Writes the parsed `RepoCapture` artifact to:
+  `<artefactRoot>/startup/repo-capture/repo-capture.json`
+- Writes the `BootstrapTaskCheckpoint` file `task-record.json` to:
+  `<artefactRoot>/startup/repo-capture/`
+- Returns a Promise resolving to `RepoCapture`:
+  ```ts
+  type RepoCapture = {
+    schema: "go.repo-capture.v1";
+    invocationDirectory: string;
+    canonicalRepositoryRoot: string;
+    projectRoot?: string;
+    symlinkResolved: boolean;
+    resolvedAt: string;
+  };
+  ```
 - Throws a blocking `PhaseError` if validation rules are violated.
 
 ---
 
 ## 4. Algorithm
 
-### 4.1 Ascendancy Search and Sentinel Checks
-1. Normalize `invocationDirectory` using `fs.realpath` to resolve symlinks and obtain the canonical path.
-2. Initialize `currentDir` to the normalized `invocationDirectory`.
-3. Check for the presence of sentinel files or directories under `currentDir`:
-   - Sentinel folders: `.agents`, `.codex`, `.pi`, `.gravity`.
-   - Sentinel files: `AGENTS.md`.
-   - If any sentinel is detected, throw a blocking error immediately: "Execution blocked: Invocation directory crosses agent gateway boundary".
-4. Check if `.git` (folder or file) exists under `currentDir`.
-   - If found, stop search and set `resolvedGitRoot` to `currentDir`.
-   - If not found, check if `currentDir` is the system root `/`. If yes, stop search.
-   - If not root, set `currentDir` to `path.dirname(currentDir)` and repeat from Step 3.
+### 4.1 Ascendancy Search
+1. Resolve and normalize `invocationDirectory` using `fs.realpath` to obtain the physical path.
+2. Initialize `symlinkResolved` as `true` if `physicalPath !== invocationDirectory`, else `false`.
+3. Set `currentDir` to `physicalPath`.
+4. Initialize `resolvedGitRoot = null`.
+5. Loop while `currentDir` is not the system root directory (e.g. `/`):
+   - Check if `.git` exists under `currentDir`.
+   - If `.git` exists (as a folder or a file):
+     - Set `resolvedGitRoot = currentDir`.
+     - Break the loop.
+   - If not found, set `currentDir = path.dirname(currentDir)`.
 
-### 4.2 Bare Repository Verification
-If a `.git` reference was found:
-1. Run `git -C <resolvedGitRoot> rev-parse --is-bare-repository` asynchronously.
-2. If the command exits non-zero or outputs `true`, throw a blocking error: "Bare Git repositories are not supported".
+### 4.2 Bare Repository Verification (Without Running Git)
+If `.git` was found under `resolvedGitRoot`:
+1. If `.git` is a directory:
+   - Read `.git/config` as text.
+   - Parse the `[core]` section and check if `bare = true` is set.
+   - If `bare = true` is present, throw a blocking error: "Bare repositories are not supported" (resolves to `failed`).
+2. If `.git` is a file (common inside Git worktrees or submodules):
+   - Read `.git` contents, locate the `gitdir: <path>` reference.
+   - Resolve the target `<path>` to its real physical folder.
+   - Read the `config` file inside that target folder, check if `bare = true` is set.
+   - If `bare = true` is present, throw a blocking error (resolves to `failed`).
+3. Set `canonicalRepositoryRoot` to `resolvedGitRoot`.
 
 ### 4.3 Monorepo and Project Root Resolution
-1. Run `git -C <invocationDirectory> rev-parse --show-toplevel` to fetch the authoritative top-level repository root.
-2. Resolve the output to its canonical absolute path.
-3. Compare the resolved repository root with the normalized `invocationDirectory`:
-   - If they are identical, `canonicalRepositoryRoot` is the root and `projectRoot` is omitted.
-   - If they differ, `canonicalRepositoryRoot` is set to the repository root, and `projectRoot` is set to the normalized `invocationDirectory` path (monorepo sub-project configuration).
-4. If no `.git` reference was found throughout the search:
-   - If policy allows workspace initialization, return the `RepoCaptureOutput` with `canonicalRepositoryRoot` set to the normalized `invocationDirectory` and delegate setup to the workspace creation task. Otherwise, throw a blocking error.
+1. Compare `canonicalRepositoryRoot` with `physicalPath`:
+   - If they are identical, `canonicalRepositoryRoot` is the root, and `projectRoot` is omitted.
+   - If they differ, `canonicalRepositoryRoot` is set, and `projectRoot` is set to `physicalPath` (monorepo sub-project configuration). Verify that `projectRoot` is a sub-directory of `canonicalRepositoryRoot`. If not, throw `failed`.
+
+### 4.4 Sentinel Gateways and Safe Roots (If No Dépôt Found)
+If no `.git` was found:
+1. Verify if the directory matches sentinel criteria:
+   - If `physicalPath` contains any path segment (exact folder name) equal to `.agents`, `.codex`, `.pi`, or `.gravity`, throw a blocking error (resolves to `failed`).
+   - If any file directly inside `physicalPath` has the exact basename `AGENTS.md`, `SKILL.md`, `CODEX.md`, or `GRAVITY.md`, throw a blocking error (resolves to `failed`).
+2. Check System Root Guard:
+   - If `physicalPath` is a system root directory (e.g. `/`, `/Users`, `/home`) or equals the user's home directory (`os.homedir()`), throw a blocking error: "Cannot initialize repository at system root or user home directory" (resolves to `failed`).
+3. If guards pass, set `canonicalRepositoryRoot` to `physicalPath`. The initialization of Git is delegated to `workspace-setup`.
+
+### 4.5 Validation of the Containment
+1. If `runDirRoot` is not configured, check containment:
+   - Resolve both `runDir` and `canonicalRepositoryRoot` to their canonical paths using `fs.realpath` to prevent symlink containment bypasses.
+   - Verify that the resolved `runDir` does **not** sit inside the resolved `canonicalRepositoryRoot` (check `resolvedRunDir.startsWith(resolvedCanonicalRepositoryRoot)` is `false`).
+2. If `runDir` is nested within the repository, throw a blocking error: "Containment violation: runDir is located inside target repository" (resolves to `failed`).
+
+### 4.6 Save Artifact and Checkpoint
+1. Set `resolvedAt` to the current timestamp retrieved from Turnlock's runtime clock passed via pipeline context (`clock.nowWallIso()`).
+2. Construct the `RepoCapture` artifact object. **Preservation**: The `invocationDirectory` field must hold the *original, un-normalized* path string passed to inputs, while `canonicalRepositoryRoot` and `projectRoot` must contain their resolved canonical paths.
+3. Save the object atomically to `<artefactRoot>/startup/repo-capture/repo-capture.json`.
+4. Concurrently, compute `inputHash` as the JCS hash of `{ invocationDirectory, runDir }` (using the original un-normalized input values).
+5. Compute `repoCaptureHash` as the JCS hash of the produced `RepoCapture` artifact.
+6. Write the `BootstrapTaskCheckpoint` file `task-record.json` atomically, using `inputHash`, `repoCaptureHash`, recording `startedAt` (captured via `clock.nowWallIso()` at task start) and `endedAt` (captured via `clock.nowWallIso()` at write time), and fixing `workflowPolicyHash` and `captureContextHash` to the 64-zero sentinel value.
 
 ---
 
 ## 5. Example
 
-### 5.1 Monorepo Sub-Project Capture
-- Invocation directory: `/Users/famillesendrison/Developper/Projects/monorepo/packages/core`.
-- Git root folder found at `/Users/famillesendrison/Developper/Projects/monorepo/.git`.
-Expected output:
+### 5.1 Captured Monorepo Context
+Expected saved `repo-capture.json`:
 ```json
 {
   "schema": "go.repo-capture.v1",
   "invocationDirectory": "/Users/famillesendrison/Developper/Projects/monorepo/packages/core",
   "canonicalRepositoryRoot": "/Users/famillesendrison/Developper/Projects/monorepo",
   "projectRoot": "/Users/famillesendrison/Developper/Projects/monorepo/packages/core",
-  "symlinkResolved": true,
-  "resolvedAt": "2026-07-16T15:28:00Z"
+  "symlinkResolved": false,
+  "resolvedAt": "2026-07-16T15:28:00.000Z"
 }
 ```
 
@@ -104,15 +134,15 @@ Expected output:
 
 ## 6. Edge cases
 
-- **Worktree References**: If `.git` is a file (common inside Git worktrees or submodules), parse it as a regular file. If it contains a `gitdir: <path>` pointer, resolve it using `fs.realpath`.
-- **System Root Escape**: If the ascendancy loop reaches the system root `/` without identifying any `.git` anchor, the task must evaluate if the folder matches the policy guidelines before rejecting the run.
+- **Worktree links**: Reading `.git` as a file must support absolute and relative paths in `gitdir: ` references.
+- **Empty configurations**: If the config file cannot be read, assume the repository is not bare but let down-stream git commands report issues.
 
 ---
 
 ## 7. Constraints
 
-- **Sentinel Gateways Protection**: Verification of sentinel boundaries (e.g. `~/.agents`, `~/.pi`) must happen at every level of the directory ascension to prevent execution within the agent's own settings folders.
-- **No File Writes**: This task is read-only and must not modify or write files on disk.
+- **No Git CLI execution**: Checking for bare configurations and path ascendancy must be done using pure filesystem operations, without invoking any Git child processes.
+- **Strict Sentinel Checks**: Compare exact components of path string to prevent matching substring false positives (e.g. do not block directory `/Users/user/happy-project`).
 
 ---
 
@@ -125,7 +155,10 @@ import { captureRepository } from "./repo-capture.js";
 
 const repoCapture = await captureRepository({
   invocationDirectory: state.invocationDirectory,
-  policy: state.policy
+  runDir: state.runDir,
+  runDirRoot: config.runDirRoot,
+  artefactRoot: state.artefactRoot,
+  clock: context.clock
 });
 ```
 
