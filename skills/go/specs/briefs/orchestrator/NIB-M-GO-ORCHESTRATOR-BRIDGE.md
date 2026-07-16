@@ -24,8 +24,8 @@ This module coordinates the launch interface of the `/go` workflow. It translate
 
 - **Process Environment**: `process.env` and `process.argv`.
 - **Dependency Contracts**:
-  - [DC-TURNLOCK-RUNTIME-v0.9.md](file:///Users/famillesendrison/Developper/Projects/dotagents/skills/go/specs/briefs/orchestrator/DC-TURNLOCK-RUNTIME-v0.9.md) for orchestrator configuration rules.
-  - [DC-ZOD-3-4-COMPAT.md](file:///Users/famillesendrison/Developper/Projects/dotagents/skills/go/specs/briefs/orchestrator/DC-ZOD-3-4-COMPAT.md) for type casting at boundary checks.
+  - [DC-TURNLOCK-RUNTIME-v0.9.md](../DC-TURNLOCK-RUNTIME-v0.9.md) for orchestrator configuration rules.
+  - [DC-ZOD-3-4-COMPAT.md](../DC-ZOD-3-4-COMPAT.md) for type casting at boundary checks.
 
 ---
 
@@ -41,7 +41,7 @@ This module coordinates the launch interface of the `/go` workflow. It translate
 1. **Entry Path**: Look up `process.env.GO_ENTRY_PATH`.
    - If missing, check if `process.argv[1]` contains a valid path. If yes, fallback to `process.argv[1]`.
    - If still missing, throw an `InvalidConfigError` indicating that `GO_ENTRY_PATH` is required for gateway harness execution.
-2. **Run Directory Root**: Look up `process.env.TURNLOCK_RUN_DIR_ROOT` or `process.env.GO_RUN_DIR_ROOT`.
+2. **Run Directory Root**: Look up `process.env.TURNLOCK_RUN_DIR_ROOT`.
    - If present, resolve it to an absolute path using `fs.realpath`.
    - If absent, default to path `.turnlock/runs` under the current directory.
 
@@ -53,7 +53,7 @@ This module coordinates the launch interface of the `/go` workflow. It translate
 3. **Fresh Mode**:
    - Resolve `invocationDirectory` from `process.cwd()` using `fs.realpath`.
    - Resolve `WorkflowPolicy` from workspace settings or load `buildDefaultWorkflowPolicy()`.
-   - Resolve `CaptureContext` by loading the prompt from process arguments or environment variables (`process.env.GO_PROMPT`).
+   - **GO_PROMPT Contract**: The parent harness must supply the user prompt string via the `process.env.GO_PROMPT` environment variable or as the final trailing parameter in process arguments. Resolve `CaptureContext` from this input.
    - Construct the initial `BootstrapState`.
 
 ### 4.3 Configure Orchestrator
@@ -64,8 +64,9 @@ Instantiate the `OrchestratorConfig` options block:
 - `phases`: Registry mapping `"run-init"` to `runInitPhase` and `"implementation-settlement"` to `implementationSettlementStub`.
 - `initialState`: The `BootstrapState` resolved in Section 4.2.
 - `stateSchema`: `runtimeStateSchema` cast `as any` (Zod v4 to Zod v3 conversion).
-- `resumeCommand`: `(runId) => "bun run " + GO_ENTRY_PATH + " --resume --run-id " + runId`.
+- `resumeCommand`: `(runId) => "bun run \"" + GO_ENTRY_PATH + "\" --resume --run-id " + runId` (quoted to support paths containing spaces).
 - `runDirRoot`: The resolved run directory path from Section 4.1.
+- `logging`: `{ enabled: true, persistEventLog: true }`.
 
 ### 4.4 Invoke Orchestrator
 Execute `runOrchestrator(config)` and handle any synchronous setup rejections by writing a protocol error block to `process.stdout` and exiting with code `1`.
