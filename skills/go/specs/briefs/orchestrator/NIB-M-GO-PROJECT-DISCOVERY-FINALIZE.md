@@ -44,6 +44,8 @@ type ProjectDiscoveryInput = {
 
 - Writes the compiled `ProjectDiscovery` artifact JSON to:
   `<artefactRoot>/startup/project-discovery-finalize/project-discovery.json`
+- Writes the `BootstrapFindings` artifact JSON to:
+  `<artefactRoot>/startup/project-discovery-finalize/bootstrap-findings.json`
 - Writes the `BootstrapTaskCheckpoint` file `task-record.json` to:
   `<artefactRoot>/startup/project-discovery-finalize/`
 - Returns a Promise resolving to `ProjectDiscovery`.
@@ -90,13 +92,20 @@ If `STACK_EVAL.yaml` is absent:
 ### 4.4 Matrix Construction and Tool Availability Checks
 1. Filter commands matching `policy.gates.requiredKinds` (e.g. `lint`, `test`, `typecheck`, `build`).
 2. If a required gate is not detected:
-   - If `policy.discovery.noReliableGateBehavior === "human-gate"`: Write a blocking finding severity: `blocking` to halt the run before implementation delegation.
-   - If `"fail"`: Throw `failed`.
+   - If `policy.discovery.noReliableGateBehavior === "human-gate"`: Proceed, and register a blocking condition to be written in the findings artifact.
+   - If `"fail"`: Throw `failed` immediately.
    - If `"allow-with-evidence"`: Proceed, listing absent gates in evidence.
 3. Deduplicate Commands: Choose specific local scripts/ resolvers (e.g. cargo clippy) over generic task runners (e.g. make lint). Mark generic entries as `"disabled-by-precedence"` in logs.
 4. Tool Availability: Verify command visibility:
    - If the command path is relative (e.g., pointing to `.venv/bin/pytest`), verify that the file physically exists inside the workspace. If missing, log a warning.
    - Otherwise, verify that the binaire (first token of command) is visible in the runtime `PATH`. If missing, log a warning (keep the command registered).
+5. **BootstrapFindings Artifact**:
+   - If the gate matrix construction produced blocking conditions (e.g. required gate not detected with policy `"human-gate"`):
+     - Construct a `BootstrapFindings` object containing findings with `severity: "blocking"`, `resolution: "human-gate"`, and a clear message describing the missing gate.
+   - If no blocking conditions exist:
+     - Construct a `BootstrapFindings` object with `findings: []` (empty array).
+   - Write this `BootstrapFindings` artifact JSON atomically to:
+     `<artefactRoot>/startup/project-discovery-finalize/bootstrap-findings.json`
 
 ### 4.5 Save Evidence and Checkpoint
 1. Write the final `ProjectDiscovery` object to `<artefactRoot>/startup/project-discovery-finalize/project-discovery.json`. Assign `finalizedAgainstWorkspaceRoot` to `workSession.workspaceRoot`, and `provenance` to `"workspace-rerun"`.
@@ -145,6 +154,27 @@ On retry runs:
   ],
   "finalizedAgainstWorkspaceRoot": "/path/to/workspace",
   "provenance": "workspace-rerun"
+}
+```
+
+### 5.2 Bootstrap Findings JSON (Empty / Nominal)
+```json
+{
+  "findings": []
+}
+```
+
+### 5.3 Bootstrap Findings JSON (Blocking Condition Example)
+```json
+{
+  "findings": [
+    {
+      "id": "finding-01JTESTRUNID00000000000000",
+      "severity": "blocking",
+      "resolution": "human-gate",
+      "message": "Required check linter is missing and policy specifies 'human-gate'"
+    }
+  ]
 }
 ```
 
