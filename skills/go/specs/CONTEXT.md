@@ -28,6 +28,7 @@ specs/
 │   ├── ADR-go-stage-output-envelope-and-typed-business-artifacts.md
 │   ├── ADR-go-physical-worktree-isolation.md
 │   ├── ADR-go-token-propagation-git-askpass.md
+│   ├── ADR-go-turnlock-v0.9-phase-mechanics.md
 │   ├── ADR-go-mandatory-provider-config-fail-fast.md
 │   ├── ADR-go-prerequisite-validation.md
 │   ├── ADR-go-implicit-repo-capture-control.md
@@ -94,6 +95,10 @@ Ces documents sont normatifs pour construction RED/GREEN.
   - Worktree Git physique privé par run `/go`.
 - [`ADR-go-token-propagation-git-askpass.md`](./adr/ADR-go-token-propagation-git-askpass.md)
   - Propagation des tokens Git via `GIT_ASKPASS`.
+- [`ADR-go-turnlock-v0.9-phase-mechanics.md`](./adr/ADR-go-turnlock-v0.9-phase-mechanics.md)
+  - Alignement sur Turnlock v0.9.0 : suppression de `dummy-phase`, `io.done()`
+    dans `implementation-settlement`, règle du batch mécanique jusqu'à
+    délégation.
 - [`ADR-go-mandatory-provider-config-fail-fast.md`](./adr/ADR-go-mandatory-provider-config-fail-fast.md)
   - Validation `ProviderConfig` en première position, fail-fast.
 - [`ADR-go-prerequisite-validation.md`](./adr/ADR-go-prerequisite-validation.md)

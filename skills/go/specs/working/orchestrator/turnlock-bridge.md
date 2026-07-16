@@ -322,14 +322,6 @@ export const implementationSettlementStub = definePhase<object>(
     // (sinon Turnlock rejette la transition)
     const result = io.consumePendingResult(implementationResultSchema as any);
 
-    io.logger.emit({
-      eventType: "phase_start",
-      runId: io.runId,
-      phase: "implementation-settlement",
-      attemptCount: 1,
-      timestamp: io.clock.nowWallIso(),
-    });
-
     // En Phase 1, on termine le workflow en retournant io.done(state).
     return io.done(state);
   }
