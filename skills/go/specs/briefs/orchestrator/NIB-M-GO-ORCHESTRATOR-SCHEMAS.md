@@ -80,7 +80,7 @@ export const runtimeStateSchema = z.discriminatedUnion("schema", [
 ### 4.4 Task Records, Identifiers, and Checkpoints
 - **Run ID validation**: All fields holding a `runId` must strictly validate against the Crockford ULID regex `/^[0-9A-HJKMNP-TV-Z]{26}$/` to ensure identifier uniqueness and syntax correctness.
 - `bootstrapTaskRecordSchema`: maps task name enums (`prerequisite-validation`, `repo-capture`, etc.) and status enums (`not-started`, `running`, `passed`, `failed`, `errored`, `cancelled`).
-- `bootstrapTaskCheckpointSchema`: requires `inputHash` matching the standard hexadecimal `sha256:` prefix pattern, `startedAt` and `endedAt` conforming to ISO-8601 datetime strings.
+- `bootstrapTaskCheckpointSchema`: requires `inputHash` matching the standard hexadecimal `sha256:` prefix pattern, `startedAt` and `endedAt` conforming to ISO-8601 datetime strings, and supports an optional `retryAttempt` number field to track task rebuild counts.
 
 ---
 
