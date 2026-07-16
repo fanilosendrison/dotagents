@@ -72,7 +72,7 @@ To prevent partial writes or corruptions in case of crashes or power failures, a
 3. If any step fails, catch the error, delete the temp file, and throw a `PhaseError`.
 
 ### 4.4 Ownership Verification Marker
-During the initialization of `run-init`, write the `run-init-ownership.json` file inside `artefactRoot`.
+During the initialization of `run-init`, ensure that the `artefactRoot` directory is created recursively (e.g. `fs.mkdirSync(artefactRoot, { recursive: true })`), then write the `run-init-ownership.json` file inside `artefactRoot`.
 - On fresh runs: Write the `RunInitOwnershipMarker` documenting the `runId`, the `TurnlockRunRef`, and the hashes of the input parameters (`repoCaptureHash`, `workflowPolicyHash`, `captureContextHash`).
 - On resume/retry: Before starting any task, read the ownership marker.
   - If the marker matches the active `runId` and all input hashes, adopt the directory.

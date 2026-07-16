@@ -51,7 +51,10 @@ If no repository exists:
 3. Set HEAD: `git -c core.hooksPath=/dev/null symbolic-ref HEAD refs/heads/<defaultBranch>`.
 4. Add all existing files using `git -c core.hooksPath=/dev/null add -A`.
 5. Commit files using `git -c core.hooksPath=/dev/null commit -m "initial"` (or `--allow-empty` if no files exist).
-6. Create remote repository using Provider API client. The remote repository must be named exactly after the basename of the target folder (`canonicalRepositoryRoot`). If the creation fails with HTTP 409 Conflict (e.g. repo name already taken), throw `errored` immediately.
+6. Create remote repository using Provider API client. Wrap the API call in a try/catch block:
+   - The remote repository must be named exactly after the basename of the target folder (`canonicalRepositoryRoot`).
+   - If the creation fails with HTTP 409 Conflict (e.g., repo name already taken), throw `errored` immediately (terminal error, fail-closed).
+   - If the creation fails with a transient network error (e.g. DNS failure, connection timeout, HTTP 5xx Server Error, or HTTP 429 Rate Limit): throw a transient `PhaseError` without writing a terminal checkpoint to disk, enabling Turnlock's FSM runner to retry the task.
 7. Associate the remote: `git remote add origin <remoteUrl>`, and push branch: `git -c core.hooksPath=/dev/null push -u origin <defaultBranch>`. Set `sourceRepo` to `<remoteUrl>`.
 
 ### 4.1bis Resolve Git Base Pointers

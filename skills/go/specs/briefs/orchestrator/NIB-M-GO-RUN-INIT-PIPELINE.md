@@ -53,8 +53,7 @@ type RunInitPipelineInput = {
   - `state.runCapture = RunCaptureArtifact`
   - `state.workSession = WorkSession`
   - `state.projectDiscovery = ProjectDiscovery`
-  - `state.runInit.repoCapture = RepoCapture`
-  - `state.runInit.dirtyStateDiff = DirtyStateDiffArtifact`
+  - `state.runInit = RunInitRecord`
 - Returns a Promise resolving to `true` on successful initialization.
 
 ---
@@ -97,13 +96,25 @@ Before committing changes to the FSM:
    - If any finding inside the parsed array contains a severity of `"blocking"`:
      - Throw a `PhaseError` immediately (fail-closed). This aborts execution before emitting the implementation delegation to the agent.
      - *Note*: in Phase 2+, this throw will be replaced by a Turnlock `HumanGate` suspension trigger when the runtime supports it, letting users check the warning, resolve the issue, and resume execution.
-3. Map the payloads into the Turnlock runtime state:
+3. Construct the `RunInitRecord` artifact:
+   - `schema`: `"go.run-init.v1"`
+   - `runId`: From inputs.
+   - `repoCapture`: The resolved `RepoCapture` artifact.
+   - `repoCaptureHash`: The JCS hash of `RepoCapture`.
+   - `workflowPolicyHash`: The JCS hash of `policy.dirtyState`.
+   - `captureContextHash`: The JCS hash of `captureContext` (or sentinel hash if not applicable).
+   - `turnlockRun`: Reference to the active Turnlock run object.
+   - `artefactRootRef`: Path to `artefactRoot`.
+   - `workspaceRootReservedPath`: Path to `workspaceRoot`.
+   - `ownershipMarkerRef`: Path to the `run-init-ownership.json` file.
+   - `initializedAt`: Timestamp retrieved using `clock.nowWallIso()`.
+   - `dirtyStateDiff`: The resolved `DirtyStateDiffArtifact` (optional, if dirty).
+4. Map the payloads into the Turnlock runtime state:
    - `state.runCapture = RunCaptureArtifact`
    - `state.workSession = WorkSession`
    - `state.projectDiscovery = ProjectDiscovery`
-   - `state.runInit.repoCapture = RepoCapture`
-   - `state.runInit.dirtyStateDiff = DirtyStateDiffArtifact`
-4. Transition Turnlock to the `implementation` delegation phase.
+   - `state.runInit = RunInitRecord`
+5. Transition Turnlock to the `implementation` delegation phase.
 
 ---
 
@@ -135,6 +146,9 @@ export async function executeBootstrapPipeline(input) {
   };
 
   try {
+    // 0. Ensure target folders are initialized
+    fs.mkdirSync(artefactRoot, { recursive: true });
+
     // 1. Prerequisites validation
     const prereq = await abortOnReject(validatePrerequisites({ runId, artefactRoot, clock, signal }));
 
