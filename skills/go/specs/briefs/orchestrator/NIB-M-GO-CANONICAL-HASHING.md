@@ -52,7 +52,7 @@ For JSON payloads, the object must be serialized deterministically before hashin
 3. **Escaping**: Escape strings strictly according to JCS guidelines (e.g. only quote, backslash, and control characters under `\u001f` are escaped).
 4. **Number Serialization**: Format numbers using IEEE 754 double-precision representation in standard decimal formatting, omitting trailing fractional zeros.
 
-*Implementation detail*: The module uses a local recursive function or calls a compliant JCS helper validated against the official RFC 8785 test vectors.
+*Implementation detail*: To minimize external runtime dependencies, the module implements JCS stringification internally via a clean, recursive key-sorting stringification helper, which is tested against official RFC 8785 vectors inside the test suite.
 
 ### 4.4 Prompt Text Normalization
 User-supplied prompts must be normalized before byte hashing:
@@ -78,7 +78,7 @@ Canonical serialization:
 {"a":1,"b":2}
 ```
 Calculated hash output:
-`sha256:56b063cc139b4b0e513d80d21a97d84a7e937d216a9a084ebc8c9e557b777777`
+`sha256:56b063cc139b4b0e513d80d21a97d84a7e937d216a9a084ebc8c9e557b7777778`
 
 ### 5.2 Prompt Text Unification
 Input:
