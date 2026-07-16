@@ -115,6 +115,8 @@ export const runInitRecordSchema = z.object({
   initializedAt: z.string().datetime(),
   dirtyStateDiff: dirtyStateDiffArtifactSchema.optional()
 }).strict();
+
+export const implementationResultSchema = z.object({}).passthrough();
 ```
 
 
