@@ -33,8 +33,8 @@ type GitRunnerInput = {
 ```
 
 - **Dependency Contracts**:
-  - [DC-GIT-CLI-BOOTSTRAP.md](file:///Users/famillesendrison/Developper/Projects/dotagents/skills/go/specs/briefs/orchestrator/DC-GIT-CLI-BOOTSTRAP.md).
-  - [DC-BUN-SPAWN-ASYNC-RUNTIME.md](file:///Users/famillesendrison/Developper/Projects/dotagents/skills/go/specs/briefs/orchestrator/DC-BUN-SPAWN-ASYNC-RUNTIME.md).
+  - [DC-GIT-CLI-BOOTSTRAP.md](../DC-GIT-CLI-BOOTSTRAP.md).
+  - [DC-BUN-SPAWN-ASYNC-RUNTIME.md](../DC-BUN-SPAWN-ASYNC-RUNTIME.md).
 
 ---
 
@@ -92,12 +92,12 @@ type GitRunnerOutput = {
 
 ### 4.4 Lock Refresh Loop
 1. If the `refreshLock` callback is supplied, instantiate a periodic timer during process execution.
-2. **Interval**: Trigger `refreshLock()` every 2 minutes while `proc.exited` remains pending.
+2. **Interval**: Trigger `refreshLock()` every 20-25 minutes (e.g., every 20 minutes) while `proc.exited` remains pending to keep the Turnlock lock lease active.
 3. Clear the timer immediately upon process exit or error.
 
 ### 4.5 Token Redaction
 Before throwing or logging any command failure, scan the `stderr` string and redaction targets:
-1. Locate potential security token signatures matching Git credentials or HTTP Bearer tokens (e.g. standard PAT formats: `ghp_[a-zA-Z0-9]{36}`, `glpat-[a-zA-Z0-9_-]{20}`).
+1. Locate potential security token signatures matching Git credentials or HTTP Bearer tokens. The matching patterns must cover all 5 GitHub token prefixes (`ghp_`, `github_pat_`, `gho_`, `ghs_`, `ghu_`) as well as GitLab Personal Access Tokens (`glpat-`).
 2. Replace matching sequences with the string `[REDACTED_TOKEN]`.
 3. Throw the sanitized error.
 
