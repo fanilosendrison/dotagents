@@ -1,7 +1,7 @@
 # Pont Turnlock ↔ `/go` — Spécification de Conception
 
 Ce document spécifie comment l'orchestrateur `/go` **consomme** le runtime
-Turnlock. Il fait le pont entre l'API publique Turnlock v0.8.0 et les contrats
+Turnlock. Il fait le pont entre l'API publique Turnlock v0.9.0 et les contrats
 métier `/go` décrits dans les specs de conception (`run-init.md`,
 `go-workflow-contract.md`, `workflow-artifacts.md`).
 
@@ -25,8 +25,7 @@ Conséquences pour `/go` :
 - une phase Turnlock n'est pas synonyme de délégation ;
 - plusieurs étapes mécaniques peuvent vivre dans une même phase si elles
   appartiennent au même point stable ;
-- plusieurs phases TS-pures peuvent s'enchaîner sans délégation si elles
-  représentent des états métier distincts ;
+- toutes les étapes mécaniques pures s'enchaînent séquentiellement au sein d'une même phase Turnlock jusqu'au prochain point d'arrêt (délégation ou terminaison) ;
 - toute délégation doit reprendre dans une phase `resumeAt` qui consomme,
   valide, normalise et projette le résultat dans `WorkflowState`.
 
@@ -39,7 +38,7 @@ Conséquences pour `/go` :
 | Propriété          | Valeur                                              |
 |--------------------|-----------------------------------------------------|
 | Nom du package     | `turnlock`                                          |
-| Version contrainte | `^0.8.0` (semver minor-compatible)                  |
+| Version contrainte | `^0.9.0` (semver minor-compatible)                  |
 | Module type        | ESM (`"type": "module"`)                            |
 | Engine constraint  | `node >= 22` (copié de Turnlock)                    |
 | Runtime            | Bun (primary), Node.js ≥ 22 (secondary)            |
@@ -72,7 +71,7 @@ on utilise une liaison fichier relative dans le package.json :
 Le lien `file:` est acceptable pour le développement local Phase 1. Avant
 release, il devra être remplacé par :
 
-- Un package npm publié (`"turnlock": "^0.8.0"`), ou
+- Un package npm publié (`"turnlock": "^0.9.0"`), ou
 - Un lien conditionnel (npm `link:` en dev, npm registry en CI), ou
 - Un vendor bundle si Turnlock n'est pas publié publiquement.
 
@@ -82,7 +81,7 @@ release, il devra être remplacé par :
 
 ### 2.1 Conflit de Types TypeScript
 
-Turnlock v0.8.0 utilise `zod: "^3.22.0"`, tandis que `/go` utilise
+Turnlock v0.9.0 utilise `zod: "^3.22.0"`, tandis que `/go` utilise
 `zod: "4.4.3"`. TypeScript rejette l'affectation directe de schémas Zod v4 aux
 paramètres typés avec le `ZodSchema` de Zod v3 en raison d'un discriminant de
 version interne (`_zod.version.minor` incompatible).
@@ -138,7 +137,6 @@ import type { OrchestratorConfig, Phase } from "turnlock";
 import { runtimeStateSchema } from "./schemas/runtime-state.js";
 import { runInitPhase } from "./phases/run-init.js";
 import { implementationSettlementStub } from "./phases/implementation-settlement.js";
-import { dummyPhase } from "./phases/dummy-phase.js";
 
 // Chemin logique fourni par le harness parent (obligatoire sous gateway).
 function resolveGoEntryPath(): string {
@@ -157,7 +155,6 @@ const config: OrchestratorConfig<object> = {
   phases: {
     "run-init": runInitPhase as Phase<object, any, any>,
     "implementation-settlement": implementationSettlementStub as Phase<object, any, any>,
-    "dummy-phase": dummyPhase as Phase<object, any, any>,
   },
   // initialState : doit être resume-aware (cf. §4).
   // En mode fresh, construit le vrai BootstrapState depuis les args.
@@ -311,10 +308,9 @@ export const runInitPhase = definePhase<object>(
 
 > [!WARNING]
 > **Échafaudage temporaire** : cette phase est un stub Phase 1 uniquement.
-> En Phase 2, `implementation-settlement` transitionnera vers
-> `change-snapshot` conformément au
-> [workflow contract](../contracts/go-workflow-contract.md).
-> Le `dummy-phase` sera supprimé.
+> En Phase 2, `implementation-settlement` enchaînera avec les étapes mécaniques
+> (snapshots, conduct-settled, mechanical-gates) et déléguerait à nouveau
+> (remediation, review).
 
 Pour tester la boucle complète de délégation en Phase 1, cette phase sert de
 point de reprise :
@@ -334,10 +330,8 @@ export const implementationSettlementStub = definePhase<object>(
       timestamp: io.clock.nowWallIso(),
     });
 
-    // Transitionne vers dummy-phase en transmettant l'état tel quel.
-    // NOTE : En Phase 2, cette transition enrichira réellement le
-    // WorkflowState (snapshots, business artifacts).
-    return io.transition("dummy-phase", state);
+    // En Phase 1, on termine le workflow en retournant io.done(state).
+    return io.done(state);
   }
 );
 ```
