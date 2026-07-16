@@ -85,6 +85,12 @@ When a task starts:
 3. If they match, skip task execution, mark status as `passed` (or the status stored in the checkpoint), and project the cached `businessArtifactIds` into `WorkflowState`.
 4. If there is a mismatch, discard the checkpoint and execute the task.
 
+### 4.6 Timestamping
+Every task checkpoint (`BootstrapTaskCheckpoint`) must record:
+- `startedAt`: String ISO 8601 representation of the clock time captured at the task's entry point.
+- `endedAt`: String ISO 8601 representation of the clock time captured immediately before the checkpoint is written.
+These properties are mandatory under the Zod schema and must be passed to the checkpoint writer.
+
 ---
 
 ## 5. Example
@@ -121,7 +127,9 @@ import { writeCheckpoint } from "./persistence.js";
 await writeCheckpoint("repo-capture", {
   status: "passed",
   inputHash,
-  businessArtifactIds
+  businessArtifactIds,
+  startedAt: taskStartTime,
+  endedAt: clock.nowWallIso()
 });
 ```
 
