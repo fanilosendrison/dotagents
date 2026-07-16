@@ -7,6 +7,31 @@ métier `/go` décrits dans les specs de conception (`run-init.md`,
 
 ---
 
+## 0. Modèle mental d'intégration
+
+`/go` consomme Turnlock comme **colonne mécanique déterministe** du workflow.
+Une phase Turnlock `/go` avance jusqu'au prochain point stable, persistable et
+reprenable : bootstrap, settlement, snapshot, gates, routing, packaging, ou
+publication contrôlée.
+
+Une délégation est le **yield explicite** vers du travail non déterministe :
+implémentation agentique, review sémantique, remédiation, planification ou tout
+autre travail que le code ne doit pas décider seul. Turnlock ne rend pas ce
+travail déterministe ; il rend son contour déterministe.
+
+Conséquences pour `/go` :
+
+- une phase Turnlock n'est pas synonyme de stage métier ;
+- une phase Turnlock n'est pas synonyme de délégation ;
+- plusieurs étapes mécaniques peuvent vivre dans une même phase si elles
+  appartiennent au même point stable ;
+- plusieurs phases TS-pures peuvent s'enchaîner sans délégation si elles
+  représentent des états métier distincts ;
+- toute délégation doit reprendre dans une phase `resumeAt` qui consomme,
+  valide, normalise et projette le résultat dans `WorkflowState`.
+
+---
+
 ## 1. Liaison npm
 
 ### 1.1 Package identity
@@ -234,6 +259,11 @@ export const runtimeStateSchema = z.discriminatedUnion("schema", [
 ---
 
 ## 4. Définition des Phases
+
+Les phases `/go` doivent être nommées d'après le point mécanique qu'elles
+stabilisent, pas d'après le worker externe qu'elles invoquent. Quand une phase
+émet `io.delegate(...)`, son `resumeAt` pointe vers la phase de settlement qui
+prouvera le résultat avant de continuer le workflow.
 
 ### 4.1 Phase `run-init`
 
