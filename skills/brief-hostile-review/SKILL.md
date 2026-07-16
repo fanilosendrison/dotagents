@@ -42,7 +42,7 @@ Determine the audit mode before starting:
 * `blind-spot-sweep`: targeted check for omissions, implicit design assumptions, and failure modes.
 * `final-global-scan`: final sweep confirming all documents are aligned, hygiene rules hold (no absolute `file://` links, statuses correct), and 0 blockers remain.
 
-**Iteration rule**: after each correction cycle, re-run `claim-verification` on the fixes plus a fresh `blind-spot-sweep`. The review terminates only when a `final-global-scan` concludes **zero findings**.
+**Iteration rule**: after each correction cycle, re-run `claim-verification` on the fixes plus a fresh `blind-spot-sweep`. The correction loop only cycles `mechanical` findings (see §5); `decisional` findings accumulate in the **Decisions Required** table and are batched to the architect. The review terminates only when a `final-global-scan` concludes **zero findings**, where every `decisional` finding is either resolved by an explicit architect decision or explicitly deferred with a "deferred decision" note in the document.
 
 ## 3. Run Checklists, Then Probes
 
@@ -59,7 +59,26 @@ Determine the audit mode before starting:
 
 Severity is assigned per finding against these definitions — a probe or checklist hit is **not** automatically a blocker.
 
-## 5. Format the Output Report
+## 5. Assign Resolution Class
+
+Every finding also gets a **resolution class**, orthogonal to severity. Severity says how grave the defect is; the resolution class says **who can correct it**:
+
+* `mechanical`: the fix is fully determined by an authoritative referential — an autonomous corrector can apply it without consulting the architect.
+* `decisional`: the fix requires an architectural choice — only the architect can resolve it.
+
+Classify with three cascading tests:
+
+1. **Source-of-truth test**: can the Corrective Action cite an authoritative referential (upstream spec, dependency source code, methodology template — per meta-rule §1.2) that *uniquely* determines the fix? If yes → `mechanical`.
+2. **Normative-surface test**: does the fix alter the contract surface (schema, interface, artifact, error semantics) rather than merely restoring the document's conformity to it? If yes → `decisional`.
+3. **Two-reviewers test**: would two competent reviewers produce the same Corrective Action verbatim? If not (two or more defensible options with trade-offs) → `decisional`.
+
+**Hedging rule**: a hedge flagged under meta-rule §1.5 ("or similar", "might be") is a decision *not taken* — the hedge is the symptom, the missing decision is the defect. Always classify it `decisional`, never `mechanical`.
+
+**Corrective Action requirement for `decisional` findings**: do not decide. State the enumerated options, their trade-offs, and the reviewer's recommendation — the architect decides.
+
+The two axes combine independently (severity × resolution): a 🔴 `mechanical` is an immediate auto-fix; a 🔴 `decisional` is a blocking decision request; a 🟡 `decisional` is a deferrable decision request.
+
+## 6. Format the Output Report
 
 ### Report Template
 
@@ -75,23 +94,26 @@ Severity is assigned per finding against these definitions — a probe or checkl
 
 ## 3. Findings & Actionable Corrections
 ### [File name or Document ID]
-- **[Finding ID] [Severity: 🔴/🟡]** *[Section Reference]* *[Injected here / Inherited from upstream]*
+- **[Finding ID] [Severity: 🔴/🟡] [Resolution: mechanical/decisional]** *[Section Reference]* *[Injected here / Inherited from upstream]*
   - **Issue**: [Concise explanation of the defect / contradiction]
   - **Citation**: `[Line content or snippet from spec]`
   - **Source of Truth Reference**: `[Source file path/line or upstream spec line]`
-  - **Corrective Action**: [Exactly what needs to be changed/added]
+  - **Corrective Action**: [mechanical: exactly what needs to be changed/added | decisional: enumerated options + trade-offs + reviewer recommendation, without deciding]
 
-## 4. Cross-Document Coherence
+## 4. Decisions Required
+[One row per `decisional` finding: question → options → reviewer recommendation → responsible document. Empty table = no architect intervention needed.]
+
+## 5. Cross-Document Coherence
 [Table tracking shared types, interfaces, or constants between files and their matching status]
 
-## 5. Unverified Areas
+## 6. Unverified Areas
 [Explicit list of what was not checked, and why]
 
-## 6. Final Verdict
+## 7. Final Verdict
 > [One-sentence readiness verdict, plus re-inspection recommendation if the §1.8 threshold is met.]
 ```
 
-## 6. Capitalize
+## 7. Capitalize
 
 After every audit:
 

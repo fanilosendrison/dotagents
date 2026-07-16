@@ -2,7 +2,7 @@
 
 Baseline scan over **known** specification defect classes.
 
-> **Scope warning**: this list is non-exhaustive by construction — it is derived from past audit sessions and grows via the capitalization step (SKILL.md §6). It is a floor, not the perimeter: the generative probes ([probes.md](probes.md)) prime, and an audit that only ran these checklists is not complete. Concrete items marked "e.g." are illustrations from past sessions, not the rule itself.
+> **Scope warning**: this list is non-exhaustive by construction — it is derived from past audit sessions and grows via the capitalization step (SKILL.md §7). It is a floor, not the perimeter: the generative probes ([probes.md](probes.md)) prime, and an audit that only ran these checklists is not complete. Concrete items marked "e.g." are illustrations from past sessions, not the rule itself.
 
 ---
 
