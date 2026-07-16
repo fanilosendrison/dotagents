@@ -22,7 +22,7 @@ This module executes the initial fail-fast checks of the `/go` bootstrap phase. 
 
 ## 2. Inputs
 
-- **Context Parameters**: `runId` and `artefactRoot`.
+- **Context Parameters**: `runId`, `artefactRoot`, and `clock` (the Turnlock runtime clock passed via pipeline context).
 - **Static files and binaries**:
   - `~/.go/config.json` (resolved via `realpath`).
   - `git --version` (available on system `PATH`).
@@ -70,6 +70,7 @@ This module executes the initial fail-fast checks of the `/go` bootstrap phase. 
    - `username`: non-empty string.
    - `defaultVisibility`: `"private"` or `"public"`.
    - `apiEndpoint`: optional url string (must be absolute HTTP/HTTPS parseable URL).
+     - **Default Fallbacks**: If `apiEndpoint` is absent, the SaaS public API endpoint of the provider is resolved by default: `https://api.github.com` for github and `https://gitlab.com/api/v4` for gitlab.
 3. **Token Format Enforcement**:
    - For `provider: "github"`, verify the token string starts with one of the standard prefixes: `ghp_`, `github_pat_`, `gho_`, `ghs_`, or `ghu_`.
    - For `provider: "gitlab"`, verify the token string starts with `glpat-`.
@@ -86,16 +87,26 @@ This module executes the initial fail-fast checks of the `/go` bootstrap phase. 
      provider: config.provider,
      username: config.username,
      defaultVisibility: config.defaultVisibility,
-     apiEndpoint: config.apiEndpoint,
+     apiEndpoint: config.apiEndpoint ?? (config.provider === "github" ? "https://api.github.com" : "https://gitlab.com/api/v4"),
      gitVersion: rawGitVersionString,
-     validatedAt: new Date().toISOString()
+     validatedAt: clock.nowWallIso()
    }
    ```
 3. Save this object atomically to `targetDir/prerequisite-validation.json`.
 4. Concurrently, compute `inputHash` as the SHA-256 digest of the raw byte concatenation of:
    - The raw contents of `~/.go/config.json` (as read from disk, before parsing).
    - The raw stdout string output of `git --version`.
-5. Save the `BootstrapTaskCheckpoint` object atomically to `targetDir/task-record.json`, using the calculated `inputHash` and fixing all other hash references (`repoCaptureHash`, `workflowPolicyHash`, `captureContextHash`) to the 64-zero sentinel hash value `sha256:0000000000000000000000000000000000000000000000000000000000000000`.
+5. Write the `BootstrapTaskCheckpoint` file `task-record.json` atomically inside `targetDir` using the calculated `inputHash`, recording `startedAt` (captured via `clock.nowWallIso()` at task start) and `endedAt` (captured via `clock.nowWallIso()` at write time), and fixing all other hash references (`repoCaptureHash`, `workflowPolicyHash`, `captureContextHash`) to the 64-zero sentinel hash value `sha256:0000000000000000000000000000000000000000000000000000000000000000`.
+
+### 4.5 Checkpoint and Retry Behavior
+Before executing any verification steps:
+1. Locate the checkpoint file `task-record.json` inside the target directory:
+   `<artefactRoot>/startup/prerequisite-validation/task-record.json`.
+2. **Adoption**: If the checkpoint is present, valid, in a terminal state of `passed`, and its stored `inputHash` exactly matches the freshly computed `inputHash` (concatenation of the raw bytes of `~/.go/config.json` and the output of `git --version`):
+   - Skip all checks and adopt the existing `prerequisite-validation.json` artifact directly.
+3. **Mismatch Failures**: If the checkpoint is present but the `inputHash` differs from the computed `inputHash`:
+   - Throw a blocking error (resolves to `failed`). The global provider config and Git version are considered immutable parameters for the duration of a run; any deviation indicates environment corruption.
+4. **Unexecuted/Terminal Fails**: If no checkpoint exists, proceed with full verification. If a checkpoint exists but has a terminal status of `failed` or `errored`, preserve the status and abort immediately (fail-closed, no automatic retry).
 
 ---
 
@@ -121,6 +132,7 @@ Saved `prerequisite-validation.json`:
   "provider": "github",
   "username": "developer-user",
   "defaultVisibility": "private",
+  "apiEndpoint": "https://api.github.com",
   "gitVersion": "git version 2.45.0",
   "validatedAt": "2026-07-16T15:28:00.000Z"
 }
@@ -149,7 +161,7 @@ Executed as the first task of the bootstrap pipeline:
 ```ts
 import { validatePrerequisites } from "./prerequisites.js";
 
-const validation = await validatePrerequisites({ runId, artefactRoot });
+const validation = await validatePrerequisites({ runId, artefactRoot, clock });
 ```
 
 ---
