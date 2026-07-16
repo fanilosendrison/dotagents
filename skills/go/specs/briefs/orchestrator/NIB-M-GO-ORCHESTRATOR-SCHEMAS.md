@@ -22,9 +22,9 @@ This module defines and exports all Zod validation schemas and derived TypeScrip
 
 ## 2. Inputs
 
-- **Reference Specification**: [workflow-artifacts.md](file:///Users/famillesendrison/Developper/Projects/dotagents/skills/go/specs/working/contracts/workflow-artifacts.md) for types mapping.
+- **Reference Specification**: [workflow-artifacts.md](../../working/contracts/workflow-artifacts.md) for types mapping.
 - **Dependency Contracts**:
-  - [DC-ZOD-3-4-COMPAT.md](file:///Users/famillesendrison/Developper/Projects/dotagents/skills/go/specs/briefs/orchestrator/DC-ZOD-3-4-COMPAT.md).
+  - [DC-ZOD-3-4-COMPAT.md](../DC-ZOD-3-4-COMPAT.md).
 
 ---
 
@@ -47,7 +47,7 @@ Exports the following Zod v4 schemas and matching TypeScript types:
 - `dirtyStateDiffArtifactSchema` / `DirtyStateDiffArtifact`
 - `workSessionSchema` / `WorkSession`
 - `projectDiscoverySchema` / `ProjectDiscovery`
-- `implementationResultSchema` / `ImplementationResult`
+- `implementationResultSchema` / `ImplementationResult` (*Note: internal structure schema defined in [NIB-M-GO-IMPLEMENTATION-DELEGATION-STUB.md](./NIB-M-GO-IMPLEMENTATION-DELEGATION-STUB.md)*)
 
 ---
 
@@ -77,9 +77,10 @@ export const runtimeStateSchema = z.discriminatedUnion("schema", [
 - `packaging` (clean workspace criteria, PR rules).
 - `retention` (cleanup policies).
 
-### 4.4 Task Records and Checkpoints
+### 4.4 Task Records, Identifiers, and Checkpoints
+- **Run ID validation**: All fields holding a `runId` must strictly validate against the Crockford ULID regex `/^[0-9A-HJKMNP-TV-Z]{26}$/` to ensure identifier uniqueness and syntax correctness.
 - `bootstrapTaskRecordSchema`: maps task name enums (`prerequisite-validation`, `repo-capture`, etc.) and status enums (`not-started`, `running`, `passed`, `failed`, `errored`, `cancelled`).
-- `bootstrapTaskCheckpointSchema`: requires `inputHash` matching the Crockford `sha256:` prefix, `startedAt` and `endedAt` conforming to ISO-8601 datetime strings.
+- `bootstrapTaskCheckpointSchema`: requires `inputHash` matching the standard hexadecimal `sha256:` prefix pattern, `startedAt` and `endedAt` conforming to ISO-8601 datetime strings.
 
 ---
 
@@ -90,6 +91,8 @@ Excerpts from the schemas file `src/orchestrator/schemas.ts`:
 ```ts
 import { z } from "zod";
 
+export const runIdSchema = z.string().regex(/^[0-9A-HJKMNP-TV-Z]{26}$/);
+
 export const bootstrapStateSchema = z.object({
   schema: z.literal("go.bootstrap-state.v1"),
   invocationDirectory: z.string().min(1),
@@ -99,7 +102,7 @@ export const bootstrapStateSchema = z.object({
 
 export const runInitRecordSchema = z.object({
   schema: z.literal("go.run-init.v1"),
-  runId: z.string().min(1),
+  runId: runIdSchema,
   repoCapture: repoCaptureSchema,
   repoCaptureHash: z.string().min(1),
   workflowPolicyHash: z.string().min(1),
@@ -113,6 +116,7 @@ export const runInitRecordSchema = z.object({
   dirtyStateDiff: dirtyStateDiffArtifactSchema.optional()
 }).strict();
 ```
+
 
 ---
 
