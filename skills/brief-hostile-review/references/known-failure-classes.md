@@ -43,6 +43,7 @@ Baseline scan over **known** specification defect classes.
 * **Close References Bidirectionally**: Every field/type used by one document and owned by another must exist there (used-but-undefined), and defined elements never consumed anywhere should be flagged (defined-but-unconsumed).
 * **Align Shared Constants**: Ensure limits, intervals, and timeouts are identical across all specs (e.g., a lock refresh defined as `2 minutes` in one document and `20-25 minutes` in another).
 * **Enforce Canonical Vocabulary**: Verify terminology and spelling consistency for shared concepts (e.g., `artefactRoot` vs `artifacts/`; an encoding name applied to the wrong format).
+* **Verify Status-Code Assertions Against Producing Module**: Every task-status assertion in the NIB-T must match the exact status code (`passed` / `failed` / `errored` / `cancelled`) produced by the referenced NIB-M's algorithm for that specific failure condition — a status value from the system-wide enum that the specific NIB-M never produces for that path is a coherence defect.
 * **Verify Responsibility Boundaries**: Check for gaps where no document owns a required operation, and overlaps where two documents own it (they will diverge).
 * **Verify Declared Extension/Inheritance**: When a document extends or refines another (a DC extending a base DC, a NIB-M refining a contract), the relationship must be declared and the perimeter split explicit.
 
