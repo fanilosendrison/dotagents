@@ -23,9 +23,9 @@ This module defines the filesystem layout, atomic file-writing protocols, checkp
 ## 2. Inputs
 
 - **Context Parameters**: `runId`, `runDir`, `workspaceRoot`, `artefactRoot`.
-- **Reference Specification**: [workflow-artifacts.md](file:///Users/famillesendrison/Developper/Projects/dotagents/skills/go/specs/working/contracts/workflow-artifacts.md) for checkpoint schemas.
+- **Reference Specification**: [workflow-artifacts.md](../../working/contracts/workflow-artifacts.md) for checkpoint schemas.
 - **Dependency Contracts**:
-  - Native runtime `fs` modules (covered by `DC-BUN-SPAWN-ASYNC-RUNTIME` for filesystem operations).
+  - [DC-BUN-SPAWN-ASYNC-RUNTIME.md](../DC-BUN-SPAWN-ASYNC-RUNTIME.md).
 
 ---
 
@@ -44,9 +44,9 @@ The module organizes the run directory namespace according to the following layo
 <runDir>/
   ├── state.json (Turnlock FSM state)
   ├── events.ndjson (Turnlock execution events)
-  └── artifacts/ (artefactRoot)
+  ├── logs/ (internal task stdout/stderr logs and turnlock events)
+  └── <artefactRoot>/
         ├── run-init-ownership.json (ownership marker)
-        ├── logs/ (internal task stdout/stderr logs)
         └── startup/
               ├── prerequisite-validation/
               │     └── task-record.json (checkpoint)
@@ -58,7 +58,7 @@ The module organizes the run directory namespace according to the following layo
 ### 4.2 Path Containment Invariants
 Every path generated, resolved, or stored by bootstrap tasks must comply with these rules:
 1. `runDir` must be outside the target source repository.
-2. `artefactRoot` (typically `<runDir>/artifacts/`) must reside outside the workspace directory (`workspaceRoot`).
+2. `artefactRoot` (passed dynamically by config) must reside outside the workspace directory (`workspaceRoot`).
 3. **No Traversal Escapes**: Every resolved evidence file or checklist reference must sit within `artefactRoot`. The path must be resolved using `fs.realpath` and checked:
    `resolvedPath.startsWith(artefactRoot)`
    If `false`, throw a `ProtocolError` immediately to prevent file system traversal.
@@ -91,7 +91,7 @@ When a task starts:
 
 ### 5.1 Checkpoint Adoption Flow
 Task `repo-capture` starts on a retry run:
-- Reads `artifacts/startup/repo-capture/task-record.json`.
+- Reads `<artefactRoot>/startup/repo-capture/task-record.json`.
 - Compares checkpoint `inputHash` to current computed hash.
 - Match confirmed: skips execution, returning the existing checkpoint artifact IDs.
 
