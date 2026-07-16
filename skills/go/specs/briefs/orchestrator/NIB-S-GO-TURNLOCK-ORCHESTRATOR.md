@@ -202,6 +202,12 @@ type RunCaptureArtifact = {
   capturedAt: string;
 };
 
+type DirtyStateDiffAdoption = {
+  captureArtifactId: string;
+  replayedIntoWorkspace: boolean;
+  workspaceStatusAfterReplayRef: string;
+};
+
 type WorkSession = {
   runId: string;
   repositoryRoot: string;
@@ -213,7 +219,7 @@ type WorkSession = {
   baseHeadSha: string;
   baseRemote?: string;
   defaultTargetBranch: string;
-  dirtyStateDiffAdoption?: any;
+  dirtyStateDiffAdoption?: DirtyStateDiffAdoption;
   workBranch: string;
   workBranchCreatedAt: string;
 };
