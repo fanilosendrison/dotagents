@@ -250,6 +250,12 @@ Each edge case below is a standalone test that validates a specific failure mode
 - **Setup**: Parallel branch A completes successfully before branch B rejects. Controller is aborted after A finishes.
 - **Assertions**: Pipeline correctly records A's successful checkpoint and B's error. Process exits with code `1` (pipeline error takes precedence over partial success).
 
+#### 4.9.8 Empty-Collection Invariant — Non-Empty Rejection
+
+- **Validates**: NIB-S-GO-TURNLOCK-ORCHESTRATOR §3 (Phase 1 empty-collection invariant), NIB-M-GO-ORCHESTRATOR-SCHEMAS §4.4
+- **Setup**: A crafted `WorkflowState` payload where `snapshots: [{ id: "forced", stage: "implementation" as any }]` — i.e., any of the nine Phase 2+ fields contains at least one element.
+- **Assertions**: `workflowStateSchema.parse(payload)` must throw a `ZodError`. The error path must reference the offending field. Repeat for each of the nine constrained fields: `snapshots`, `checks`, `findings`, `humanGates`, `remediations`, `branches`, `commits`, `pullRequests`, `mergeTracking`. `executionRecords` and `businessArtifacts` are exempt: they are legitimately populated in Phase 1.
+
 ### 4.10 Property Tests
 
 The following properties must hold across all valid inputs. Implement as parameterized/fuzz tests.
@@ -406,6 +412,7 @@ Scenario                        NIB-M(s) Covered                                
 4.9.5 Empty Patch               DIRTY-STATE-CAPTURE                              Empty diff after status
 4.9.6 LFS Missing               WORKSPACE-SETUP-WORKTREE                         lfs pull failure
 4.9.7 Abort After Completion    RUN-INIT-PIPELINE                                Late cancellation race
+4.9.8 Empty-Collection Guard    ORCHESTRATOR-SCHEMAS                             Nine fields reject non-empty []
 4.10 Property Tests (P1-P10)    CANONICAL-HASHING,                               All hash/containment/
                                 BOOTSTRAP-PERSISTENCE,                           isolation invariants
                                 ASYNC-GIT-RUNNER,
