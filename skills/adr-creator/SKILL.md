@@ -41,7 +41,7 @@ adr-creator/
 │   ├── CONTEXT.md
 │   ├── templates/
 │   └── output/
-├── 05-agent-self-review/                 ← Verify that the draft faithfully reflects the session's intent and adheres to formatting rules.
+├── 05-compliance-and-alignment/          ← Verify that the draft faithfully reflects the session's intent and adheres to formatting rules.
 │   ├── CONTEXT.md
 │   └── output/
 └── 06-final-presentation-and-sealing/    ← Present the draft to the user, await final approval, and commit the file.
