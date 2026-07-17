@@ -50,8 +50,10 @@ cd ~/.agents/skills/git-commits-push && bun run start
 ├── conventions/              ← Passive conventions
 │   ├── file-and-folder-naming.md ← Universal rules for naming files and folders
 │   ├── markdown-formatting.md    ← Global formatting, tone, and OKF syntax rules
+│   ├── okf-specification.md      ← Open Knowledge Format (OKF) schema specification
 │   └── semver.md             ← Shows you how to number versions
-├── docs/                     ← Documentation for agent enforcers
+├── docs/                     ← Enforcer documentation and workspace ADRs
+│   ├── adr/                          ← Workspace-level Architecture Decision Records (NNNN-*.md)
 │   ├── command-validator.md          ← Enforces command and tool validation
 │   ├── CONTEXT.md                    ← Index of all enforcers
 │   ├── git-commits-push-enforcer.md  ← Forces you to push after you commit
@@ -96,6 +98,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
 | Know how to name files and folders                  | `conventions/file-and-folder-naming.md`      |
 | Know how to format markdown (Syntax, OKF, Voice)    | `conventions/markdown-formatting.md`         |
 | Know about the Open Knowledge Format (OKF) schema   | `conventions/okf-specification.md`           |
+| Consult recorded architecture decisions (ADRs)      | `docs/adr/`                                  |
 | Know about the way you verify bash commands         | `docs/command-validator.md`                  |
 | Know about code modification permission (/go)       | `docs/permission-enforcer.md`                |
 | Know about how you enforce git commit and push      | `docs/git-commits-push-enforcer.md`          |
