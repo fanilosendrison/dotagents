@@ -1,7 +1,7 @@
 ---
 id: NIB-S-GO-TURNLOCK-ORCHESTRATOR
 type: nib-system
-version: "1.0.1"
+version: "1.1.0"
 scope: go-turnlock-orchestrator
 status: active
 consumers: [claude-code]
@@ -346,6 +346,8 @@ Phase: implementation-settlement (Process 2)
         └── Exit 0 (writes output.json, DONE block, releases lock)
 ```
 
+> **Deviation from the construction plan.** [PLAN-GO-TURNLOCK-ORCHESTRATOR-PHASE-1.md §5](./PLAN-GO-TURNLOCK-ORCHESTRATOR-PHASE-1.md) specifies a three-phase FSM (`run-init -> implementation-settlement -> dummy-phase`) in which `dummy-phase` is reached via `io.transition()`. Turnlock v0.9 removed transition chaining ([DC-TURNLOCK-RUNTIME-v0.9.md](./DC-TURNLOCK-RUNTIME-v0.9.md), "No transition chaining"): a phase may only end with `done`, `fail`, or `delegate`. The `dummy-phase` placeholder is therefore dropped. `implementation-settlement` is the terminal phase and calls `io.done(state)` directly, consistent with [NIB-M-GO-IMPLEMENTATION-DELEGATION-STUB.md §4.2](./NIB-M-GO-IMPLEMENTATION-DELEGATION-STUB.md) and the NIB-T resume scenarios. This NIB-S supersedes the plan on this point.
+
 ### 4.2 Internal Bootstrap Pipeline Graph
 Inside the `run-init` phase, the execution sequences as follows:
 
@@ -414,7 +416,47 @@ run-init phase entry
 
 ---
 
-## 6. Global invariants
+## 6. Target file tree
+
+The Phase 1 implementation must produce exactly the following layout under the `/go` package root, alongside the existing `stage-harness` areas. File names are normative: they match the import statements declared in the NIB-M integration sections.
+
+```text
+src/orchestrator/
+├── index.ts                # M1 — executable entry point, phase registry, fresh/resume interception
+├── config.ts               # M1 — buildConfig: Turnlock OrchestratorConfig wiring
+├── schemas.ts              # M2 — Zod schemas and derived types
+├── canonical-hash.ts       # M3 — RFC 8785 JCS hashing and prompt normalization
+├── persistence.ts          # M4 — artefactRoot layout, atomic writes, checkpoints
+├── async-process.ts        # M5 — Bun.spawn async subprocess runner (runGit)
+├── pipeline.ts             # M6 — executeBootstrapPipeline coordinator
+├── prerequisites.ts        # M7 — validatePrerequisites
+├── repo-capture.ts         # M8 — captureRepository
+├── run-capture.ts          # M9 — captureRunContext
+├── dirty-state.ts          # M10 — captureDirtyState
+├── workspace.ts            # M11 — setupWorkspace strategy contract
+├── workspace-worktree.ts   # M12 — setupWorkspaceWorktree strategy
+├── discovery.ts            # M13 — finalizeDiscovery
+├── registry.ts             # M14 — ECOSYSTEM_REGISTRY
+└── delegation-stub.ts      # M15 — buildImplementationPrompt + implementationSettlementStub
+
+tests/orchestrator/
+├── acceptance/             # NIB-T behavioral scenarios
+├── properties/             # NIB-T parameterized/fuzz property tests
+├── fixtures/               # Source repos, provider configs, STACK_EVAL.yaml templates
+└── helpers/                # io mocks, deterministic clocks, Turnlock protocol capture
+```
+
+Constraints:
+
+- `src/orchestrator/index.ts` is the sole executable entry point referenced by `GO_ENTRY_PATH` and the generated `resumeCommand`.
+- One production file per module listed in Section 5; introducing additional top-level files requires a brief revision.
+- Orchestrator sources never import from `src/stage-harness/`, and vice versa. The two areas share no code in Phase 1.
+- Test files live exclusively under `tests/orchestrator/`; the GREEN Layer 1 companion checklist verifies this tree shape.
+- This layout refines [PLAN-GO-TURNLOCK-ORCHESTRATOR-PHASE-1.md §12](./PLAN-GO-TURNLOCK-ORCHESTRATOR-PHASE-1.md) as permitted by the plan ("The NIB-S may refine names"), flattening the module files to match the NIB-M import contracts while preserving the orchestrator/stage-harness separation.
+
+---
+
+## 7. Global invariants
 
 - **Snapshot-authoritative**: `state.json` written by Turnlock remains the sole execution truth. `/go` never writes or overrides `state.json` directly.
 - **Fail-closed**: Any unexpected startup error, validation failure, path collision, or invalid schema terminates process execution instantly with code 1.
@@ -428,7 +470,7 @@ run-init phase entry
 
 ---
 
-## 7. Cross-cutting policies
+## 8. Cross-cutting policies
 
 - **C1: Separation of Execution Concerns**: Turnlock manages transaction control, persistence, signal capturing, and exit boundaries. `/go` governs business logic schemas, task validation, and transition criteria.
 - **C2: Atomic Task checkpoints**: Each startup task must serialize its execution outcome to a `task-record.json` checkpoint. On retry, tasks with matching input hashes are adopted without execution.
@@ -437,14 +479,14 @@ run-init phase entry
 
 ---
 
-## 8. Output contract
+## 9. Output contract
 
 Upon successful completion, the orchestrator produces `output.json` under `<runDir>/output.json` containing the final `WorkflowState` JSON object.
 The exit code of the final resume process is exactly `0`.
 
 ---
 
-## 9. Orchestration pseudocode
+## 10. Orchestration pseudocode
 
 ```ts
 import { definePhase, runOrchestrator } from "turnlock";
@@ -494,13 +536,13 @@ export const implementationSettlementStub = definePhase<object>(
 
 ---
 
-## 10. Required NIB-M set
+## 11. Required NIB-M set
 
 The system construction requires the implementation of the 15 Module Briefs defined in Section 5. They must be placed under `specs/briefs/orchestrator/` and named `NIB-M-GO-*.md` in uppercase kebab-case.
 
 ---
 
-## 11. Dependency contracts
+## 12. Dependency contracts
 
 Construction relies on the following Dependency Contracts:
 - `DC-TURNLOCK-RUNTIME-v0.9.md`
@@ -513,7 +555,7 @@ The implementing agent must verify that dependency usage adheres to these contra
 
 ---
 
-## 12. Explicit non-goals
+## 13. Explicit non-goals
 
 The following capabilities are excluded:
 - Initializing OCI containers (OrbStack, Colima, Docker).
@@ -522,7 +564,7 @@ The following capabilities are excluded:
 
 ---
 
-## 13. Construction consumption
+## 14. Construction consumption
 
 This NIB-S is the authority for the system architecture. It must be consumed during RED to formulate the initial behavioral test suite, then during GREEN to write the production code.
 

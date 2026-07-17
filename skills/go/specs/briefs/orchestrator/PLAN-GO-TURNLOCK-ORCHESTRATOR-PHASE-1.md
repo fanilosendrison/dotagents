@@ -141,6 +141,16 @@ phase to consume the pending delegation result. `dummy-phase` is a temporary
 terminal placeholder that keeps the FSM complete until Phase 2 replaces it with
 the next real stage wiring.
 
+> **Errata (superseded by the brief set).** This section was written against
+> Turnlock v0.8, which supported `io.transition()`. Turnlock v0.9
+> ([DC-TURNLOCK-RUNTIME-v0.9.md](./DC-TURNLOCK-RUNTIME-v0.9.md), "No
+> transition chaining") removed transition chaining, so `dummy-phase` is
+> unreachable. The realized Phase 1 FSM has exactly two phases —
+> `run-init -> implementation-settlement` — with `implementation-settlement`
+> terminal via `io.done()`. All `dummy-phase` references in this plan,
+> including the `DC-TURNLOCK-RUNTIME-v0.8.md` naming, are superseded by
+> [NIB-S-GO-TURNLOCK-ORCHESTRATOR.md §4.1](./NIB-S-GO-TURNLOCK-ORCHESTRATOR.md).
+
 ## 6. Future Brief Set
 
 The approved brief set is:
