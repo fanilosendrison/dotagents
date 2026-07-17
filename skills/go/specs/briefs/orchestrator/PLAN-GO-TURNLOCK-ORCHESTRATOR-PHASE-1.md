@@ -46,8 +46,8 @@ The future briefs must be derived from the active design documents below:
 - `../../roadmap.md`
 - `../../CONTEXT.md`
 - `../../working/orchestrator/turnlock-bridge.md`
-- `../../working/contracts/go-workflow-contract.md`
-- `../../working/contracts/workflow-artifacts.md`
+- `../../contracts/go-workflow-contract.md`
+- `../../contracts/workflow-artifacts.md`
 - `../../working/run-init/run-init.md`
 - `../../working/run-init/prerequisite-validation.md`
 - `../../working/run-init/repo-capture.md`
@@ -56,9 +56,9 @@ The future briefs must be derived from the active design documents below:
 - `../../working/run-init/workspace-setup.md`
 - `../../working/run-init/workspace-setup.worktree.md`
 - `../../working/run-init/project-discovery-finalize.md`
-- `../../working/standards/canonical-hashing.md`
-- `../../working/standards/external-primitives.md`
-- `../../working/standards/canonical-vocabulary.md`
+- `../../standards/canonical-hashing.md`
+- `../../standards/external-primitives.md`
+- `../../standards/canonical-vocabulary.md`
 - `../stage-harness/`
 
 The stage harness is already implemented. The orchestrator briefs must consume
@@ -272,8 +272,8 @@ Purpose:
 
 Primary sources:
 
-- `../../working/contracts/workflow-artifacts.md`
-- `../../working/contracts/go-workflow-contract.md`
+- `../../contracts/workflow-artifacts.md`
+- `../../contracts/go-workflow-contract.md`
 - `../../working/orchestrator/turnlock-bridge.md`
 
 Required schemas:
@@ -325,7 +325,7 @@ Purpose:
 
 Primary source:
 
-- `../../working/standards/canonical-hashing.md`
+- `../../standards/canonical-hashing.md`
 
 Required contents:
 
@@ -357,7 +357,7 @@ Purpose:
 Primary sources:
 
 - `../../working/run-init/run-init.md`
-- `../../working/contracts/workflow-artifacts.md`
+- `../../contracts/workflow-artifacts.md`
 
 Required contents:
 
@@ -393,7 +393,7 @@ Purpose:
 Primary sources:
 
 - `../../working/orchestrator/turnlock-bridge.md`
-- `../../working/standards/external-primitives.md`
+- `../../standards/external-primitives.md`
 
 Required contents:
 
@@ -734,7 +734,7 @@ Purpose:
 Primary sources:
 
 - `../../working/orchestrator/turnlock-bridge.md`
-- `../../working/contracts/go-workflow-contract.md`
+- `../../contracts/go-workflow-contract.md`
 
 Required contents:
 

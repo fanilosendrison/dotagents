@@ -1,3 +1,18 @@
+---
+okf_version: "1.0"
+kind: "RuntimeArtifact"
+format: "cubits-design-doc"
+workspace: "go"
+date: "2026-07-17"
+step_id: 0
+id: CDD-GO-IMPLEMENTATION
+version: "1.0.0"
+scope: stages
+status: active
+consumers: [agent-generator]
+superseded_by: []
+---
+
 # Stage `implementation`
 
 `implementation` est le stage logique qui délègue la création du changement à

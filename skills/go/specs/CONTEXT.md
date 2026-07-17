@@ -12,7 +12,7 @@ Les documents actifs distinguent maintenant :
 - **artefact métier typé** : payload JSON durable validé avant projection dans
   `WorkflowState`.
 
-Voir [`working/standards/canonical-vocabulary.md`](./working/standards/canonical-vocabulary.md).
+Voir [`standards/canonical-vocabulary.md`](./standards/canonical-vocabulary.md).
 
 ---
 
@@ -118,51 +118,41 @@ Ces documents sont normatifs pour construction RED/GREEN.
 
 ---
 
+## Permanent Standards & Contracts
+
+Ces documents ont été extraits des conceptions et agissent comme des lois globales et permanentes pour l'ensemble du workspace. Ils échappent au cycle de vie "fini" des CDDs.
+
+### Standards
+
+- [`canonical-vocabulary.md`](./standards/canonical-vocabulary.md)
+  - Vocabulaire canonique.
+- [`canonical-hashing.md`](./standards/canonical-hashing.md)
+  - Profil RFC 8785 / JCS pour les hashes JSON metier.
+- [`external-primitives.md`](./standards/external-primitives.md)
+  - Standards, formats et outils a reutiliser au lieu de primitives maison.
+- [`software-design-workflow.md`](./standards/software-design-workflow.md)
+  - Cycle complet `/go`.
+- [`multi-agent-concurrency.md`](./standards/multi-agent-concurrency.md)
+  - Concurrence multi-run et worktrees physiques.
+
+### Contrats
+
+- [`go-workflow-contract.md`](./contracts/go-workflow-contract.md)
+  - Contrat central du workflow.
+- [`workflow-artifacts.md`](./contracts/workflow-artifacts.md)
+  - Types JSON partagés du workflow, dont artefacts métier typés.
+
+---
+
 ## Working actifs
 
 Ces documents sont les specs de conception en cours. Ils seront promus en NIB
 quand leur niveau de détail sera suffisant pour construction.
 
-### Standards
+### Sandbox (Bloqué)
 
-- [`canonical-vocabulary.md`](./working/standards/canonical-vocabulary.md)
-  - Vocabulaire canonique.
-- [`canonical-hashing.md`](./working/standards/canonical-hashing.md)
-  - Profil RFC 8785 / JCS pour les hashes JSON metier.
-- [`external-primitives.md`](./working/standards/external-primitives.md)
-  - Standards, formats et outils a reutiliser au lieu de primitives maison.
-- [`software-design-workflow.md`](./working/standards/software-design-workflow.md)
-  - Cycle complet `/go`.
-- [`multi-agent-concurrency.md`](./working/standards/multi-agent-concurrency.md)
-  - Concurrence multi-run et worktrees physiques.
-
-### Contrats
-
-- [`go-workflow-contract.md`](./working/contracts/go-workflow-contract.md)
-  - Contrat central du workflow.
-- [`workflow-artifacts.md`](./working/contracts/workflow-artifacts.md)
-  - Types JSON partagés du workflow, dont artefacts métier typés.
-
-### Phase `run-init`
-
-- [`run-init.md`](./working/run-init/run-init.md)
-  - Phase Turnlock de bootstrap : bootstrap tasks, joins et projection fail-closed.
-- [`prerequisite-validation.md`](./working/run-init/prerequisite-validation.md)
-  - Validation des prérequis : ProviderConfig + version Git, fail-fast.
-- [`repo-capture.md`](./working/run-init/repo-capture.md)
-  - Resolution mecanique du repo cible depuis le CWD.
-- [`dirty-state-capture.md`](./working/run-init/dirty-state-capture.md)
-  - Capture du dirty state host-side avant création du workspace.
-- [`run-capture.md`](./working/run-init/run-capture.md)
-  - Capture du prompt `/go`, extrait de session et hashes.
-- [`workspace-setup.md`](./working/run-init/workspace-setup.md)
-  - Contrat commun du workspace et `WorkSession`.
-- [`workspace-setup.worktree.md`](./working/run-init/workspace-setup.worktree.md)
-  - Stratégie Git Worktree : pipeline `git worktree add`.
-- [`workspace-setup.md`](./working/run-init/workspace-setup.md)
-  - Discovery repo non autoritative depuis le checkout source.
-- [`project-discovery-finalize.md`](./working/run-init/project-discovery-finalize.md)
-  - Finalisation de la discovery repo contre le worktree prive.
+- [`workspace-setup.sandbox.md`](./working/run-init/workspace-setup.sandbox.md)
+  - Stratégie OCI Sandbox (Docker/OrbStack) — bloquée par macOS 12.
 
 ### Stages
 
@@ -180,6 +170,29 @@ quand leur niveau de détail sera suffisant pour construction.
   - Gate CI autoritative sur la PR publiee.
 - [`package-and-publish.md`](./working/stages/package-and-publish.md)
   - `package-plan`, `package-verify`, branches, commits, PRs.
+
+---
+
+## Working Archives (Phase 1 extraite)
+
+Ces documents de la Phase 1 (`run-init`) ont été entièrement extraits sous forme de NIBs et sont désormais archivés (`status: extracted-archive`). Ils ne sont plus maintenus en phase avec le code.
+
+- [`run-init.md`](./working/run-init/run-init.md)
+  - Phase Turnlock de bootstrap : bootstrap tasks, joins et projection fail-closed.
+- [`prerequisite-validation.md`](./working/run-init/prerequisite-validation.md)
+  - Validation des prérequis : ProviderConfig + version Git, fail-fast.
+- [`repo-capture.md`](./working/run-init/repo-capture.md)
+  - Resolution mecanique du repo cible depuis le CWD.
+- [`dirty-state-capture.md`](./working/run-init/dirty-state-capture.md)
+  - Capture du dirty state host-side avant création du workspace.
+- [`run-capture.md`](./working/run-init/run-capture.md)
+  - Capture du prompt `/go`, extrait de session et hashes.
+- [`workspace-setup.md`](./working/run-init/workspace-setup.md)
+  - Contrat commun du workspace et `WorkSession`.
+- [`workspace-setup.worktree.md`](./working/run-init/workspace-setup.worktree.md)
+  - Stratégie Git Worktree : pipeline `git worktree add`.
+- [`project-discovery-finalize.md`](./working/run-init/project-discovery-finalize.md)
+  - Finalisation de la discovery repo contre le worktree prive.
 
 ---
 

@@ -1,3 +1,18 @@
+---
+okf_version: "1.0"
+kind: "RuntimeArtifact"
+format: "cubits-design-doc"
+workspace: "go"
+date: "2026-07-17"
+step_id: 0
+id: CDD-GO-REVIEW-REMEDIATION
+version: "1.0.0"
+scope: stages
+status: active
+consumers: [agent-generator]
+superseded_by: []
+---
+
 # Stage `review-remediation`
 
 `review-remediation` traite les findings ouverts issus de `pre-package-review`

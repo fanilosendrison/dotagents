@@ -119,7 +119,7 @@ Rejeté parce que :
 - Le modèle actuel (une phase = un processus, un seul mécanisme de
   suspension = la délégation) est plus simple et plus robuste.
 - Turnlock est une primitive externe (cf.
-  [`external-primitives.md`](../working/standards/external-primitives.md)) ;
+  [`external-primitives.md`](../standards/external-primitives.md)) ;
   `/go` ne définit pas de variante maison.
 
 ---

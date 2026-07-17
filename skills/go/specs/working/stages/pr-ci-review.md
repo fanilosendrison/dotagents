@@ -1,3 +1,18 @@
+---
+okf_version: "1.0"
+kind: "RuntimeArtifact"
+format: "cubits-design-doc"
+workspace: "go"
+date: "2026-07-17"
+step_id: 0
+id: CDD-GO-PR-CI-REVIEW
+version: "1.0.0"
+scope: stages
+status: active
+consumers: [agent-generator]
+superseded_by: []
+---
+
 # Stage `pr-ci-review`
 
 `pr-ci-review` est la gate autoritative avant merge. Elle s'exécute sur le diff

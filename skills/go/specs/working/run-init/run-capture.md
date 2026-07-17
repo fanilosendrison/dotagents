@@ -1,3 +1,18 @@
+---
+okf_version: "1.0"
+kind: "RuntimeArtifact"
+format: "cubits-design-doc"
+workspace: "go"
+date: "2026-07-17"
+step_id: 0
+id: CDD-GO-RUN-CAPTURE
+version: "1.0.0"
+scope: run-init
+status: extracted-archive
+consumers: [agent-generator]
+superseded_by: [NIB-M-GO-RUN-CAPTURE]
+---
+
 # Startup task `run-capture`
 
 `run-capture` fige les preuves minimales du moment où l'utilisateur lance `/go`. Il ne comprend pas la demande et ne produit pas d'analyse d'intention.

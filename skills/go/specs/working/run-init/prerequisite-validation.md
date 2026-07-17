@@ -1,3 +1,18 @@
+---
+okf_version: "1.0"
+kind: "RuntimeArtifact"
+format: "cubits-design-doc"
+workspace: "go"
+date: "2026-07-17"
+step_id: 0
+id: CDD-GO-PREREQUISITE-VALIDATION
+version: "1.0.0"
+scope: run-init
+status: extracted-archive
+consumers: [agent-generator]
+superseded_by: [NIB-M-GO-PREREQUISITE-VALIDATION]
+---
+
 # Startup task `prerequisite-validation`
 
 `prerequisite-validation` vérifie que les conditions minimales d'exécution

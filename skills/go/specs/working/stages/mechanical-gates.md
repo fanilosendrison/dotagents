@@ -1,3 +1,18 @@
+---
+okf_version: "1.0"
+kind: "RuntimeArtifact"
+format: "cubits-design-doc"
+workspace: "go"
+date: "2026-07-17"
+step_id: 0
+id: CDD-GO-MECHANICAL-GATES
+version: "1.0.0"
+scope: stages
+status: active
+consumers: [agent-generator]
+superseded_by: []
+---
+
 # Stage `mechanical-gates`
 
 `mechanical-gates` exécute les checks déterministes requis pour le repo.

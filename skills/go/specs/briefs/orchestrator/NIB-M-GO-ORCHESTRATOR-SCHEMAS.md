@@ -22,7 +22,7 @@ This module defines and exports all Zod validation schemas and derived TypeScrip
 
 ## 2. Inputs
 
-- **Reference Specification**: [workflow-artifacts.md](../../working/contracts/workflow-artifacts.md) for types mapping.
+- **Reference Specification**: [workflow-artifacts.md](../../contracts/workflow-artifacts.md) for types mapping.
 - **Dependency Contracts**:
   - [DC-ZOD-3-4-COMPAT.md](../DC-ZOD-3-4-COMPAT.md).
 

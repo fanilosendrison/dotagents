@@ -1,3 +1,18 @@
+---
+okf_version: "1.0"
+kind: "RuntimeArtifact"
+format: "cubits-design-doc"
+workspace: "go"
+date: "2026-07-17"
+step_id: 0
+id: CDD-GO-REPO-CAPTURE
+version: "1.0.0"
+scope: run-init
+status: extracted-archive
+consumers: [agent-generator]
+superseded_by: [NIB-M-GO-REPO-CAPTURE]
+---
+
 # Startup task `repo-capture`
 
 `repo-capture` définit le contexte de dépôt cible que `run-init` doit résoudre avant de pouvoir amorcer le reste du workflow. 

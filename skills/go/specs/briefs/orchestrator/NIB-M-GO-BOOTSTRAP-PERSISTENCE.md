@@ -23,7 +23,7 @@ This module defines the filesystem layout, atomic file-writing protocols, checkp
 ## 2. Inputs
 
 - **Context Parameters**: `runId`, `runDir`, `workspaceRoot`, `artefactRoot`.
-- **Reference Specification**: [workflow-artifacts.md](../../working/contracts/workflow-artifacts.md) for checkpoint schemas.
+- **Reference Specification**: [workflow-artifacts.md](../../contracts/workflow-artifacts.md) for checkpoint schemas.
 - **Dependency Contracts**:
   - [DC-BUN-SPAWN-ASYNC-RUNTIME.md](../DC-BUN-SPAWN-ASYNC-RUNTIME.md).
 

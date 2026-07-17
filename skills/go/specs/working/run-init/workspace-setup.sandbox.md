@@ -1,3 +1,18 @@
+---
+okf_version: "1.0"
+kind: "RuntimeArtifact"
+format: "cubits-design-doc"
+workspace: "go"
+date: "2026-07-17"
+step_id: 0
+id: CDD-GO-WORKSPACE-SETUP-SANDBOX
+version: "1.0.0"
+scope: run-init
+status: active
+consumers: [agent-generator]
+superseded_by: []
+---
+
 # Stratégie OCI Sandbox (Docker/OrbStack) — `workspace-setup`
 
 > **Stratégie d'implémentation du contrat [`workspace-setup`](./workspace-setup.md).**
