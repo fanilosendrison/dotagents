@@ -96,7 +96,17 @@ Before committing changes to the FSM:
    - If any finding inside the parsed array contains a severity of `"blocking"`:
      - Throw a `PhaseError` immediately (fail-closed). This aborts execution before emitting the implementation delegation to the agent.
      - *Note*: in Phase 2+, this throw will be replaced by a Turnlock `HumanGate` suspension trigger when the runtime supports it, letting users check the warning, resolve the issue, and resume execution.
-3. Construct the `RunInitRecord` artifact:
+3. Initialize the following nine `WorkflowState` fields to empty `[]` (Phase 1 empty-collection invariant per NIB-S §3):
+   - `state.snapshots = []`
+   - `state.checks = []`
+   - `state.findings = []`
+   - `state.humanGates = []`
+   - `state.remediations = []`
+   - `state.branches = []`
+   - `state.commits = []`
+   - `state.pullRequests = []`
+   - `state.mergeTracking = []`
+4. Construct the `RunInitRecord` artifact:
    - `schema`: `"go.run-init.v1"`
    - `runId`: From inputs.
    - `repoCapture`: The resolved `RepoCapture` artifact.
@@ -109,12 +119,12 @@ Before committing changes to the FSM:
    - `ownershipMarkerRef`: Path to the `run-init-ownership.json` file.
    - `initializedAt`: Timestamp retrieved using `clock.nowWallIso()`.
    - `dirtyStateDiff`: The resolved `DirtyStateDiffArtifact` (optional, if dirty).
-4. Map the payloads into the Turnlock runtime state:
-   - `state.runCapture = RunCaptureArtifact`
-   - `state.workSession = WorkSession`
-   - `state.projectDiscovery = ProjectDiscovery`
-   - `state.runInit = RunInitRecord`
-5. Transition Turnlock to the `implementation` delegation phase.
+5. Map the task outputs into the Turnlock runtime state:
+   - `state.runCapture = runCaptureResult`
+   - `state.workSession = workSessionResult`
+   - `state.projectDiscovery = discoveryResult`
+   - `state.runInit = runInitRecord`
+6. Transition Turnlock to the `implementation` delegation phase.
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 id: NIB-S-GO-TURNLOCK-ORCHESTRATOR
 type: nib-system
-version: "1.0.0"
+version: "1.0.1"
 scope: go-turnlock-orchestrator
 status: active
 consumers: [claude-code]
@@ -70,18 +70,27 @@ type WorkflowState = {
   runCapture?: RunCaptureArtifact;
   workSession?: WorkSession;
   projectDiscovery?: ProjectDiscovery;
-  bootstrapFindings?: any[];
-  snapshots: any[];
+  bootstrapFindings?: BootstrapFindings[];
+  /** Phase 2+: validated as empty `[]` in Phase 1 (fail-closed if non-empty). */
+  snapshots: ChangeSnapshot[];
   executionRecords: WorkflowExecutionRecord[];
   businessArtifacts: BusinessArtifactRecord[];
-  checks: any[];
-  findings: any[];
-  humanGates: any[];
-  remediations: any[];
-  branches: any[];
-  commits: any[];
-  pullRequests: any[];
-  mergeTracking: any[];
+  /** Phase 2+: validated as empty `[]` in Phase 1. */
+  checks: CheckRun[];
+  /** Phase 2+: validated as empty `[]` in Phase 1. */
+  findings: ReviewFinding[];
+  /** Phase 2+: validated as empty `[]` in Phase 1. */
+  humanGates: HumanGate[];
+  /** Phase 2+: validated as empty `[]` in Phase 1. */
+  remediations: RemediationAttempt[];
+  /** Phase 2+: validated as empty `[]` in Phase 1. */
+  branches: BranchRecord[];
+  /** Phase 2+: validated as empty `[]` in Phase 1. */
+  commits: CommitRecord[];
+  /** Phase 2+: validated as empty `[]` in Phase 1. */
+  pullRequests: PullRequestRecord[];
+  /** Phase 2+: validated as empty `[]` in Phase 1. */
+  mergeTracking: MergeTrackingRecord[];
 };
 
 type RunInitRecord = {
@@ -166,7 +175,7 @@ type WorkflowExecutionRecord = {
   status: "passed" | "failed" | "skipped" | "errored";
   evidenceRefs: string[];
   businessArtifactIds: string[];
-  errors: any[];
+  errors: StageError[];
   headShaAfter: string | null;
   trackedWorktreeHash: string | null;
   worktreeClean: boolean | null;
@@ -230,12 +239,82 @@ type ProjectDiscovery = {
   finalizedAgainstWorkspaceRoot: string;
   discoveryMethod: "stack-eval" | "ecosystem-scan";
   stackEvalRef?: string;
-  inspectedFiles: any[];
-  packageManager?: string;
+  inspectedFiles: InspectedFileRef[];
+  packageManager?:
+    | "bun"
+    | "npm"
+    | "pnpm"
+    | "yarn"
+    | "cargo"
+    | "go"
+    | "uv"
+    | "pip"
+    | "poetry"
+    | "make"
+    | "just"
+    | "maven"
+    | "gradle"
+    | "dotnet"
+    | "bundler"
+    | "composer"
+    | "mix"
+    | "deno"
+    | "unknown";
   lockfiles: string[];
-  commands: any[];
+  commands: MechanicalCheckDefinition[];
+};
+
+type BootstrapFindings = {
+  schema: "go.bootstrap-findings.v1";
+  runId: string;
+  task: BootstrapTaskName;
+  findings: BootstrapFinding[];
+  createdAt: string;
+};
+
+type BootstrapFinding = {
+  code: string;
+  task: BootstrapTaskName;
+  severity: "blocking" | "warning";
+  message: string;
+  detail?: string;
+  resolution: "human-gate" | "fail" | "ignore";
+};
+
+type StageError = {
+  message: string;
+  severity: "blocking" | "major" | "minor";
+  file?: string;
+  line?: number;
+  evidenceRef?: string;
+};
+
+type InspectedFileRef = {
+  path: string;
+  hash: string;
+  requiredForFinalization: boolean;
+};
+
+type MechanicalCheckDefinition = {
+  id: string;
+  kind:
+    | "format"
+    | "lint"
+    | "typecheck"
+    | "tests"
+    | "build"
+    | "security"
+    | "generated-drift"
+    | "api-compat"
+    | "custom";
+  command: string[];
+  required: boolean;
+  workingDirectory: string;
 };
 ```
+
+> **Phase 1 empty-collection invariant.** The nine `WorkflowState` collections annotated « Phase 2+ » above (`snapshots` through `mergeTracking`) **must be validated as empty `[]`** by the `workflowStateSchema` during Phase 1 construction. RED must implement
+> each as `z.array(z.never())` (rejects any element). In the GREEN phase, runtime code **must never populate** these fields — a non-empty value at Phase 1 completion is a logic error and must `io.fail()`. `bootstrapFindings` is excluded from this invariant: it is populated and consumed within Phase 1.
 
 ---
 

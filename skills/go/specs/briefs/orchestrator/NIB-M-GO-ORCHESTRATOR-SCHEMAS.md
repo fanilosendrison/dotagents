@@ -1,7 +1,7 @@
 ---
 id: NIB-M-GO-ORCHESTRATOR-SCHEMAS
 type: nib-module
-version: "1.0.0"
+version: "1.0.1"
 scope: go-turnlock-orchestrator/schemas
 status: active
 consumers: [claude-code]
@@ -48,6 +48,8 @@ Exports the following Zod v4 schemas and matching TypeScript types:
 - `workSessionSchema` / `WorkSession`
 - `projectDiscoverySchema` / `ProjectDiscovery`
 - `implementationResultSchema` / `ImplementationResult` (*Note: internal structure schema defined in [NIB-M-GO-IMPLEMENTATION-DELEGATION-STUB.md](./NIB-M-GO-IMPLEMENTATION-DELEGATION-STUB.md)*)
+- `bootstrapFindingsSchema` / `BootstrapFindings`
+- `bootstrapFindingSchema` / `BootstrapFinding`
 
 ---
 
@@ -77,7 +79,25 @@ export const runtimeStateSchema = z.discriminatedUnion("schema", [
 - `packaging` (clean workspace criteria, PR rules).
 - `retention` (cleanup policies).
 
-### 4.4 Task Records, Identifiers, and Checkpoints
+### 4.4 Phase 1 Empty-Collection Invariant
+
+The `workflowStateSchema` must enforce that the following nine fields are always validated as empty arrays (`[]`) in Phase 1:
+
+- `snapshots`
+- `checks`
+- `findings`
+- `humanGates`
+- `remediations`
+- `branches`
+- `commits`
+- `pullRequests`
+- `mergeTracking`
+
+Each field must use `z.array(z.never())` — this rejects any element at parse time. `bootstrapFindings` (typed as `z.array(bootstrapFindingsSchema).optional()`) is excluded from this invariant: it is legitimately populated within Phase 1 by `project-discovery-finalize` and consumed by `run-init-pipeline`.
+
+The GREEN phase runtime code must never populate these nine fields. A non-empty value at Phase 1 completion is a logic error and must be reported as `io.fail()`.
+
+### 4.5 Task Records, Identifiers, and Checkpoints
 - **Run ID validation**: All fields holding a `runId` must strictly validate against the Crockford ULID regex `/^[0-9A-HJKMNP-TV-Z]{26}$/` to ensure identifier uniqueness and syntax correctness.
 - `bootstrapTaskRecordSchema`: maps task name enums (`prerequisite-validation`, `repo-capture`, etc.) and status enums (`not-started`, `running`, `passed`, `failed`, `errored`, `cancelled`).
 - `bootstrapTaskCheckpointSchema`: requires `inputHash` matching the standard hexadecimal `sha256:` prefix pattern, `startedAt` and `endedAt` conforming to ISO-8601 datetime strings, and supports an optional `retryAttempt` number field to track task rebuild counts.
@@ -116,6 +136,37 @@ export const runInitRecordSchema = z.object({
   dirtyStateDiff: dirtyStateDiffArtifactSchema.optional()
 }).strict();
 
+export const bootstrapFindingSchema = z.object({
+  code: z.string().min(1),
+  task: z.enum([
+    "prerequisite-validation",
+    "repo-capture",
+    "dirty-state-capture",
+    "run-capture",
+    "workspace-setup",
+    "project-discovery-finalize"
+  ]),
+  severity: z.enum(["blocking", "warning"]),
+  message: z.string().min(1),
+  detail: z.string().optional(),
+  resolution: z.enum(["human-gate", "fail", "ignore"])
+}).strict();
+
+export const bootstrapFindingsSchema = z.object({
+  schema: z.literal("go.bootstrap-findings.v1"),
+  runId: runIdSchema,
+  task: z.enum([
+    "prerequisite-validation",
+    "repo-capture",
+    "dirty-state-capture",
+    "run-capture",
+    "workspace-setup",
+    "project-discovery-finalize"
+  ]),
+  findings: z.array(bootstrapFindingSchema),
+  createdAt: z.string().datetime()
+}).strict();
+
 export const implementationResultSchema = z.object({}).passthrough();
 ```
 
@@ -126,6 +177,7 @@ export const implementationResultSchema = z.object({}).passthrough();
 
 - **Backward compatibility fallback**: The `workspaceRootReservedPath` field inside `runInitRecordSchema` and `runInitOwnershipMarkerSchema` must dynamically read `worktreeRootReservedPath` as an optional alias fallback, but write `workspaceRootReservedPath` as the primary key.
 - **Empty Dirty Diff Artifact**: If the repository is clean, `dirtyStateDiffArtifactSchema` optional fields (`sourceStatusPorcelainRef`, `sourcePatchRef`) must be allowed to resolve as absent rather than throwing schema errors.
+- **bootstrapFindings consumption**: `run-init-pipeline` must validate the `bootstrap-findings.json` artifact with `bootstrapFindingsSchema` after the pipeline join. Any finding with `severity: "blocking"` must cause the pipeline to abort with `PhaseError` (fail-closed).
 
 ---
 
