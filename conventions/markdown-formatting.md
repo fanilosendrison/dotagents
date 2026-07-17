@@ -12,16 +12,19 @@ name: "Global Markdown Formatting Rules"
 When creating, editing, or managing Markdown files, all agents **MUST** strictly adhere to the following rules regarding voice, syntax, metadata, and formatting.
 
 ## 1. Voice, Tone, and Perspective (Contextual)
-The perspective of your writing depends entirely on the file's target audience. You can determine the target audience by checking the file's OKF `kind` in its YAML frontmatter:
 
-- **Agent-Facing Files** (`kind: KnowledgeAsset`, `AgentWorkflowStep`, `AgentSkill`):
-  When writing files that dictate agent behavior (like conventions, `CONTEXT.md` instructions, or system rules), you must write in the **direct imperative voice, addressing the agent directly**. 
-  - *Example:* "Your goal is to...", "You must extract...", "Do not use...", "Read the following file..."
+Tone follows document **function**: directive documents (which command agent behavior) use the imperative voice; descriptive documents (which describe a system, including agent-consumed `RuntimeArtifact`s like CDDs) use the objective voice. The OKF `kind` is a proxy for this distinction, not its definition.
+
+- **Directive Documents (Imperative Voice):**
+  When writing files that dictate agent behavior (like conventions, `CONTEXT.md` instructions, or `AgentSkill` system rules), you must write in the **direct imperative voice, addressing the agent directly**. 
+  - *Proxy `kind`:* `KnowledgeAsset`, `AgentWorkflowStep`, `AgentSkill`.
+  - *Example:* "Your goal is to...", "You must extract...", "Do not use..."
   - *Why:* These files act as system prompts. Direct instructions reduce LLM ambiguity and enforce strict programmatic behavior.
   
-- **Public/Human-Facing Files** (`kind: RuntimeArtifact`, Readmes, ADRs):
-  When writing output files intended for human consumption or repository documentation, use a **professional, objective, or passive tone**. Do not address the AI or use words like "I" or "You".
-  - *Example:* "The system will connect to...", "This decision was made because..."
+- **Descriptive Documents (Objective Voice):**
+  When writing files that describe a system (like CDDs, drafted NIBs), outputs for human consumption, or repository documentation, use a **professional, objective, or passive tone**. Do not address the AI or use words like "I" or "You".
+  - *Proxy `kind`:* `RuntimeArtifact`, Readmes, ADRs.
+  - *Example:* "The system connects to...", "This decision was made because...", "The module parses..."
 
 ## 2. Formatting & Syntax
 - **GitHub Flavored Markdown (GFM):** Always use standard GFM syntax.
