@@ -35,6 +35,10 @@ Match specificity to the task:
 - **Medium freedom** (pseudocode or parameterized scripts): when there's a preferred pattern
 - **Low freedom** (specific scripts, few parameters): when operations are fragile or consistency is critical
 
+### Naming Conventions
+
+All files, scripts, and directories created for a skill MUST strictly adhere to the global naming conventions defined in [`~/.agents/conventions/file-and-folder-naming.md`](../../conventions/file-and-folder-naming.md). Ensure you review these constraints before naming any new resource.
+
 ### Anatomy of a Skill
 
 ```

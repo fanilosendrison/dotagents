@@ -48,6 +48,8 @@ cd ~/.agents/skills/git-commits-push && bun run start
 │   ├── implementation.md     ← How you must implement code
 │   └── managing-api-keys.md  ← How you manage API keys
 ├── conventions/              ← Passive conventions
+│   ├── file-and-folder-naming.md ← Universal rules for naming files and folders
+│   ├── markdown-formatting.md    ← Global formatting, tone, and OKF syntax rules
 │   └── semver.md             ← Shows you how to number versions
 ├── docs/                     ← Documentation for agent enforcers
 │   ├── command-validator.md          ← Enforces command and tool validation
@@ -65,6 +67,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
 ├── memory/                   ← Core memory and historical lessons (e.g., known-bug-fixes.md, session-locations.md)
 ├── archived/                 ← Old skills and retired experiments
 └── skills/                   ← Your auto-discovered capabilities (listed in your system prompt)
+    ├── adr-creator/
     ├── antigravity-harness-context/   
     ├── codex-harness-context/
     ├── create-symlink-for-dot-folders/
@@ -90,6 +93,9 @@ cd ~/.agents/skills/git-commits-push && bun run start
 | Implement a feature?                                | `operational-rules/implementation.md`        |
 | Know how you manage API keys                        | `operational-rules/managing-api-keys.md`     |
 | Know how to number versions                         | `conventions/semver.md`                      |
+| Know how to name files and folders                  | `conventions/file-and-folder-naming.md`      |
+| Know how to format markdown (Syntax, OKF, Voice)    | `conventions/markdown-formatting.md`         |
+| Know about the Open Knowledge Format (OKF) schema   | `conventions/okf-specification.md`           |
 | Know about the way you verify bash commands         | `docs/command-validator.md`                  |
 | Know about code modification permission (/go)       | `docs/permission-enforcer.md`                |
 | Know about how you enforce git commit and push      | `docs/git-commits-push-enforcer.md`          |
@@ -113,6 +119,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
 | Look up or search past session history               | `/session-lookup`                  |
 | Document a wrapper (Antigravity)                    | `/document-wrapper`               |
 | Commit changes                                      | `/git-commits-push`               |
+| Create an Architecture Decision Record (ADR)        | `/adr-creator`                    |
 | Create or update a new skill                        | `/skill-creator`                  |
 | Start/Authorize implementation phase                | `/go`                             |
 | Know about turnlock context                         | `/turnlock-context`               |
@@ -121,9 +128,9 @@ cd ~/.agents/skills/git-commits-push && bun run start
 ---
 
 
-## Writing Rules
+## System Enforcement Rules
 
-- You must write all output in English.
-- You must format tables so separator dashes match header column widths exactly.
-- You must produce no markdown lint violations.
+- **Naming:** You must strictly follow `conventions/file-and-folder-naming.md` whenever you create a new file or directory.
+- **Versioning:** You must strictly follow `conventions/semver.md` whenever you bump or read a project version.
+- **Formatting:** You must strictly follow `conventions/markdown-formatting.md` (and by extension, the OKF specification) whenever you generate or edit a Markdown file.
 
