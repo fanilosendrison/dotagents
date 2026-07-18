@@ -1,6 +1,6 @@
 # CDD Structural Reference
 
-When validating the structure of a CDD, or when granted `/go` to format a raw draft, enforce this exact layout and YAML metadata.
+When validating the structure of a CDD, verify against this exact layout and YAML metadata.
 
 ```yaml
 ---

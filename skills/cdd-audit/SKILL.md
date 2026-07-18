@@ -23,20 +23,20 @@ Scan and read the entirety of the `/specs` directory (or the user-provided targe
 
 ### 1. Execute the Factorization Engine (The Split)
 
-Apply the split heuristics ruthlessly. If any condition is met, **REJECT the design** and mandate an extraction.
+Apply the split heuristics ruthlessly. If any condition is met, **REJECT the design** and propose an extraction in your report.
 
-1. **Enforce DAG Split:** If the document describes multiple steps (sequential or parallel) with distinct I/O boundaries, mandate the extraction of a **CDD-O (Orchestrator)** and **CDD-N (Node)** documents.
-2. **Enforce Strategy Split:** If the document dictates a specific technological approach where alternatives exist, mandate the extraction of a **CDD-I (Interface)** and move the technology to a **CDD-S (Strategy)**.
-3. **Enforce Global Split:** If the document defines a format, naming convention, or invariant consumed by external systems, **REJECT** the local definition. Mandate its extraction into a permanent **STD (Standard)** or **CNV (Convention)**.
+1. **Evaluate DAG Split:** If the document describes multiple steps (sequential or parallel) with distinct I/O boundaries, propose the extraction of a **CDD-O (Orchestrator)** and **CDD-N (Node)** documents.
+2. **Evaluate Strategy Split:** If the document dictates a specific technological approach where alternatives exist, propose the extraction of a **CDD-I (Interface)** and move the technology to a **CDD-S (Strategy)**.
+3. **Evaluate Global Split:** If the document defines a format, naming convention, or invariant consumed by external systems, **REJECT** the local definition. Propose its extraction into a permanent **STD (Standard)** or **CNV (Convention)**.
 
 ### 2. Execute Intra-Doc Hostile Review
 
 Torture the internal logic of the isolated component. Destroy the "Happy Path".
 
-1. **Hunt Deferred Decisions:** Ban deferred architectural choices. If the text says "the agent will determine dynamically" or "adapt based on context" without a strict fallback, flag it as an **Absolute Blocker**. Architecture is decided at design time, not implementation time.
-2. **Hunt the Unverifiable:** Ban subjective goals. Every Invariant, Goal, and pipeline step MUST be **mechanically verifiable** via scripts (bash, eBPF), strong typing, or logic assertions. If it says "must be fast" instead of "< 200ms", flag it as an **Absolute Blocker**.
-3. **Hunt the Magic:** Ban non-deterministic AI assumptions (e.g., "The AI will read and understand"). Demand deterministic boundaries.
-4. **Hunt Missing Architectural Subjects:** A CDD must explicitly address the following subjects in its text. If the author forgot to define them, it is a 🔴 Blocker:
+1. **Hunt Deferred Decisions:** Flag deferred architectural choices. If the text says "the agent will determine dynamically" or "adapt based on context" without a strict fallback, flag it as an **Absolute Blocker**. Architecture is decided at design time, not implementation time.
+2. **Hunt the Unverifiable:** Flag subjective goals. Every Invariant, Goal, and pipeline step MUST be **mechanically verifiable** via scripts (bash, eBPF), strong typing, or logic assertions. If it says "must be fast" instead of "< 200ms", flag it as an **Absolute Blocker**.
+3. **Hunt the Magic:** Flag non-deterministic AI assumptions (e.g., "The AI will read and understand"). Require deterministic boundaries.
+4. **Hunt Missing Architectural Subjects:** A CDD must explicitly address the following subjects in its text. If the author forgot to define them, flag it as a 🔴 Blocker:
    - *I/O Boundaries:* Exact data contracts (e.g., JSON schema) must be defined.
    - *Anti-Goals:* What the component explicitly will *not* do.
    - *Failure Modes:* Every failure must be mapped to a specific recovery action.
@@ -45,7 +45,7 @@ Torture the internal logic of the isolated component. Destroy the "Happy Path".
    - *Security:* Access constraints and trust boundaries must be defined.
    - *Environment:* OS targets, binary dependencies, and network constraints must be defined.
    - *Dependencies:* Upstream and downstream components must be explicitly listed.
-5. **Hunt Intra-CDD Contradictions:** Ban Pipeline steps that violate the stated Invariants. Ban internal operations that betray the Non-Goals.
+5. **Hunt Intra-CDD Contradictions:** Flag Pipeline steps that violate the stated Invariants. Flag internal operations that betray the Non-Goals.
 
 ### 3. Execute Global Coherence (Inter-Doc) & Personas Test
 
@@ -53,8 +53,8 @@ Evaluate the document against the entire corpus. A CDD never lives in a vacuum. 
 
 > **Declare Unverified Areas:** If the document references a `STD`, `CNV`, or upstream `CDD` that you cannot find or read, explicitly declare it as "Unverified" in your report. Do not leave silent assumptions.
 
-1. **Hunt Inter-CDD Contradictions:** Demand that Upstream Outputs perfectly match Downstream Inputs. Ban Upstream `Cleanup` logic that destroys physical/logical resources required by Downstream nodes.
-2. **Hunt Corpus Contradictions:** Ban assumptions that violate an existing permanent `STD`. Ban business vocabulary that contradicts a `CNV`. Block the audit if any divergence exists.
+1. **Hunt Inter-CDD Contradictions:** Verify that Upstream Outputs perfectly match Downstream Inputs. Flag any mismatch. Flag Upstream `Cleanup` logic that destroys physical/logical resources required by Downstream nodes.
+2. **Hunt Corpus Contradictions:** Flag assumptions that violate an existing permanent `STD`. Flag business vocabulary that contradicts a `CNV`. Block the audit if any divergence exists.
 3. **Hunt Suboptimal Directory Structure:** The `/specs` directory must not become a flat landfill. Assess the physical folder hierarchy. If documents are not logically grouped by domain (e.g., `/orchestrator/`, `/auth/`) or lifecycle (e.g., `/working/`, `/archive/`), propose an optimal directory tree refactoring.
 4. **Execute the 3 Personas Test:** To baseline the CDD, verify it passes 3 perspectives:
    - *Developer:* Do I know exactly what to build without ambiguity?
@@ -103,13 +103,13 @@ Load and use this template:
 
 ## PART B: The Reference Schema
 
-Enforce this exact structure for every new Cubits Design Doc. Use this as your validation checklist, and use it as a template if instructed to format a document.
+Validate against this exact structure for every new Cubits Design Doc. Use this strictly as your reading checklist to report deviations.
 
-Load and use this structural reference:
+Load and read this structural reference:
 [assets/cdd-structure-reference.md](assets/cdd-structure-reference.md)
 
-### 1. Enforce OKF YAML Metadata
-Demand the exact `format: "cubits-design-doc"` YAML frontmatter as defined in the reference. Reject invalid schemas.
+### 1. Validate OKF YAML Metadata
+Verify the exact `format: "cubits-design-doc"` YAML frontmatter against the reference. Flag invalid schemas in your report.
 
 **Authorized Statuses:**
 - `draft`: Subject to Hostile Review. Remains draft if any ambiguity exists.
@@ -119,12 +119,12 @@ Demand the exact `format: "cubits-design-doc"` YAML frontmatter as defined in th
 
 *(Permanent documents use `kind: "KnowledgeAsset"`, are prefixed **STD-** or **CNV-**, and bypass this lifecycle).*
 
-### 2. Enforce Typology
-Demand that the CDD strictly obeys one of the 4 profiles:
+### 2. Validate Typology
+Verify that the CDD strictly obeys one of the 4 profiles. Flag deviations in your report:
 - **CDD-O (Orchestrator):** Delegates work. Possesses a DAG, no low-level operations.
 - **CDD-N (Node):** The worker. Possesses a strict pipeline, does not delegate.
 - **CDD-I (Interface):** The abstract contract. Defines I/O, **omits the Pipeline section**.
 - **CDD-S (Strategy):** The operational approach. Inherits I/O, possesses a highly detailed operational pipeline.
 
-### 3. Enforce Exact Structural Layout (The Form)
-Demand the exact Markdown layout defined in the reference. If the conceptual content is validated (Part A) but headers are missing, emit a 🟡 Minor (Category 3) formatting issue. Do not map the raw concepts into this format until explicitly granted `/go`.
+### 3. Validate Exact Structural Layout (The Form)
+Verify the Markdown layout against the reference. If the conceptual content is validated (Part A) but headers are missing, emit a 🟡 Minor (Category 3) formatting issue in your report. 
