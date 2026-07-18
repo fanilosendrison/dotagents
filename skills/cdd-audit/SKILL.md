@@ -94,63 +94,23 @@ Classify as Category 3 **strictly for formatting issues** (i.e., the document is
 If the blocker density is too high (e.g., 4+ 🔴 Blockers in a single document), **ABORT** the incremental review. Do not list micro-corrections. Recommend that the document **returns to drafting** (Return to drafting veto).
 
 #### Step 4.4: Strict Output Template
-Your final output MUST strictly follow this Markdown layout. Do not generate conversational filler.
+Your final output MUST strictly follow the exact Markdown layout provided in the following asset file. Do not generate conversational filler.
 
-````markdown
-# CDD Active Audit Report: [Document Name]
-**Status:** [Blockers Found / Pending / Zero Findings]
-
-## 1. Findings & Trivial Proposals (Category 1)
-- **[Finding ID] [🔴/🟡] [File: Line NNN]**
-  - **Citation:** *"[Quote the exact problematic text]"*
-  - **Issue:** [Explain exactly why this is a problem or violates a rule]
-  - **Correction:** [Explain exactly what to modify in which file(s)]
-
-## 2. Decisions Required (Category 2)
-- **[Finding ID] [🔴/🟡] [File: Line NNN]**
-  - **Citation:** *"[Quote the exact problematic text or state 'Entirely missing']"*
-  - **Issue:** [Explain the architectural gap or ambiguity]
-  - **Options:** 
-    - *Option A:* [Description of the approach and exact files to modify] (Pros: [...] / Cons: [...])
-    - *Option B:* [Description of the approach and exact files to modify] (Pros: [...] / Cons: [...])
-
-## 3. Structural Status (Category 3)
-- [If applicable: 🟡 Minor - Document requires structural crystallization (Pending Category 2 resolution and `/go` permission)]
-
-## 4. Unverified Areas
-- [List of external STDs or CDDs referenced but not found/audited]
-
-## 5. Directory Structure Assessment
-- [If applicable: Proposed directory tree refactoring for the `/specs` folder]
-
-## 6. Final Verdict
-> [One-sentence readiness verdict or Re-Inspection Veto]
-````
+Load and use this template:
+[assets/audit-report-template.md](assets/audit-report-template.md)
 
 ---
 
 ## PART B: The Reference Schema
 
-Enforce this exact structure for every new Cubits Design Doc. Use this as your validation checklist.
+Enforce this exact structure for every new Cubits Design Doc. Use this as your validation checklist, and use it as a template if instructed to format a document.
+
+Load and use this structural reference:
+[assets/cdd-structure-reference.md](assets/cdd-structure-reference.md)
 
 ### 1. Enforce OKF YAML Metadata
-Demand this exact `format: "cubits-design-doc"` YAML frontmatter. Reject invalid schemas.
-```yaml
----
-okf_version: "1.0"
-kind: "RuntimeArtifact"
-format: "cubits-design-doc"
-workspace: "go"
-date: "YYYY-MM-DD"
-step_id: 0                         # Conception step
-id: CDD-I-WORKSPACE-SETUP          # Unique identifier (Must be prefixed by CDD-O, CDD-N, CDD-I, or CDD-S)
-version: "1.0.0"
-scope: run-init                    # System covered
-status: draft                      # draft | baselined | extracted-archive | superseded
-consumers: [agent-generator]
-superseded_by: []                  # Filled on archival (points to NIBs/ADRs)
----
-```
+Demand the exact `format: "cubits-design-doc"` YAML frontmatter as defined in the reference. Reject invalid schemas.
+
 **Authorized Statuses:**
 - `draft`: Subject to Hostile Review. Remains draft if any ambiguity exists.
 - `baselined`: Certified "Ready to Freeze". Absolute source of truth.
@@ -167,16 +127,4 @@ Demand that the CDD strictly obeys one of the 4 profiles:
 - **CDD-S (Strategy):** The operational approach. Inherits I/O, possesses a highly detailed operational pipeline.
 
 ### 3. Enforce Exact Structural Layout (The Form)
-Demand this exact Markdown layout. If the conceptual content is validated (Part A) but headers are missing, emit a 🟡 Minor (Category 3) formatting issue. Do not map the raw concepts into this format until explicitly granted `/go`.
-
-1. **Objectif & Position**
-2. **Goals & Non-Goals**
-3. **Data Contracts (Inputs & Outputs)**
-4. **Pipeline** *(Omitted for CDD-I)*
-5. **Invariants**
-6. **Internal Operations**
-7. **Cross-Cutting Concerns**
-8. **Infrastructure & Environment**
-9. **Dependencies**
-10. **Testing Strategy**
-11. **Glossary**
+Demand the exact Markdown layout defined in the reference. If the conceptual content is validated (Part A) but headers are missing, emit a 🟡 Minor (Category 3) formatting issue. Do not map the raw concepts into this format until explicitly granted `/go`.
