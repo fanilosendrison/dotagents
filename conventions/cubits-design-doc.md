@@ -144,6 +144,16 @@ The CDD sits at the very beginning of the Explicit Decision-making pipeline:
 2. **Translation:** The final, mature CDD is consumed by the **Agent generating NIBs**, which translates the abstract doctrine into strict, Zod-backed, zero-implicit NIB contracts.
 3. **Execution:** The CDD is archived. The Implementing Agent takes over using only the NIBs.
 
+### 3.1 Extraction-readiness
+
+A CDD corpus is **extraction-ready** (`baselined`) when the NIB generator can produce all three NIB types without inventing any behavior, boundary, or constraint. If the NIB generator must guess what "correct" means for any requirement, the CDD is not extraction-ready.
+
+The extraction-readiness criterion decomposes into three properties:
+
+- **Behavioral completeness.** Every requirement provides a derivable oracle — the CDD dictates the expected result, not the agent.
+- **Structural completeness.** The corpus is factored correctly (no monolithic CDDs), all system boundaries carry typed functional contracts, and no inter-CDD contradiction exists.
+- **Operational completeness.** All production constraints (security, idempotence, cleanup, infrastructure, performance, observability) relevant to each component are explicitly defined.
+
 ---
 
 ## 4. Metadata standard
