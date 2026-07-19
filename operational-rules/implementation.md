@@ -1,1 +1,0 @@
-/Users/famillesendrison/Developper/Projects/dotagents/operational-implementation-rules.md
