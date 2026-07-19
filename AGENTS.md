@@ -45,11 +45,15 @@ cd ~/.agents/skills/git-commits-push && bun run start
 ├── agent-credentials.json    ← Global API keys registry (gitignored)
 ├── agent-credentials.json.template ← Template for API keys
 ├── operational-rules/        ← Core rules and architecture standards
-│   ├── implementation.md     ← How you must implement code
+│   ├── code-implementation.md ← How you must implement code
+│   ├── construction-sequence.md ← TDD Construction Sequence
 │   └── managing-api-keys.md  ← How you manage API keys
 ├── conventions/              ← Passive conventions
+│   ├── cubits-design-doc.md  ← Cubits Design Doc (CDD) schema and rules
+│   ├── dependency-contract.md ← Dependency Contract formatting rules
 │   ├── file-and-folder-naming.md ← Universal rules for naming files and folders
 │   ├── markdown-formatting.md    ← Global formatting, tone, and OKF syntax rules
+│   ├── normative-implementation-brief.md ← Normative Implementation Brief (NIB)
 │   ├── okf-specification.md      ← Open Knowledge Format (OKF) schema specification
 │   └── semver.md             ← Shows you how to number versions
 ├── docs/                     ← Enforcer documentation and workspace ADRs
@@ -71,11 +75,14 @@ cd ~/.agents/skills/git-commits-push && bun run start
 └── skills/                   ← Your auto-discovered capabilities (listed in your system prompt)
     ├── adr-creator/
     ├── antigravity-harness-context/   
+    ├── brief-hostile-review/
+    ├── cdd-audit/
     ├── codex-harness-context/
     ├── create-symlink-for-dot-folders/
     ├── document-agent-enforcement/
     ├── document-self-modif/
     ├── document-wrapper/
+    ├── fix-a-bug/
     ├── git-commits-push/
     ├── go/
     ├── pi-harness-context/           
@@ -92,7 +99,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
 
 | Want to...                                          | Go here first                                |
 |-----------------------------------------------------|----------------------------------------------|
-| Implement a feature?                                | `operational-rules/implementation.md`        |
+| Implement a feature?                                | `operational-rules/code-implementation.md`   |
 | Know how you manage API keys                        | `operational-rules/managing-api-keys.md`     |
 | Know how to number versions                         | `conventions/semver.md`                      |
 | Know how to name files and folders                  | `conventions/file-and-folder-naming.md`      |
@@ -126,6 +133,9 @@ cd ~/.agents/skills/git-commits-push && bun run start
 | Create or update a new skill                        | `/skill-creator`                  |
 | Start/Authorize implementation phase                | `/go`                             |
 | Know about turnlock context                         | `/turnlock-context`               |
+| Conduct a hostile review of a specification         | `/brief-hostile-review`           |
+| Audit a CDD or technical specification              | `/cdd-audit`                      |
+| Resolve a bug or check known issues                 | `/fix-a-bug`                      |
 
 
 ---
