@@ -14,6 +14,8 @@
   - **Options:** 
     - *Option A:* [Description of the approach and exact files to modify] (Pros: [...] / Cons: [...])
     - *Option B:* [Description of the approach and exact files to modify] (Pros: [...] / Cons: [...])
+  - **Recommendation:** [Which option to choose]
+    - **Justification:** [Why this is the recommended approach]
 
 ## 3. Structural Status (Category 3)
 - [If applicable: 🟡 Minor - Document requires structural crystallization (Pending Category 2 resolution and `/go` permission)]
