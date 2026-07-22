@@ -1,3 +1,12 @@
+---
+okf_version: "1.0"
+kind: "KnowledgeAsset"
+asset_type: "reference"
+domain: "architecture"
+severity: "strict"
+name: "CDD Structural Reference"
+---
+
 # CDD Structural Reference
 
 When validating the structure of a CDD, verify against this exact layout and YAML metadata.
@@ -21,7 +30,7 @@ superseded_by: []                  # Filled on archival (points to NIBs/ADRs)
 
 ## Mandatory Markdown Headers
 
-The document must contain exactly these 11 headers in this exact order. 
+The document must contain exactly these 11 headers in this exact order.
 *(Note: '4. Pipeline' is explicitly omitted for CDD-I profiles).*
 
 1. **Objectif & Position**
