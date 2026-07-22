@@ -50,6 +50,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
 │   └── managing-api-keys.md  ← How you manage API keys
 ├── conventions/              ← Passive conventions
 │   ├── cubits-design-doc.md  ← Cubits Design Doc (CDD) schema and rules
+│   ├── decision_tdd_agent_specs.md ← Deciding TDD implementation from prompts/specs
 │   ├── dependency-contract.md ← Dependency Contract formatting rules
 │   ├── file-and-folder-naming.md ← Universal rules for naming files and folders
 │   ├── markdown-formatting.md    ← Global formatting, tone, and OKF syntax rules
