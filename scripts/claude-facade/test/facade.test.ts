@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync, symlinkSync, existsSync, realpathSync, readlinkSync, lstatSync, readFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync, symlinkSync, existsSync, realpathSync, readlinkSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
@@ -254,6 +254,30 @@ describe("claude-facade", () => {
 
       const expectedReal = realpathSync(join(agentsRoot, entry.source));
       expect(realpathSync(destPath)).toBe(expectedReal);
+    });
+
+    it("preserves the old symlink and removes the temporary link when atomic publication fails", () => {
+      const entry = FACADE_ENTRIES[1];
+      createSource(entry);
+
+      const destPath = join(claudeRoot, entry.destination);
+      try { rmSync(destPath, { recursive: true, force: true }); } catch {}
+      const destinationDirectory = dirname(destPath);
+      mkdirSync(destinationDirectory, { recursive: true });
+
+      const wrongTarget = join(agentsRoot, "skills", "loop-clean");
+      mkdirSync(wrongTarget, { recursive: true });
+      symlinkSync(wrongTarget, destPath);
+      const directoryEntriesBeforeRepair = readdirSync(destinationDirectory).sort();
+
+      const failAtomicPublication = () => {
+        throw new Error("injected atomic publication failure");
+      };
+
+      expect(() => installEntry(entry, agentsRoot, claudeRoot, "repair", failAtomicPublication))
+        .toThrow("injected atomic publication failure");
+      expect(readlinkSync(destPath)).toBe(wrongTarget);
+      expect(readdirSync(destinationDirectory).sort()).toEqual(directoryEntriesBeforeRepair);
     });
   });
 

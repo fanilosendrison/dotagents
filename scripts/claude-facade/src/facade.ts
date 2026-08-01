@@ -16,6 +16,40 @@ export function resolveRoots(agentsRoot?: string, claudeRoot?: string): { agents
   };
 }
 
+type AtomicSymlinkPublisher = (temporaryPath: string, destinationPath: string) => void;
+
+function isMissingPathError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
+}
+
+function replaceSymlinkAtomically(
+  sourcePath: string,
+  destinationPath: string,
+  publishSymlink: AtomicSymlinkPublisher,
+): void {
+  const temporaryPath = join(
+    dirname(destinationPath),
+    `.claude-facade-${randomBytes(16).toString("hex")}.tmp`,
+  );
+
+  symlinkSync(sourcePath, temporaryPath);
+  try {
+    publishSymlink(temporaryPath, destinationPath);
+  } catch (publicationError) {
+    try {
+      unlinkSync(temporaryPath);
+    } catch (cleanupError) {
+      if (!isMissingPathError(cleanupError)) {
+        throw new AggregateError(
+          [publicationError, cleanupError],
+          `Failed to publish and clean temporary symlink: ${temporaryPath}`,
+        );
+      }
+    }
+    throw publicationError;
+  }
+}
+
 /**
  * Check a single facade entry.
  * Returns a CheckResult; never throws.
@@ -113,6 +147,7 @@ export function installEntry(
   agentsRoot: string,
   claudeRoot: string,
   mode: "install" | "repair" = "install",
+  publishSymlink: AtomicSymlinkPublisher = renameSync,
 ): { ok: boolean; detail?: string } {
   const sourcePath = join(agentsRoot, entry.source);
   const destPath = join(claudeRoot, entry.destination);
@@ -177,8 +212,7 @@ export function installEntry(
     // Broken symlink
     if (destReal === null) {
       if (mode === "repair") {
-        unlinkSync(destPath);
-        symlinkSync(sourcePath, destPath);
+        replaceSymlinkAtomically(sourcePath, destPath, publishSymlink);
         return { ok: true, detail: `Repaired broken symlink: ${destPath} -> ${sourcePath}` };
       }
       return {
@@ -189,8 +223,7 @@ export function installEntry(
 
     // Wrong target
     if (mode === "repair") {
-      unlinkSync(destPath);
-      symlinkSync(sourcePath, destPath);
+      replaceSymlinkAtomically(sourcePath, destPath, publishSymlink);
       return {
         ok: true,
         detail: `Repaired symlink: ${destPath} (was ${destLinkTarget}, now ${sourcePath})`,
