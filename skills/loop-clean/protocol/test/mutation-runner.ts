@@ -162,11 +162,13 @@ async function copyRepositoryMutant(): Promise<string> {
 		await cp(src, join(mutantRoot, "scripts", scriptDir), { recursive: true });
 	}
 
-	const packageJsonSrc = join(repositoryRoot, "scripts/package.json");
-	if (!existsSync(packageJsonSrc)) {
-		throw new Error(`required fixture missing: scripts/package.json`);
+	for (const packageJsonPath of ["package.json", "scripts/package.json"]) {
+		const packageJsonSource = join(repositoryRoot, packageJsonPath);
+		if (!existsSync(packageJsonSource)) {
+			throw new Error(`required fixture missing: ${packageJsonPath}`);
+		}
+		await cp(packageJsonSource, join(mutantRoot, packageJsonPath));
 	}
-	await cp(packageJsonSrc, join(mutantRoot, "scripts/package.json"));
 
 	// Install protocol dependencies
 	const protocolDir = join(mutantRoot, "skills/loop-clean/protocol");

@@ -127,15 +127,23 @@ describe("production protocol contract", () => {
 		).toBe(false);
 	});
 
-	test("registers the protocol suite and no removed package scripts", () => {
-		const packageJson = JSON.parse(read("scripts/package.json"));
-		expect(packageJson.scripts.test).toContain("skills/loop-clean/protocol");
-		for (const scriptName of Object.keys(packageJson.scripts)) {
+	test("registers the protocol suite once and no removed package scripts", () => {
+		const rootPackageJson = JSON.parse(read("package.json"));
+		const scriptsPackageJson = JSON.parse(read("scripts/package.json"));
+
+		expect(rootPackageJson.scripts.test).toContain("test:protocol");
+		expect(rootPackageJson.scripts["test:protocol"]).toContain(
+			"skills/loop-clean/protocol",
+		);
+		expect(scriptsPackageJson.scripts.test).not.toContain(
+			"skills/loop-clean/protocol",
+		);
+		for (const scriptName of Object.keys(scriptsPackageJson.scripts)) {
 			expect(scriptName).not.toMatch(/^spec-drift(?::|$)/);
 			expect(scriptName).not.toMatch(/^loop-clean-protocol/);
 		}
-		expect(packageJson.scripts.test).not.toMatch(/spec-drift/);
-		expect(packageJson.scripts.test).toContain("lib/stack-tools");
+		expect(scriptsPackageJson.scripts.test).not.toMatch(/spec-drift/);
+		expect(scriptsPackageJson.scripts.test).toContain("lib/stack-tools");
 	});
 
 	test("loop-clean.sh passes bash syntax validation", () => {

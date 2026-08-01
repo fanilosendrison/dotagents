@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "bun test claude-facade lib/stack-tools lib/coding-standards-schema coding-standards-scanner coding-standards-consolidate && cd ../skills/loop-clean/protocol && bun run test:all"
+    "test": "bun test claude-facade lib/stack-tools lib/coding-standards-schema coding-standards-scanner coding-standards-consolidate"
   },
   "dependencies": {
     "zod": "^4.3.5"

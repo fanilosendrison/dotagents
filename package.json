@@ -2,7 +2,11 @@
   "name": "dotagents",
   "private": true,
   "scripts": {
-    "test": "bun test --timeout 60000 --path-ignore-patterns='scripts/**' --path-ignore-patterns='skills/loop-clean/protocol/**' && cd scripts && bun run test"
+    "test": "bun run test:install && bun run test:root && bun run test:scripts && bun run test:protocol",
+    "test:install": "bun install --frozen-lockfile && bun install --cwd skills/create-symlink-for-dot-folders --frozen-lockfile && bun install --cwd skills/git-commits-push --frozen-lockfile && bun install --cwd skills/go --frozen-lockfile && bun install --cwd scripts --frozen-lockfile && bun install --cwd skills/loop-clean/protocol --frozen-lockfile",
+    "test:root": "bun test --timeout 60000 --path-ignore-patterns='scripts/**' --path-ignore-patterns='skills/loop-clean/protocol/**'",
+    "test:scripts": "bun run --cwd scripts test",
+    "test:protocol": "bun run --cwd skills/loop-clean/protocol typecheck && bun run --cwd skills/loop-clean/protocol test:all"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"
