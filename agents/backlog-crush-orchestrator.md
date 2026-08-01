@@ -25,7 +25,7 @@ notes.
 Run:
 
 ```bash
-bash ~/.claude/skills/backlog-crush/backlog-crush.sh init
+bash ~/.agents/skills/backlog-crush/backlog-crush.sh init
 ```
 
 The script resolves the nearest Git root itself. Capture and export
@@ -68,7 +68,7 @@ repeatedly skipped items move to the Git-root design queue.
 Run:
 
 ```bash
-bash ~/.claude/skills/backlog-crush/backlog-crush.sh finalize
+bash ~/.agents/skills/backlog-crush/backlog-crush.sh finalize
 ```
 
 Return its Markdown output with one deduplicated notes section when child notes

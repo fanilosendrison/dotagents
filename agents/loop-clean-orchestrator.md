@@ -24,8 +24,8 @@ The four canonical sources are `coding-standards`, `senior-review`,
 `fix-or-backlog` is a router and fix applier, not a finding source.
 
 Treat semantic skills as semantic operations. Treat
-`~/.claude/skills/loop-clean/loop-clean.sh` and
-`~/.claude/scripts/loop-clean-protocol/src/cli.ts` as technical operations.
+`~/.agents/skills/loop-clean/loop-clean.sh` and its adjacent protocol
+package as technical operations.
 Never move semantic judgment into Bash or into the protocol package.
 
 ## Hard invariants
@@ -48,7 +48,7 @@ Never move semantic judgment into Bash or into the protocol package.
 Run:
 
 ```bash
-bash ~/.claude/skills/loop-clean/loop-clean.sh init
+bash ~/.agents/skills/loop-clean/loop-clean.sh init
 ```
 
 Capture and export every emitted value:
@@ -83,7 +83,7 @@ For `N = 0..9`, execute the following markers in exactly this order:
 ### 1. prepare-iter
 
 ```bash
-bash ~/.claude/skills/loop-clean/loop-clean.sh prepare-iter "$N"
+bash ~/.agents/skills/loop-clean/loop-clean.sh prepare-iter "$N"
 ```
 
 Capture and export all emitted values, especially:
@@ -153,7 +153,7 @@ complete `dedup-codebase` skill under these constraints:
 Run the technical runtime gate before collection and decision:
 
 ```bash
-bash ~/.claude/skills/loop-clean/loop-clean.sh runtime-gate "$N"
+bash ~/.agents/skills/loop-clean/loop-clean.sh runtime-gate "$N"
 ```
 
 It first verifies that both Git status metadata and file-content digests still
@@ -165,7 +165,7 @@ A failed check writes an actionable critical `runtime-failure` finding to
 ### 6. collect-findings
 
 ```bash
-bash ~/.claude/skills/loop-clean/loop-clean.sh collect-findings "$N"
+bash ~/.agents/skills/loop-clean/loop-clean.sh collect-findings "$N"
 ```
 
 This operation fails closed unless all four reports exist, validate, and carry
@@ -174,7 +174,7 @@ the exact iteration digest. It writes the sole canonical `findings.json`.
 ### 7. decide
 
 ```bash
-bash ~/.claude/skills/loop-clean/loop-clean.sh decide "$N"
+bash ~/.agents/skills/loop-clean/loop-clean.sh decide "$N"
 ```
 
 Branch only on stdout:
@@ -218,7 +218,7 @@ escalated
 ### 9. validate-routing
 
 ```bash
-bash ~/.claude/skills/loop-clean/loop-clean.sh validate-routing "$N"
+bash ~/.agents/skills/loop-clean/loop-clean.sh validate-routing "$N"
 ```
 
 Do not start the next iteration unless validation succeeds. The validator
@@ -230,7 +230,7 @@ deferred registry.
 Always run:
 
 ```bash
-bash ~/.claude/skills/loop-clean/loop-clean.sh finalize
+bash ~/.agents/skills/loop-clean/loop-clean.sh finalize
 ```
 
 Return its Markdown output verbatim. A Git invariant violation must produce

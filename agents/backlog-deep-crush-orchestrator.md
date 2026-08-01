@@ -25,7 +25,7 @@ consolidated fix-agent notes.
 Set `DEEP_CRUSH_NOCTURNAL=1` for scheduled runs, then run:
 
 ```bash
-bash ~/.claude/skills/backlog-deep-crush/backlog-deep-crush.sh init
+bash ~/.agents/skills/backlog-deep-crush/backlog-deep-crush.sh init
 ```
 
 The script resolves the nearest Git root. Capture and export
@@ -80,7 +80,7 @@ finalization. This moves repeatedly skipped items to the Git-root design queue.
 Run:
 
 ```bash
-bash ~/.claude/skills/backlog-deep-crush/backlog-deep-crush.sh finalize
+bash ~/.agents/skills/backlog-deep-crush/backlog-deep-crush.sh finalize
 ```
 
 Return its Markdown report with the per-severity table and one deduplicated
