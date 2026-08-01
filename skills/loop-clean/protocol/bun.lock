@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@dotclaude/loop-clean-protocol",
+      "name": "@dotagents/loop-clean-protocol",
       "dependencies": {
         "zod": "^4.3.5",
       },
