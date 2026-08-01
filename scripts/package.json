@@ -1,0 +1,15 @@
+{
+  "name": "@dotagents/scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test lib/stack-tools lib/coding-standards-schema coding-standards-scanner coding-standards-consolidate && cd ../skills/loop-clean/protocol && bun run test:all"
+  },
+  "dependencies": {
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.9.3"
+  }
+}
