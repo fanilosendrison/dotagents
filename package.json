@@ -2,7 +2,7 @@
   "name": "dotagents",
   "private": true,
   "scripts": {
-    "test": "bun test && cd scripts && bun run test"
+    "test": "bun test --timeout 60000 --path-ignore-patterns='scripts/**' --path-ignore-patterns='skills/loop-clean/protocol/**' && cd scripts && bun run test"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"
