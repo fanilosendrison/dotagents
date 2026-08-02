@@ -136,9 +136,6 @@ async function copyRepositoryMutant(): Promise<string> {
 		"coding-standards",
 		"senior-review",
 		"dedup-codebase",
-		"backlog-crush",
-		"backlog-deep-crush",
-		"lib",
 	]) {
 		const src = join(repositoryRoot, "skills", skill);
 		const dst = join(mutantRoot, "skills", skill);

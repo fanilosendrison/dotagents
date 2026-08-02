@@ -16,15 +16,9 @@ export const FACADE_ENTRIES: readonly FacadeEntry[] = [
   { source: "skills/senior-review", destination: "skills/senior-review", kind: "directory" },
   { source: "skills/dedup-codebase", destination: "skills/dedup-codebase", kind: "directory" },
   { source: "skills/fix-or-backlog", destination: "skills/fix-or-backlog", kind: "directory" },
-  { source: "skills/backlog-crush", destination: "skills/backlog-crush", kind: "directory" },
-  { source: "skills/backlog-deep-crush", destination: "skills/backlog-deep-crush", kind: "directory" },
-  { source: "skills/lib", destination: "skills/lib", kind: "directory" },
 
   // ── Agents ──────────────────────────────────────────────
   { source: "agents/loop-clean-orchestrator.md", destination: "agents/loop-clean-orchestrator.md", kind: "file" },
-  { source: "agents/backlog-crush-orchestrator.md", destination: "agents/backlog-crush-orchestrator.md", kind: "file" },
-  { source: "agents/backlog-deep-crush-orchestrator.md", destination: "agents/backlog-deep-crush-orchestrator.md", kind: "file" },
-  { source: "agents/backlog-fix.md", destination: "agents/backlog-fix.md", kind: "file" },
   { source: "agents/coding-standards-file.md", destination: "agents/coding-standards-file.md", kind: "file" },
   { source: "agents/dedup-inter.md", destination: "agents/dedup-inter.md", kind: "file" },
   { source: "agents/dedup-intra.md", destination: "agents/dedup-intra.md", kind: "file" },

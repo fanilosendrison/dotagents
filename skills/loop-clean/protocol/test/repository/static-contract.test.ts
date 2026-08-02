@@ -301,21 +301,4 @@ describe("production protocol contract", () => {
 		expect(bunfig).toContain('auto = "disable"');
 	});
 
-	test("anchors both backlog consumers at the resolved Git root", () => {
-		for (const relativePath of [
-			"skills/backlog-crush/backlog-crush.sh",
-			"skills/backlog-deep-crush/backlog-deep-crush.sh",
-		]) {
-			const contents = read(relativePath);
-			expect(contents).toContain(
-				'REPO_ROOT="$(git rev-parse --show-toplevel)"',
-			);
-			expect(contents).toContain('BACKLOG_FILE="$REPO_ROOT/backlog.md"');
-		}
-		const common = read("skills/lib/backlog-common.sh");
-		expect(common).toContain('DESIGN_QUEUE_FILE="$REPO_ROOT/design-queue.md"');
-		expect(common).toContain(
-			'BACKLOG_ARCHIVE_FILE="$REPO_ROOT/backlog.archive.md"',
-		);
-	});
 });

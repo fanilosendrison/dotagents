@@ -57,7 +57,7 @@ describe("claude-facade", () => {
   // ── Manifest integrity ─────────────────────────────────
   describe("manifest", () => {
     it("contains all expected entries", () => {
-      expect(FACADE_ENTRIES.length).toBe(21);
+      expect(FACADE_ENTRIES.length).toBe(15);
     });
 
     it("has no duplicates in destination", () => {
