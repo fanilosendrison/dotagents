@@ -44,10 +44,10 @@ step_id: 0
 
 ## Phase 1 — Raw and green baselines
 
-- [ ] Add Bun 1.3.14 parity CI on Linux and macOS.
-- [ ] Build both gateways under a temporary `HOME` in CI.
-- [ ] Pin the exact dotagents baseline commit in dotpi CI.
-- [ ] Run the complete historical suites.
+- [x] Add Bun 1.3.14 parity CI on Linux and macOS.
+- [x] Build both gateways under an isolated temporary `HOME` in CI and retain baseline-only aliases for historical absolute imports.
+- [x] Pin dotagents commit `3516a87e52b51e607fad387703a0b47c99751adf` exactly in dotpi CI.
+- [ ] Run the complete historical suites and record both operating-system results.
 - [ ] Fix pre-existing failures in separate green commits.
 - [ ] Annotate both green baselines as `pre-node-pnpm-green`.
 - [ ] Record every direct-Git bootstrap commit until Node self-hosting succeeds.
