@@ -29,13 +29,14 @@ step_id: 0
 - [x] Register successor documents for specifications that mandate Bun.
 - [x] Retrieve and audit the authoritative event-sink source.
 - [x] Prepare `@fanilosendrison/event-sink@0.1.0`, Node tests, build, lockfile, CI, tarball, and clean-install smoke.
-- [x] Commit event-sink locally as `e75692f34ef212c9ad173a37a73539f35f54c6ff` and create annotated tag `v0.1.0` under the bootstrap exception.
-- [!] Authenticate Git and npm, then push and publish event-sink immutably.
+- [x] Commit and push event-sink as `e75692f34ef212c9ad173a37a73539f35f54c6ff`, push annotated tag `v0.1.0`, and pass GitHub CI run `32896680948`.
+- [!] Authenticate npm, then publish event-sink immutably.
 - [!] Replace event-sink imports only after immutable registry publication.
 - [x] Audit exact distributed tarballs for turnlock 0.9.0, LLM Runtime 0.1.2, Jiti 2.7.0, and Pi 0.84.2.
 - [x] Reproduce the published turnlock 0.9.0 Node ESM defect end to end.
-- [x] Prepare and locally commit behavior-preserving `turnlock@0.9.1` as `e27b053564833017db4bb7c46e85cb3db5aa0e70` with Node package tests and cross-platform CI.
-- [!] Authenticate Git, push turnlock, pass Bun/Node CI, tag `v0.9.1`, publish, and verify registry integrity.
+- [x] Prepare and push behavior-preserving `turnlock@0.9.1` through release-candidate HEAD `d6fdc6ad0f88978ee3f1c8d882d5bfd7183715b1` with Node package tests.
+- [x] Pass Turnlock CI run `32897464178` on Bun 1.3.14 and Node 22.19/24 across Linux and macOS.
+- [!] Authenticate npm, tag `v0.9.1`, publish, and verify registry integrity.
 - [ ] Complete the transitive distributed-file audit after final pnpm lockfiles exist.
 - [x] Build and test official jq 1.7.1 source for High Sierra and install it under `~/.local/bin`.
 - [ ] Complete remaining blocked items in the High Sierra prerequisite report.

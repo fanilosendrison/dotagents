@@ -25,11 +25,11 @@ The four exact registry tarballs were downloaded without executing scripts, and 
 
 `turnlock@0.9.0` is not executable under its declared Node runtime. An isolated pnpm installation followed by `await import("turnlock")` deterministically fails with `ERR_MODULE_NOT_FOUND` because the published ESM contains extensionless relative imports such as `./constants`. This reproduces with Node 22.19.0 before any consumer code runs.
 
-The authoritative repository was cloned from `https://github.com/fanilosendrison/turnlock`. A patch release was prepared from tag `v0.9.0` at `21bd35e82f782a40031c472d47a7b87c5385989f` on branch `fix/node-esm-package`. Local commit `e27b053564833017db4bb7c46e85cb3db5aa0e70` prepares `turnlock@0.9.1` with NodeNext output, explicit rewritten runtime extensions, a Node import test, a TypeScript consumer test, and Bun 1.3.14 plus Node 22.19/24 Linux/macOS CI.
+The authoritative repository was cloned from `https://github.com/fanilosendrison/turnlock`. A patch release was prepared from tag `v0.9.0` at `21bd35e82f782a40031c472d47a7b87c5385989f` on branch `fix/node-esm-package`. The maintenance commit stack prepares `turnlock@0.9.1`: package fix `e27b053564833017db4bb7c46e85cb3db5aa0e70`, clean-tree typecheck fix `191e6fc8d9bff988f7195b3bc703397562f3c486`, and Bun discovery isolation `d6fdc6ad0f88978ee3f1c8d882d5bfd7183715b1`. The release candidate uses NodeNext output, explicit rewritten runtime extensions, a Node import test, a TypeScript consumer test, and Bun 1.3.14 plus Node 22.19/24 Linux/macOS CI.
 
-The prepared tarball contains the same 150 distributed files. Canonical comparison of all 74 JavaScript and declaration outputs proves no semantic output difference other than module specifiers and harmless import formatting. Clean tarball installation and Node import pass. Its final local SHA-512 is `0f2c494dd4c3f502f64b66fe59a5393c81a3557b421df5b3e3ce2a4876420c4aca1102a34bfb1b9fdc081aa46f34eaa773391f7742f4e6f33c644b54b9a71e3c`.
+The prepared tarball contains the same 150 distributed files. Canonical comparison of all 74 JavaScript and declaration outputs proves no semantic output difference other than module specifiers and harmless import formatting. Clean tarball installation and Node import pass. Its final local SHA-512 at release-candidate HEAD `d6fdc6ad0f88978ee3f1c8d882d5bfd7183715b1` is `464605828b828efa231219f1feb9880b72aff1d3ce56b0a1bfd04b686051ba6c9580f14863c9dad77c25258a20d62ee3acf5f82973c7d9121d2032b67648ea90`.
 
-The historical Bun suite cannot run locally. The fix must be pushed, pass its cross-platform CI, receive annotated tag `v0.9.1`, and be published and registry-verified before consumers pin it.
+Cross-platform CI run `32897464178` passes Bun 1.3.14 and Node 22.19/24 on Linux and macOS. The branch is pushed, while tag `v0.9.1` remains intentionally absent. It must receive the annotated tag, be published, and be registry-verified before consumers pin it.
 
 ### LLM runtime and Jiti
 
@@ -64,10 +64,10 @@ The prepared immutable identity is `@fanilosendrison/event-sink@0.1.0`. The pack
 
 All 41 tests pass through `node:test`; typecheck, Biome 2.5.2, build, two clean frozen installations, publish dry-run, tarball inspection, and clean tarball installation smoke pass on High Sierra. The final local tarball SHA-512 is `f4f986f4770b03c036e500a8b4b289be451041bb448146ae5912fcda60084fbba35163cc5f60b6780fe3e23cede7670c096b276abded158f2b44a343ad308d99`.
 
-The release source is committed locally as `e75692f34ef212c9ad173a37a73539f35f54c6ff` with annotated tag `v0.1.0`. The registry package name remains available. npm authentication is absent, and a Git push dry-run cannot authenticate over HTTPS. Publication credentials and Git credentials must be configured outside tracked files. Production consumers must not switch imports until the exact registry version and integrity are verified.
+The release source is committed as `e75692f34ef212c9ad173a37a73539f35f54c6ff` with annotated tag `v0.1.0`; both are pushed and GitHub CI run `32896680948` passes. The registry package name remains available. npm authentication is absent; publication credentials must be configured outside tracked files. Production consumers must not switch imports until the exact registry version and integrity are verified.
 
 ## Gate status
 
 `BLOCKED_IMMUTABLE_DEPENDENCY_PUBLICATION`
 
-The gate requires both `@fanilosendrison/event-sink@0.1.0` and `turnlock@0.9.1` to be pushed, validated, published, registry-integrity verified, and pinned. GitHub and npm authentication are currently absent. No runtime migration or dependency replacement may proceed while this status remains active.
+The gate requires both `@fanilosendrison/event-sink@0.1.0` and `turnlock@0.9.1` to be published, registry-integrity verified, and pinned. GitHub SSH authentication and both CI gates now pass; npm authentication remains absent. No runtime migration or dependency replacement may proceed while this status remains active.
