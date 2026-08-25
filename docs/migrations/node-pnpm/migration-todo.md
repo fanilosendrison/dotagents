@@ -1,0 +1,127 @@
+---
+okf_version: "1.0"
+kind: "RuntimeArtifact"
+format: "node-pnpm-migration-todo"
+workspace: "dotagents and dotpi"
+date: "2026-08-25"
+step_id: 0
+---
+
+# Node and pnpm migration to-do
+
+## Status legend
+
+- `[x]` complete and mechanically verified
+- `[ ]` pending
+- `[!]` blocked by an external prerequisite
+
+## Phase 0 — Decisions and dependencies
+
+- [x] Create `migration/node-pnpm` in both repositories.
+- [x] Annotate both raw baselines as `pre-node-pnpm-raw`.
+- [x] Confirm six dotagents Bun lockfiles and one dotpi Bun lockfile.
+- [x] Confirm 74 dotagents Bun test surfaces and 25 direct dotpi Bun tests.
+- [x] Create machine-readable inventory and parity generation tooling.
+- [x] Seal approved ADR 0014 as immutable.
+- [x] Add the functional parity contract.
+- [x] Add the git-commits-push launch and resume contract.
+- [x] Add test-retention and Bun-allowlist policies.
+- [x] Register successor documents for specifications that mandate Bun.
+- [x] Retrieve and audit the authoritative event-sink source.
+- [x] Prepare `@fanilosendrison/event-sink@0.1.0`, Node tests, build, lockfile, CI, tarball, and clean-install smoke.
+- [x] Commit event-sink locally as `e75692f34ef212c9ad173a37a73539f35f54c6ff` and create annotated tag `v0.1.0` under the bootstrap exception.
+- [!] Authenticate Git and npm, then push and publish event-sink immutably.
+- [!] Replace event-sink imports only after immutable registry publication.
+- [x] Audit exact distributed tarballs for turnlock 0.9.0, LLM Runtime 0.1.2, Jiti 2.7.0, and Pi 0.84.2.
+- [x] Reproduce the published turnlock 0.9.0 Node ESM defect end to end.
+- [x] Prepare and locally commit behavior-preserving `turnlock@0.9.1` as `e27b053564833017db4bb7c46e85cb3db5aa0e70` with Node package tests and cross-platform CI.
+- [!] Authenticate Git, push turnlock, pass Bun/Node CI, tag `v0.9.1`, publish, and verify registry integrity.
+- [ ] Complete the transitive distributed-file audit after final pnpm lockfiles exist.
+- [x] Build and test official jq 1.7.1 source for High Sierra and install it under `~/.local/bin`.
+- [ ] Complete remaining blocked items in the High Sierra prerequisite report.
+
+## Phase 1 — Raw and green baselines
+
+- [ ] Add Bun 1.3.14 parity CI on Linux and macOS.
+- [ ] Build both gateways under a temporary `HOME` in CI.
+- [ ] Pin the exact dotagents baseline commit in dotpi CI.
+- [ ] Run the complete historical suites.
+- [ ] Fix pre-existing failures in separate green commits.
+- [ ] Annotate both green baselines as `pre-node-pnpm-green`.
+- [ ] Record every direct-Git bootstrap commit until Node self-hosting succeeds.
+
+## Phase 2 — pnpm foundations
+
+- [ ] Create the dotagents workspace.
+- [ ] Convert or remove the four scripts pseudo-packages.
+- [ ] Add exact package-manager and minimum-engine declarations.
+- [ ] Add strict engine and peer-install policies.
+- [ ] Declare dependencies in every consuming package.
+- [ ] Override all Pi internal packages to exact 0.84.2 so pnpm cannot drift to 0.84.3.
+- [ ] Generate one independent pnpm lockfile per repository.
+- [ ] Compare resolved versions against every Bun lockfile.
+- [ ] Validate two clean installs and an unchanged frozen install.
+
+## Phase 3 — Portable Node runtime
+
+- [ ] Add and test the shared subprocess API.
+- [ ] Add explicit js-yaml schema and differential tests.
+- [ ] Add package-local NodeNext build configurations.
+- [ ] Add deterministic asset copying.
+- [ ] Add the explicit Node test runner with sequential execution and TAP or JUnit output.
+
+## Phase 4 — Bootstraps and compatible recognition
+
+- [ ] Migrate create-symlink bootstrap to `.mjs`.
+- [ ] Migrate documentation bootstraps to `.mjs`.
+- [ ] Compile skill-creator validation tooling.
+- [ ] Accept both historical Bun and new pnpm commit-launch syntax.
+- [ ] Deploy compatible recognition to dotpi and zero-timeout-filter.
+
+## Phase 5 — git-commits-push cutover
+
+- [ ] Compile both entrypoints and copy runtime assets.
+- [ ] Replace the shell pipeline with a signal-safe Node supervisor.
+- [ ] Preserve Turnlock-only stdout, exit codes, telemetry, queues, and retries.
+- [ ] Drain or explicitly close historical runs before cutover.
+- [ ] Point resume and queue launches to compiled artifacts through `process.execPath`.
+- [ ] Pass trust-token, hook, secret-scanner, permissions, and leak gates.
+- [ ] Pass the bare-remote self-hosting gate.
+- [ ] Complete the first real Node-orchestrated migration commit and push.
+
+## Phases 6 and 7 — dotagents packages and tests
+
+- [ ] Migrate scripts.
+- [ ] Migrate loop-clean protocol and mutation runner.
+- [ ] Migrate go and preserve fast-check seeds and shrink paths.
+- [ ] Migrate agent-enforcer tests.
+- [ ] Migrate all remaining root tests.
+- [ ] Complete every row in the 74-surface parity manifest.
+- [ ] Remove each package Bun lockfile only after package parity passes.
+
+## Phase 8 — dotpi tests
+
+- [ ] Create the independent dotpi pnpm project and lockfile.
+- [ ] Pin Pi 0.84.2, Jiti 2.7.0, TypeScript, and Node types locally.
+- [ ] Keep production extensions as Jiti-loaded TypeScript source.
+- [ ] Replace Bun resolution, query imports, implicit cache mocks, and absolute imports.
+- [ ] Complete every row in the 25-test parity manifest.
+- [ ] Keep pi-subagents-4-turnlock mechanically excluded.
+
+## Phase 9 — Gateway portability
+
+- [ ] Link package metadata, workspace metadata, lockfiles, policy, source, and node_modules.
+- [ ] Validate physical roots and all gateways.
+- [ ] Validate clean reinstall and rebuild in temporary homes and paths containing spaces.
+- [ ] Validate with Bun absent and with a logging Bun failure sentinel.
+- [ ] Pass the High Sierra gateway smoke using the local Node wrapper.
+
+## Phase 10 — Documentation and cleanup
+
+- [ ] Update active skills, agent guides, context routers, READMEs, CI, and examples at cutover.
+- [ ] Remove active Bun APIs, types, shebangs, lockfiles, and obsolete bunfig files.
+- [ ] Remove active user-specific absolute paths.
+- [ ] Enforce the final Bun occurrence allowlist.
+- [ ] Retire required Bun parity CI.
+- [ ] Pass Node 22 and Node 24, Linux and macOS, typecheck, lint, tests, gateways, and High Sierra smoke.
+- [ ] Confirm clean repositories and no abandoned Turnlock run or migration lock.

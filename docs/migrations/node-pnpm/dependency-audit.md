@@ -1,0 +1,73 @@
+---
+okf_version: "1.0"
+kind: "RuntimeArtifact"
+format: "dependency-audit"
+workspace: "dotagents and dotpi"
+date: "2026-08-25"
+step_id: 0
+---
+
+# Migration dependency audit
+
+## Immutable registry metadata verified
+
+- `turnlock@0.9.0` declares Node.js 22 or newer and resolves with integrity `sha512-J4zJO+YG+PVaRGGov5zaSvtGbyU8kPP23V/mGhLyHRDK3jJ/hdPZ8GpPfW0F8P+5qjvHFJED4AJsNq8B0ONcvg==`.
+- `@fanilosendrison/llm-runtime@0.1.2` declares Node.js 20 or newer and resolves with integrity `sha512-yoej2g21eF693bOTdB4ufsIcCrxUC740rUVTe7a/xYdUwSICxR4MlmxeRpwKf8hpQ6QCcJqqlwiW2MgUL9MADg==`.
+- `jiti@2.7.0` resolves with integrity `sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==`.
+- `@earendil-works/pi-coding-agent@0.84.2` declares Node.js 22.19.0 or newer and resolves with integrity `sha512-l4E+B7hgXKWddRo8bC/eSue2aWZjEgJ9xIpf5p0Og+lq8a2TArCwJ0HCoCPCgaBP/tN4zbYH/wOwvx9pJpeLCA==`.
+- The installed Pi distribution contains Pi AI 0.84.2, Pi TUI 0.84.2, Jiti 2.7.0, Node types 22.19.19, Photon WASM, Darwin terminal-modifier prebuilds, and optional clipboard native artifacts.
+
+## Exact distributed-package audit
+
+The four exact registry tarballs were downloaded without executing scripts, and each local SHA-512 matches its recorded registry integrity. None declares `preinstall`, `install`, `postinstall`, or `prepare` lifecycle scripts.
+
+### Turnlock
+
+`turnlock@0.9.0` is not executable under its declared Node runtime. An isolated pnpm installation followed by `await import("turnlock")` deterministically fails with `ERR_MODULE_NOT_FOUND` because the published ESM contains extensionless relative imports such as `./constants`. This reproduces with Node 22.19.0 before any consumer code runs.
+
+The authoritative repository was cloned from `https://github.com/fanilosendrison/turnlock`. A patch release was prepared from tag `v0.9.0` at `21bd35e82f782a40031c472d47a7b87c5385989f` on branch `fix/node-esm-package`. Local commit `e27b053564833017db4bb7c46e85cb3db5aa0e70` prepares `turnlock@0.9.1` with NodeNext output, explicit rewritten runtime extensions, a Node import test, a TypeScript consumer test, and Bun 1.3.14 plus Node 22.19/24 Linux/macOS CI.
+
+The prepared tarball contains the same 150 distributed files. Canonical comparison of all 74 JavaScript and declaration outputs proves no semantic output difference other than module specifiers and harmless import formatting. Clean tarball installation and Node import pass. Its final local SHA-512 is `0f2c494dd4c3f502f64b66fe59a5393c81a3557b421df5b3e3ce2a4876420c4aca1102a34bfb1b9fdc081aa46f34eaa773391f7742f4e6f33c644b54b9a71e3c`.
+
+The historical Bun suite cannot run locally. The fix must be pushed, pass its cross-platform CI, receive annotated tag `v0.9.1`, and be published and registry-verified before consumers pin it.
+
+### LLM runtime and Jiti
+
+`@fanilosendrison/llm-runtime@0.1.2` ships 139 files, two runtime dependencies, no native artifact, no process spawning, no Bun runtime reference, and no lifecycle script. Its 20 exported bindings import successfully on High Sierra.
+
+`jiti@2.7.0` ships 16 files, no runtime dependency, no native artifact, no lifecycle script, and no Bun runtime reference. Its development scripts mention optional Bun test lanes, but the shipped loader is Node-compatible. An isolated Jiti instance successfully loads and evaluates an erasable TypeScript fixture on High Sierra.
+
+### Pi distribution
+
+`@earendil-works/pi-coding-agent@0.84.2` ships 972 files and no install lifecycle script. Its runtime contains no Bun reference. Process spawning is explicit in shell, tool, clipboard, browser, editor, RPC, and Git integration modules. The direct tarball contains only an example WASM artifact; Photon WASM, terminal modifiers, and clipboard native artifacts arrive through declared dependencies.
+
+An isolated pnpm graph installs 131 packages with no known high-severity vulnerability; `node-domexception@1.0.0` is deprecated. Root import, the `pi --version` CLI, Jiti TypeScript loading, Darwin terminal-modifier loading, native clipboard loading and resolution fallback, and Photon WASM image construction all pass on High Sierra.
+
+Pi 0.84.2 declares caret ranges for its internal packages. pnpm therefore resolves Pi Agent Core, AI, Client, Protocol, and TUI to 0.84.3 unless constrained, unlike the package's npm shrinkwrap and the installed 0.84.2 distribution. The future dotpi pnpm manifest must override all six internal packages to exact 0.84.2:
+
+- `@earendil-works/pi-agent-core`
+- `@earendil-works/pi-ai`
+- `@earendil-works/pi-client`
+- `@earendil-works/pi-protocol`
+- `@earendil-works/pi-telemetry`
+- `@earendil-works/pi-tui`
+
+The distributed examples contain one upstream maintainer absolute path and the changelog contains one illustrative absolute glob. Neither is imported by runtime code. The project Bun allowlist does not apply to third-party development scripts or examples under ignored `node_modules`.
+
+A complete transitive file audit remains required after the repository lockfiles materialize the final overridden dependency graphs.
+
+## Event-sink package audit
+
+The authoritative source was cloned from `https://github.com/fanilosendrison/event-sink` at commit `e62176dc44c5eddeb9d9ba46a8887eee55977364`. Its event envelope, atomic writer, error behavior, public API, and 41 test vectors were audited before packaging.
+
+The prepared immutable identity is `@fanilosendrison/event-sink@0.1.0`. The package declares Node.js 22.19.0 or newer, exact pnpm 11.24.0, NodeNext ESM, TypeScript declarations, zero runtime dependencies, and `UNLICENSED` licensing because the source repository contains no license grant.
+
+All 41 tests pass through `node:test`; typecheck, Biome 2.5.2, build, two clean frozen installations, publish dry-run, tarball inspection, and clean tarball installation smoke pass on High Sierra. The final local tarball SHA-512 is `f4f986f4770b03c036e500a8b4b289be451041bb448146ae5912fcda60084fbba35163cc5f60b6780fe3e23cede7670c096b276abded158f2b44a343ad308d99`.
+
+The release source is committed locally as `e75692f34ef212c9ad173a37a73539f35f54c6ff` with annotated tag `v0.1.0`. The registry package name remains available. npm authentication is absent, and a Git push dry-run cannot authenticate over HTTPS. Publication credentials and Git credentials must be configured outside tracked files. Production consumers must not switch imports until the exact registry version and integrity are verified.
+
+## Gate status
+
+`BLOCKED_IMMUTABLE_DEPENDENCY_PUBLICATION`
+
+The gate requires both `@fanilosendrison/event-sink@0.1.0` and `turnlock@0.9.1` to be pushed, validated, published, registry-integrity verified, and pinned. GitHub and npm authentication are currently absent. No runtime migration or dependency replacement may proceed while this status remains active.
