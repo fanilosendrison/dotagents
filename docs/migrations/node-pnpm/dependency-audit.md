@@ -27,9 +27,11 @@ The four exact registry tarballs were downloaded without executing scripts, and 
 
 The authoritative repository was cloned from `https://github.com/fanilosendrison/turnlock`. A patch release was prepared from tag `v0.9.0` at `21bd35e82f782a40031c472d47a7b87c5385989f` on branch `fix/node-esm-package`. The maintenance commit stack prepares `turnlock@0.9.1`: package fix `e27b053564833017db4bb7c46e85cb3db5aa0e70`, clean-tree typecheck fix `191e6fc8d9bff988f7195b3bc703397562f3c486`, and Bun discovery isolation `d6fdc6ad0f88978ee3f1c8d882d5bfd7183715b1`. The release candidate uses NodeNext output, explicit rewritten runtime extensions, a Node import test, a TypeScript consumer test, and Bun 1.3.14 plus Node 22.19/24 Linux/macOS CI.
 
-The prepared tarball contains the same 150 distributed files. Canonical comparison of all 74 JavaScript and declaration outputs proves no semantic output difference other than module specifiers and harmless import formatting. Clean tarball installation and Node import pass. Its final local SHA-512 at release-candidate HEAD `d6fdc6ad0f88978ee3f1c8d882d5bfd7183715b1` is `464605828b828efa231219f1feb9880b72aff1d3ce56b0a1bfd04b686051ba6c9580f14863c9dad77c25258a20d62ee3acf5f82973c7d9121d2032b67648ea90`.
+The prepared package contains the same 150 distributed files. Canonical comparison of all 74 JavaScript and declaration outputs proves no semantic output difference other than module specifiers and harmless import formatting. Clean tarball installation and Node import pass. The initial `npm pack` audit artifact at release-candidate HEAD `d6fdc6ad0f88978ee3f1c8d882d5bfd7183715b1` has SHA-512 `464605828b828efa231219f1feb9880b72aff1d3ce56b0a1bfd04b686051ba6c9580f14863c9dad77c25258a20d62ee3acf5f82973c7d9121d2032b67648ea90`. `pnpm publish` normalizes only the distributed `package.json` by reordering scripts and removing the publish-time `prepack` hook; it does not change runtime fields, dependencies, exports, or any other distributed file.
 
-Cross-platform CI run `32897464178` passes Bun 1.3.14 and Node 22.19/24 on Linux and macOS. The branch is pushed, while tag `v0.9.1` remains intentionally absent. It must receive the annotated tag, be published, and be registry-verified before consumers pin it.
+The published `turnlock@0.9.1` tarball is reproduced byte-for-byte by `pnpm pack`. Both have SHA-512 `e379aeecb5207f472f579b417cfd5d115c706e55b190a72b80c52b26534ffb083ac97282f8d81a94d49daabe26e8e9931b1cbae49ed6121f0915483e44177d29`, registry integrity `sha512-43mu7LUgf0cvV5tBfP1dEVxwblWxkKcrgMUrJlNP+wg6yXKC+NgalNSdqr4m6OmTGxy65J7WEh8JFUg+RBd9KQ==`, and shasum `ab8e1898bd7c5bf7492ac9ee42fdb9f9169e0764`. An exact registry installation with lifecycle scripts disabled passes Node ESM runtime import and strict NodeNext TypeScript consumer compilation.
+
+Cross-platform branch CI run `32897464178` and annotated-tag CI run `32898343128` pass Bun 1.3.14 and Node 22.19/24 on Linux and macOS. Tag `v0.9.1` points to the release-candidate HEAD, and the registry `latest` dist-tag resolves to 0.9.1.
 
 ### LLM runtime and Jiti
 
@@ -68,6 +70,6 @@ The release source is committed as `e75692f34ef212c9ad173a37a73539f35f54c6ff` wi
 
 ## Gate status
 
-`BLOCKED_IMMUTABLE_DEPENDENCY_PUBLICATION`
+`READY_FOR_IMMUTABLE_DEPENDENCY_PINNING`
 
-Event-sink 0.1.0 is published and registry-integrity verified. The remaining gate requires `turnlock@0.9.1` to be published and registry-integrity verified before both dependencies are pinned. GitHub SSH authentication, npm authentication, and both CI gates pass. No runtime migration or dependency replacement may proceed while this status remains active.
+Event-sink 0.1.0 and Turnlock 0.9.1 are published, registry-integrity verified, and clean-install tested. GitHub SSH authentication, npm authentication, and both CI gates pass. The publication gate is closed; both exact versions must now be pinned before runtime imports are replaced.
