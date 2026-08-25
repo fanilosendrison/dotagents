@@ -56,7 +56,15 @@ Pi 0.84.2 declares caret ranges for its internal packages. pnpm therefore resolv
 
 The distributed examples contain one upstream maintainer absolute path and the changelog contains one illustrative absolute glob. Neither is imported by runtime code. The project Bun allowlist does not apply to third-party development scripts or examples under ignored `node_modules`.
 
-A complete transitive file audit remains required after the repository lockfiles materialize the final overridden dependency graphs.
+## Final lock graph audit
+
+The independent pnpm 11.24.0 lockfiles are materialized and reproducible. Dotagents lock SHA-256 is `51cfbf445de698c0af85230808a1a5c812b31212edc88d589ba88333a69b8486`; it contains exactly 10 importers. Dotpi lock SHA-256 is `ab4c596997cb1088efc739080501df597a4b772ef0823a517e2bd55307c3563f`; it contains only the root importer and excludes `extensions/pi-subagents-4-turnlock/**`. Two independent frozen installations per repository leave both locks unchanged. Both final graphs report zero known vulnerabilities at every severity.
+
+The installed dotagents graph contains 18 unique packages and 3,349 distributed files. It declares no install lifecycle, native binary, or WASM artifact. Its runtime and tooling versions match the retained Bun locks except for `js-yaml`: the Bun-resolved 4.3.0 is vulnerable to `GHSA-5p4m-2wfm-xmqj` / `CVE-2026-59870`, so both manifests and locks intentionally select patched 4.3.1. No active source import of `js-yaml` exists in the audited tree.
+
+The installed dotpi graph contains 130 unique packages and 14,046 distributed files. Fifteen packages retain lifecycle declarations, but no lifecycle was executed during either frozen installation. Fourteen declarations are publish-time `prepare` scripts or the `@google/genai` no-op preinstall; `protobufjs@7.6.5` declares the sole postinstall. The six native artifacts are the previously validated Pi TUI Darwin/Windows modifiers and optional Darwin clipboard binaries. The two WASM artifacts are the non-runtime Doom extension example and the previously executed Photon image module. The sole deprecation remains `node-domexception@1.0.0`.
+
+All six Pi internal packages resolve exclusively to 0.84.2; no 0.84.3 package is present. Event-sink resolves to 0.1.0, Turnlock to 0.9.1, Pi Coding Agent/AI/TUI to 0.84.2, and Jiti to 2.7.0. Comparison against all seven Bun locks leaves only type-only drift in transitive `@types/node` and `undici-types`; this is explicitly deferred to the exact Node 22 type replacement. Biome is held at the Bun-validated 2.5.2 and `@types/bun` at the Bun CI version 1.3.14.
 
 ## Event-sink package audit
 
@@ -66,10 +74,10 @@ The prepared immutable identity is `@fanilosendrison/event-sink@0.1.0`. The pack
 
 All 41 tests pass through `node:test`; typecheck, Biome 2.5.2, build, two clean frozen installations, publish dry-run, tarball inspection, and clean tarball installation smoke pass on High Sierra. The final local tarball SHA-512 is `f4f986f4770b03c036e500a8b4b289be451041bb448146ae5912fcda60084fbba35163cc5f60b6780fe3e23cede7670c096b276abded158f2b44a343ad308d99`.
 
-The release source is committed as `e75692f34ef212c9ad173a37a73539f35f54c6ff` with annotated tag `v0.1.0`; both are pushed and GitHub CI run `32896680948` passes. The exact package is published as `@fanilosendrison/event-sink@0.1.0` with registry integrity `sha512-9PmG9HcLA8A25QCotLKJvkUQQbtEgUauWRL82mAIT7ujUWPMX2C2eA/j4jzt52cMCWsnar3tFY8rRKNDrTCNmQ==` and shasum `b2ce1c2bfcac2f142317d0b84ed3a7062c3234c1`. Its decoded SHA-512 exactly matches the sealed local tarball, and an exact clean registry installation with lifecycle scripts disabled passes the public-API smoke test. Production consumers must still wait for the Turnlock gate before switching imports.
+The release source is committed as `e75692f34ef212c9ad173a37a73539f35f54c6ff` with annotated tag `v0.1.0`; both are pushed and GitHub CI run `32896680948` passes. The exact package is published as `@fanilosendrison/event-sink@0.1.0` with registry integrity `sha512-9PmG9HcLA8A25QCotLKJvkUQQbtEgUauWRL82mAIT7ujUWPMX2C2eA/j4jzt52cMCWsnar3tFY8rRKNDrTCNmQ==` and shasum `b2ce1c2bfcac2f142317d0b84ed3a7062c3234c1`. Its decoded SHA-512 exactly matches the sealed local tarball, and an exact clean registry installation with lifecycle scripts disabled passes the public-API smoke test. Its consumer manifest and final repository lock now pin the exact verified release.
 
 ## Gate status
 
-`AWAITING_IMMUTABLE_DEPENDENCY_LOCKFILES`
+`READY_FOR_GREEN_BASELINE_GATES`
 
-Event-sink 0.1.0 and Turnlock 0.9.1 are published, registry-integrity verified, and clean-install tested. Exact consumer manifest pins now declare Turnlock 0.9.1 under dotagents and event-sink 0.1.0, Pi 0.84.2, and Jiti 2.7.0 under dotpi. Dotpi also overrides all six Pi internal packages to exact 0.84.2, while the retained git-commits-push Bun lock resolves Turnlock 0.9.1 with the verified registry integrity. The publication and manifest gates are closed; the independent pnpm lockfiles must now materialize and verify these resolutions before runtime imports are replaced.
+The publication, manifest, lockfile, integrity, clean-install, transitive-file, and vulnerability gates are closed. Runtime import replacement remains deferred until the required Bun baseline CI, exact cross-repository commit pin, and green baseline tags are recorded.

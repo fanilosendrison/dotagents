@@ -32,13 +32,13 @@ step_id: 0
 - [x] Commit and push event-sink as `e75692f34ef212c9ad173a37a73539f35f54c6ff`, push annotated tag `v0.1.0`, and pass GitHub CI run `32896680948`.
 - [x] Publish event-sink immutably and verify exact registry integrity plus a clean public-API installation.
 - [x] Declare exact Turnlock 0.9.1 in its dotagents consumer and exact event-sink 0.1.0 in dotpi; retain the verified Turnlock integrity in the Bun lock.
-- [!] Materialize and verify both exact packages in the independent pnpm lockfiles before replacing runtime imports.
+- [x] Materialize and verify both exact packages in independent pnpm lockfiles; defer runtime import replacement until green baseline gates pass.
 - [x] Audit exact distributed tarballs for turnlock 0.9.0, LLM Runtime 0.1.2, Jiti 2.7.0, and Pi 0.84.2.
 - [x] Reproduce the published turnlock 0.9.0 Node ESM defect end to end.
 - [x] Prepare and push behavior-preserving `turnlock@0.9.1` through release-candidate HEAD `d6fdc6ad0f88978ee3f1c8d882d5bfd7183715b1` with Node package tests.
 - [x] Pass Turnlock CI run `32897464178` on Bun 1.3.14 and Node 22.19/24 across Linux and macOS.
 - [x] Authenticate npm, push annotated tag `v0.9.1`, pass tag CI, publish, reproduce the registry tarball byte-for-byte, and verify runtime plus TypeScript clean installation.
-- [ ] Complete the transitive distributed-file audit after final pnpm lockfiles exist.
+- [x] Complete the transitive distributed-file, lifecycle, native/WASM, deprecation, version-drift, and vulnerability audits.
 - [x] Build and test official jq 1.7.1 source for High Sierra and install it under `~/.local/bin`.
 - [ ] Complete remaining blocked items in the High Sierra prerequisite report.
 
@@ -54,15 +54,15 @@ step_id: 0
 
 ## Phase 2 — pnpm foundations
 
-- [ ] Create the dotagents workspace.
+- [x] Create the explicit 10-importer dotagents workspace and root-only dotpi workspace with the upstream exclusion.
 - [ ] Convert or remove the four scripts pseudo-packages.
 - [ ] Add exact package-manager and minimum-engine declarations.
 - [ ] Add strict engine and peer-install policies.
-- [ ] Declare dependencies in every consuming package.
-- [ ] Override all Pi internal packages to exact 0.84.2 so pnpm cannot drift to 0.84.3.
-- [ ] Generate one independent pnpm lockfile per repository.
-- [ ] Compare resolved versions against every Bun lockfile.
-- [ ] Validate two clean installs and an unchanged frozen install.
+- [x] Declare the verified immutable dependencies in their consuming packages.
+- [x] Override all Pi internal packages to exact 0.84.2 so pnpm cannot drift to 0.84.3.
+- [x] Generate one independent pnpm lockfile per repository.
+- [x] Compare resolved versions against every Bun lockfile and classify only type-only drift plus the js-yaml security correction.
+- [x] Validate two clean frozen installs per repository with unchanged lockfiles.
 
 ## Phase 3 — Portable Node runtime
 

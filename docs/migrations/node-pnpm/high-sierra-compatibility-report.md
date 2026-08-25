@@ -24,10 +24,12 @@ step_id: 0
 - Exact LLM Runtime 0.1.2, Jiti 2.7.0, and Pi Coding Agent 0.84.2 root imports succeed from an isolated pnpm installation; `pi --version` reports 0.84.2.
 - Jiti 2.7.0 loads an erasable TypeScript fixture.
 - Pi 0.84.2 Darwin terminal modifiers, native clipboard loading, clipboard resolution fallback, and Photon WASM image construction execute successfully.
-- The prepared `turnlock@0.9.1` tarball installs cleanly and imports through Node ESM; published `turnlock@0.9.0` does not.
+- Published `turnlock@0.9.1` reproduces byte-for-byte through pnpm pack, installs cleanly, imports through Node ESM, and compiles from a strict TypeScript consumer; published `turnlock@0.9.0` does not import under Node ESM.
 - jq 1.7.1 was built from the official release source after verifying source SHA-256 `478c9ca129fd2e3443fe27314b455e211e0d8c60bc8ff7df703873deeee580c2`; all jq and bundled Oniguruma tests pass under `LC_ALL=C` after a test-harness-only BSD `sed` compatibility correction.
 - The locally compiled `~/.local/bin/jq` reports 1.7.1, has SHA-256 `5d1277d947b3106236efc43204b90afc2ac8b36b8ec6ee2da873b2b0e9622ee1`, and passes the JSON construction and query shapes used by loop-clean.
 - The official jq macOS prebuild was checksum-valid but rejected because its Mach-O load command is unsupported on High Sierra; it was not installed.
+- Both independent pnpm lockfiles pass two clean frozen installations with lifecycle scripts disabled and unchanged lock hashes; exact Pi/event-sink/Jiti/Turnlock imports pass from the materialized graphs.
+- Full pnpm audits report zero known vulnerabilities. `js-yaml` is intentionally raised from Bun-resolved 4.3.0 to patched 4.3.1 for `GHSA-5p4m-2wfm-xmqj` / `CVE-2026-59870`.
 
 ## Blocked or missing
 
@@ -41,10 +43,9 @@ The private Pi auth file currently contains no `api_key` entry, and the document
 
 ## Required completion evidence
 
-1. Validate two clean frozen pnpm installations after repository manifests and lockfiles exist.
-2. Run full loop-clean after Bun is available; its jq expressions already pass direct smoke tests.
-3. Run physical-root and gateway suites after deleting `node_modules` and `dist`.
-4. Run the no-Bun sentinel job.
-5. Record Node 24 evidence on supported Linux and macOS CI.
+1. Run full loop-clean after Bun is available; its jq expressions already pass direct smoke tests.
+2. Run physical-root and gateway suites after deleting `node_modules` and `dist`.
+3. Run the no-Bun sentinel job.
+4. Record Node 24 evidence on supported Linux and macOS CI.
 
 Modern macOS CI must not substitute for these High Sierra checks.
