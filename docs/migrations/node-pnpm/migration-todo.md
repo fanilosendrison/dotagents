@@ -31,7 +31,8 @@ step_id: 0
 - [x] Prepare `@fanilosendrison/event-sink@0.1.0`, Node tests, build, lockfile, CI, tarball, and clean-install smoke.
 - [x] Commit and push event-sink as `e75692f34ef212c9ad173a37a73539f35f54c6ff`, push annotated tag `v0.1.0`, and pass GitHub CI run `32896680948`.
 - [x] Publish event-sink immutably and verify exact registry integrity plus a clean public-API installation.
-- [!] Pin exact event-sink 0.1.0 and Turnlock 0.9.1 before replacing runtime imports.
+- [x] Declare exact Turnlock 0.9.1 in its dotagents consumer and exact event-sink 0.1.0 in dotpi; retain the verified Turnlock integrity in the Bun lock.
+- [!] Materialize and verify both exact packages in the independent pnpm lockfiles before replacing runtime imports.
 - [x] Audit exact distributed tarballs for turnlock 0.9.0, LLM Runtime 0.1.2, Jiti 2.7.0, and Pi 0.84.2.
 - [x] Reproduce the published turnlock 0.9.0 Node ESM defect end to end.
 - [x] Prepare and push behavior-preserving `turnlock@0.9.1` through release-candidate HEAD `d6fdc6ad0f88978ee3f1c8d882d5bfd7183715b1` with Node package tests.

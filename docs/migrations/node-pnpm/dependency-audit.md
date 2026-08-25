@@ -70,6 +70,6 @@ The release source is committed as `e75692f34ef212c9ad173a37a73539f35f54c6ff` wi
 
 ## Gate status
 
-`READY_FOR_IMMUTABLE_DEPENDENCY_PINNING`
+`AWAITING_IMMUTABLE_DEPENDENCY_LOCKFILES`
 
-Event-sink 0.1.0 and Turnlock 0.9.1 are published, registry-integrity verified, and clean-install tested. GitHub SSH authentication, npm authentication, and both CI gates pass. The publication gate is closed; both exact versions must now be pinned before runtime imports are replaced.
+Event-sink 0.1.0 and Turnlock 0.9.1 are published, registry-integrity verified, and clean-install tested. Exact consumer manifest pins now declare Turnlock 0.9.1 under dotagents and event-sink 0.1.0, Pi 0.84.2, and Jiti 2.7.0 under dotpi. Dotpi also overrides all six Pi internal packages to exact 0.84.2, while the retained git-commits-push Bun lock resolves Turnlock 0.9.1 with the verified registry integrity. The publication and manifest gates are closed; the independent pnpm lockfiles must now materialize and verify these resolutions before runtime imports are replaced.
