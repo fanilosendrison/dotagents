@@ -64,10 +64,10 @@ The prepared immutable identity is `@fanilosendrison/event-sink@0.1.0`. The pack
 
 All 41 tests pass through `node:test`; typecheck, Biome 2.5.2, build, two clean frozen installations, publish dry-run, tarball inspection, and clean tarball installation smoke pass on High Sierra. The final local tarball SHA-512 is `f4f986f4770b03c036e500a8b4b289be451041bb448146ae5912fcda60084fbba35163cc5f60b6780fe3e23cede7670c096b276abded158f2b44a343ad308d99`.
 
-The release source is committed as `e75692f34ef212c9ad173a37a73539f35f54c6ff` with annotated tag `v0.1.0`; both are pushed and GitHub CI run `32896680948` passes. The registry package name remains available. npm authentication is absent; publication credentials must be configured outside tracked files. Production consumers must not switch imports until the exact registry version and integrity are verified.
+The release source is committed as `e75692f34ef212c9ad173a37a73539f35f54c6ff` with annotated tag `v0.1.0`; both are pushed and GitHub CI run `32896680948` passes. The exact package is published as `@fanilosendrison/event-sink@0.1.0` with registry integrity `sha512-9PmG9HcLA8A25QCotLKJvkUQQbtEgUauWRL82mAIT7ujUWPMX2C2eA/j4jzt52cMCWsnar3tFY8rRKNDrTCNmQ==` and shasum `b2ce1c2bfcac2f142317d0b84ed3a7062c3234c1`. Its decoded SHA-512 exactly matches the sealed local tarball, and an exact clean registry installation with lifecycle scripts disabled passes the public-API smoke test. Production consumers must still wait for the Turnlock gate before switching imports.
 
 ## Gate status
 
 `BLOCKED_IMMUTABLE_DEPENDENCY_PUBLICATION`
 
-The gate requires both `@fanilosendrison/event-sink@0.1.0` and `turnlock@0.9.1` to be published, registry-integrity verified, and pinned. GitHub SSH authentication and both CI gates now pass; npm authentication remains absent. No runtime migration or dependency replacement may proceed while this status remains active.
+Event-sink 0.1.0 is published and registry-integrity verified. The remaining gate requires `turnlock@0.9.1` to be published and registry-integrity verified before both dependencies are pinned. GitHub SSH authentication, npm authentication, and both CI gates pass. No runtime migration or dependency replacement may proceed while this status remains active.
