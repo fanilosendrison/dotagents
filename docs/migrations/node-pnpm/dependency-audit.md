@@ -58,13 +58,13 @@ The distributed examples contain one upstream maintainer absolute path and the c
 
 ## Final lock graph audit
 
-The independent pnpm 11.24.0 lockfiles are materialized and reproducible. Dotagents lock SHA-256 is `51cfbf445de698c0af85230808a1a5c812b31212edc88d589ba88333a69b8486`; it contains exactly 10 importers. Dotpi lock SHA-256 is `ab4c596997cb1088efc739080501df597a4b772ef0823a517e2bd55307c3563f`; it contains only the root importer and excludes `extensions/pi-subagents-4-turnlock/**`. Two independent frozen installations per repository leave both locks unchanged. Both final graphs report zero known vulnerabilities at every severity.
+The independent pnpm 11.24.0 lockfiles are materialized and reproducible. Dotagents lock SHA-256 is `51cfbf445de698c0af85230808a1a5c812b31212edc88d589ba88333a69b8486`; it contains exactly 10 importers. Dotpi lock SHA-256 is `34e6bad6d8693880e6380cfcc684850b9827d2b25a480a081dcad25fe1b3cd05`; it contains only the root importer and excludes `extensions/pi-subagents-4-turnlock/**`. Two independent frozen installations per repository leave both locks unchanged. Both final graphs report zero known vulnerabilities at every severity.
 
 The installed dotagents graph contains 18 unique packages and 3,349 distributed files. It declares no install lifecycle, native binary, or WASM artifact. Its runtime and tooling versions match the retained Bun locks except for `js-yaml`: the Bun-resolved 4.3.0 is vulnerable to `GHSA-5p4m-2wfm-xmqj` / `CVE-2026-59870`, so both manifests and locks intentionally select patched 4.3.1. No active source import of `js-yaml` exists in the audited tree.
 
-The installed dotpi graph contains 130 unique packages and 14,046 distributed files. Fifteen packages retain lifecycle declarations, but no lifecycle was executed during either frozen installation. Fourteen declarations are publish-time `prepare` scripts or the `@google/genai` no-op preinstall; `protobufjs@7.6.5` declares the sole postinstall. The six native artifacts are the previously validated Pi TUI Darwin/Windows modifiers and optional Darwin clipboard binaries. The two WASM artifacts are the non-runtime Doom extension example and the previously executed Photon image module. The sole deprecation remains `node-domexception@1.0.0`.
+The installed dotpi graph contains 133 unique packages and 14,299 distributed files. Fifteen packages retain lifecycle declarations, but no lifecycle was executed during either frozen installation. Fourteen declarations are publish-time `prepare` scripts or the `@google/genai` no-op preinstall; `protobufjs@7.6.5` declares the sole postinstall. The six native artifacts are the previously validated Pi TUI Darwin/Windows modifiers and optional Darwin clipboard binaries. The two WASM artifacts are the non-runtime Doom extension example and the previously executed Photon image module. The sole deprecation remains `node-domexception@1.0.0`.
 
-All six Pi internal packages resolve exclusively to 0.84.2; no 0.84.3 package is present. Event-sink resolves to 0.1.0, Turnlock to 0.9.1, Pi Coding Agent/AI/TUI to 0.84.2, and Jiti to 2.7.0. Comparison against all seven Bun locks leaves only type-only drift in transitive `@types/node` and `undici-types`; this is explicitly deferred to the exact Node 22 type replacement. Biome is held at the Bun-validated 2.5.2 and `@types/bun` at the Bun CI version 1.3.14.
+All six Pi internal packages resolve exclusively to 0.84.2; no 0.84.3 package is present. Event-sink resolves to 0.1.0, Turnlock to 0.9.1, Pi Coding Agent/AI/TUI to 0.84.2, and Jiti to 2.7.0. Comparison against all seven Bun locks retains type-only drift in transitive `@types/node` and `undici-types`; dotpi now declares exact `@types/node@22.20.0` for its direct Node test surface while Bun and third-party transitives retain their independently locked type versions. Biome is held at the Bun-validated 2.5.2 and `@types/bun` at the Bun CI version 1.3.14.
 
 ## Event-sink package audit
 
@@ -78,6 +78,6 @@ The release source is committed as `e75692f34ef212c9ad173a37a73539f35f54c6ff` wi
 
 ## Gate status
 
-`READY_FOR_GREEN_BASELINE_GATES`
+`FIRST_RUNTIME_PORTABILITY_LOT_GREEN`
 
-The publication, manifest, lockfile, integrity, clean-install, transitive-file, and vulnerability gates are closed. Runtime import replacement remains deferred until the required Bun baseline CI, exact cross-repository commit pin, and green baseline tags are recorded.
+The publication, manifest, lockfile, integrity, clean-install, transitive-file, vulnerability, Bun baseline, and green-tag gates are closed. The first runtime portability lot replaces dotpi event-sink source imports with the exact published package. Node run `32947362470` passes on Node 22.19.0/24 Linux/macOS with the Bun failure sentinel untouched, and retained Bun run `32947362415` passes all 25 historical surfaces on Linux/macOS.
