@@ -71,7 +71,7 @@ step_id: 0
 - [ ] Add package-local NodeNext build configurations.
 - [ ] Add deterministic asset copying.
 - [ ] Add the explicit Node test runner with sequential execution and TAP or JUnit output.
-- [!] Start direct Node TypeScript stripping with a sequential `node:test` stats-logger smoke; local Node 22.19.0, typecheck, physical-path, gateway-path, frozen-install, no-Bun-sentinel, lock-integrity, and vulnerability gates pass while Node 24 CI remains pending.
+- [x] Start direct Node TypeScript stripping with a sequential `node:test` stats-logger smoke; Node run `32954252065` passes on Node 22.19.0/24 Linux/macOS without Bun, and retained Bun run `32954252069` passes on Linux/macOS.
 
 ## Phase 4 — Bootstraps and compatible recognition
 

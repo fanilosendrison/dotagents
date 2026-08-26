@@ -78,8 +78,8 @@ The release source is committed as `e75692f34ef212c9ad173a37a73539f35f54c6ff` wi
 
 ## Gate status
 
-`SECOND_RUNTIME_PORTABILITY_LOT_IN_PROGRESS`
+`SECOND_RUNTIME_PORTABILITY_LOT_GREEN`
 
 The publication, manifest, lockfile, integrity, clean-install, transitive-file, vulnerability, Bun baseline, and green-tag gates are closed. The first runtime portability lot replaces dotpi event-sink source imports with the exact published package. Node run `32947362470` passes on Node 22.19.0/24 Linux/macOS with the Bun failure sentinel untouched, and retained Bun run `32947362415` passes all 25 historical surfaces on Linux/macOS.
 
-The second lot replaces the git-commits-push stats logger source import with exact event-sink 0.1.0, removes the dotagents CI source alias, and preserves the telemetry envelope in a direct Node smoke. Local Node 22.19.0, physical and gateway paths, frozen install, no-Bun sentinel, Bun-lock integrity, and vulnerability gates pass; cross-platform Node 22/24 and retained Bun CI remain pending.
+The second lot replaces the git-commits-push stats logger source import with exact event-sink 0.1.0, removes the dotagents CI source alias, and preserves the telemetry envelope in a direct Node smoke. Node run `32954252065` passes on Node 22.19.0/24 Linux/macOS with the Bun failure sentinel untouched, and retained Bun run `32954252069` passes the complete historical suite on Linux/macOS.
