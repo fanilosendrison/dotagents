@@ -47,7 +47,7 @@ step_id: 0
 - [x] Add Bun 1.3.14 parity CI on Linux and macOS.
 - [x] Build both gateways under an isolated temporary `HOME` in CI and retain baseline-only aliases for historical absolute imports.
 - [x] Pin dotagents commit `3516a87e52b51e607fad387703a0b47c99751adf` exactly in dotpi CI.
-- [!] Rerun the complete historical suites after initial run `32905294943` exposed a missing baseline-only event-sink alias on both operating systems.
+- [!] Rerun after `32905576486` exposed two pre-existing test defects: global Bun module-mock leakage under Linux and a user-specific protected-path fixture under macOS. Both test-only fixes are prepared.
 - [ ] Fix pre-existing failures in separate green commits.
 - [ ] Annotate both green baselines as `pre-node-pnpm-green`.
 - [ ] Record every direct-Git bootstrap commit until Node self-hosting succeeds.

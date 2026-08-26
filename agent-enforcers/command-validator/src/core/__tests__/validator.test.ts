@@ -1,7 +1,8 @@
 import { describe, expect, test, spyOn, beforeEach, afterEach } from "bun:test";
-import { CommandValidator } from "../validator.ts";
-import { BashValidator } from "../bash-validator.ts";
+import { homedir } from "node:os";
 import * as state from "../../../../permission-enforcer/src/core/state.ts";
+import { BashValidator } from "../bash-validator.ts";
+import { CommandValidator } from "../validator.ts";
 
 const validator = new CommandValidator();
 
@@ -210,8 +211,9 @@ describe("CommandValidator Core Unit Tests", () => {
 		const bashValidator = new BashValidator();
 
 		test("denies writeFileSync to protected path", () => {
+			const protectedPath = `${homedir()}/.agents/agent-enforcers/permission-enforcer/.state/config.json`;
 			const result = bashValidator.validate(
-				'node -e "writeFileSync(\'/Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/.state/config.json\', ...)"',
+				`node -e "writeFileSync('${protectedPath}', ...)"`,
 			);
 			expect(result.action).toBe("deny");
 			expect(result.violations[0]).toContain(
