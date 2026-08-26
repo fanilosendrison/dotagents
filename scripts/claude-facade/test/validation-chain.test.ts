@@ -38,13 +38,16 @@ describe("repository validation chain", () => {
 
     expect(rootPackage.workspaces).toBeUndefined();
     expect(rootPackage.scripts.test).toBe(
-      "bun run test:install && bun run test:root && bun run test:scripts && bun run test:protocol",
+      "bun run test:install && bun run test:root && bun run test:git-commits-push && bun run test:scripts && bun run test:protocol",
     );
     expect(rootPackage.scripts["test:install"]).toBe(
       "bun install --frozen-lockfile && bun install --cwd skills/create-symlink-for-dot-folders --frozen-lockfile && bun install --cwd skills/git-commits-push --frozen-lockfile && bun install --cwd skills/go --frozen-lockfile && bun install --cwd scripts --frozen-lockfile && bun install --cwd skills/loop-clean/protocol --frozen-lockfile",
     );
     expect(rootPackage.scripts["test:root"]).toBe(
-      "bun test --timeout 60000 --path-ignore-patterns='scripts/**' --path-ignore-patterns='skills/loop-clean/protocol/**'",
+      "bun test --timeout 60000 --path-ignore-patterns='scripts/**' --path-ignore-patterns='skills/git-commits-push/**' --path-ignore-patterns='skills/loop-clean/protocol/**'",
+    );
+    expect(rootPackage.scripts["test:git-commits-push"]).toBe(
+      "bun run --cwd skills/git-commits-push test",
     );
     expect(rootPackage.scripts["test:scripts"]).toBe("bun run --cwd scripts test");
     expect(rootPackage.scripts["test:protocol"]).toBe(
