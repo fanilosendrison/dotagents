@@ -11,4 +11,5 @@ packages:
   - skills/loop-clean/protocol
 
 minimumReleaseAgeExclude:
+  - '@fanilosendrison/event-sink@0.1.0'
   - turnlock@0.9.1

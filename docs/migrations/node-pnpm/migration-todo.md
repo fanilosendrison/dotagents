@@ -48,8 +48,8 @@ step_id: 0
 - [x] Build both gateways under an isolated temporary `HOME` in CI and retain baseline-only aliases for historical absolute imports.
 - [x] Pin dotagents commit `3516a87e52b51e607fad387703a0b47c99751adf` exactly in dotpi CI.
 - [x] Run the complete historical suite on Linux and macOS; run `32941370760` passes after isolated module-mock execution and portable HOME fixtures.
-- [ ] Fix pre-existing failures in separate green commits.
-- [ ] Annotate both green baselines as `pre-node-pnpm-green`.
+- [x] Fix pre-existing failures in separate green commits.
+- [x] Annotate and publish both green baselines as `pre-node-pnpm-green`.
 - [ ] Record every direct-Git bootstrap commit until Node self-hosting succeeds.
 
 ## Phase 2 — pnpm foundations
@@ -58,7 +58,7 @@ step_id: 0
 - [ ] Convert or remove the four scripts pseudo-packages.
 - [ ] Add exact package-manager and minimum-engine declarations.
 - [ ] Add strict engine and peer-install policies.
-- [x] Declare the verified immutable dependencies in their consuming packages.
+- [x] Declare the verified immutable dependencies in their consuming packages, including exact event-sink in git-commits-push before removing its source import.
 - [x] Override all Pi internal packages to exact 0.84.2 so pnpm cannot drift to 0.84.3.
 - [x] Generate one independent pnpm lockfile per repository.
 - [x] Compare resolved versions against every Bun lockfile and classify only type-only drift plus the js-yaml security correction.
@@ -71,6 +71,7 @@ step_id: 0
 - [ ] Add package-local NodeNext build configurations.
 - [ ] Add deterministic asset copying.
 - [ ] Add the explicit Node test runner with sequential execution and TAP or JUnit output.
+- [!] Start direct Node TypeScript stripping with a sequential `node:test` stats-logger smoke; local Node 22.19.0, typecheck, physical-path, gateway-path, frozen-install, no-Bun-sentinel, lock-integrity, and vulnerability gates pass while Node 24 CI remains pending.
 
 ## Phase 4 — Bootstraps and compatible recognition
 

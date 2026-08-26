@@ -33,14 +33,6 @@ jobs:
           path: dotagents
           persist-credentials: false
 
-      - name: Check out exact event-sink source
-        uses: actions/checkout@v4
-        with:
-          repository: fanilosendrison/event-sink
-          ref: e75692f34ef212c9ad173a37a73539f35f54c6ff
-          path: event-sink
-          persist-credentials: false
-
       - name: Install exact Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -52,25 +44,17 @@ jobs:
           set -euo pipefail
           test "$(bun --version)" = "1.3.14"
           test "$(git -C dotagents rev-parse HEAD)" = "${{ github.sha }}"
-          test "$(git -C event-sink rev-parse HEAD)" = "e75692f34ef212c9ad173a37a73539f35f54c6ff"
 
       - name: Build historical gateway
         shell: bash
         run: |
           set -euo pipefail
           dotagents="$GITHUB_WORKSPACE/dotagents"
-          event_sink="$GITHUB_WORKSPACE/event-sink"
           baseline_home="$RUNNER_TEMP/dotagents-baseline-home"
 
           rm -rf "$baseline_home"
           mkdir -p "$baseline_home"
           ln -s "$dotagents" "$baseline_home/.agents"
-
-          # Baseline-only alias preserves the historical telemetry import. The
-          # portability phase replaces that import with the published package.
-          sudo mkdir -p /Users/famillesendrison/Developper/Projects/telemetry-tools
-          sudo ln -s "$event_sink" \
-            /Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink
 
           test "$(readlink "$baseline_home/.agents")" = "$dotagents"
           printf 'HOME=%s\n' "$baseline_home" >> "$GITHUB_ENV"

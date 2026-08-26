@@ -58,9 +58,9 @@ The distributed examples contain one upstream maintainer absolute path and the c
 
 ## Final lock graph audit
 
-The independent pnpm 11.24.0 lockfiles are materialized and reproducible. Dotagents lock SHA-256 is `51cfbf445de698c0af85230808a1a5c812b31212edc88d589ba88333a69b8486`; it contains exactly 10 importers. Dotpi lock SHA-256 is `34e6bad6d8693880e6380cfcc684850b9827d2b25a480a081dcad25fe1b3cd05`; it contains only the root importer and excludes `extensions/pi-subagents-4-turnlock/**`. Two independent frozen installations per repository leave both locks unchanged. Both final graphs report zero known vulnerabilities at every severity.
+The independent pnpm 11.24.0 lockfiles are materialized and reproducible. Dotagents lock SHA-256 is `7b7ca6b4c92f138738c25105ec73b5a9044e432c552f2652f70917cc320873c7`; it contains exactly 10 importers. Dotpi lock SHA-256 is `34e6bad6d8693880e6380cfcc684850b9827d2b25a480a081dcad25fe1b3cd05`; it contains only the root importer and excludes `extensions/pi-subagents-4-turnlock/**`. Two independent frozen installations per repository leave both locks unchanged. Both final graphs report zero known vulnerabilities at every severity.
 
-The installed dotagents graph contains 18 unique packages and 3,349 distributed files. It declares no install lifecycle, native binary, or WASM artifact. Its runtime and tooling versions match the retained Bun locks except for `js-yaml`: the Bun-resolved 4.3.0 is vulnerable to `GHSA-5p4m-2wfm-xmqj` / `CVE-2026-59870`, so both manifests and locks intentionally select patched 4.3.1. No active source import of `js-yaml` exists in the audited tree.
+The installed dotagents graph contains 21 unique packages and 3,483 distributed files. It declares no install lifecycle, native binary, or WASM artifact. Its runtime and tooling versions match the retained Bun locks except for `js-yaml`: the Bun-resolved 4.3.0 is vulnerable to `GHSA-5p4m-2wfm-xmqj` / `CVE-2026-59870`, so both manifests and locks intentionally select patched 4.3.1. No active source import of `js-yaml` exists in the audited tree.
 
 The installed dotpi graph contains 133 unique packages and 14,299 distributed files. Fifteen packages retain lifecycle declarations, but no lifecycle was executed during either frozen installation. Fourteen declarations are publish-time `prepare` scripts or the `@google/genai` no-op preinstall; `protobufjs@7.6.5` declares the sole postinstall. The six native artifacts are the previously validated Pi TUI Darwin/Windows modifiers and optional Darwin clipboard binaries. The two WASM artifacts are the non-runtime Doom extension example and the previously executed Photon image module. The sole deprecation remains `node-domexception@1.0.0`.
 
@@ -78,6 +78,8 @@ The release source is committed as `e75692f34ef212c9ad173a37a73539f35f54c6ff` wi
 
 ## Gate status
 
-`FIRST_RUNTIME_PORTABILITY_LOT_GREEN`
+`SECOND_RUNTIME_PORTABILITY_LOT_IN_PROGRESS`
 
 The publication, manifest, lockfile, integrity, clean-install, transitive-file, vulnerability, Bun baseline, and green-tag gates are closed. The first runtime portability lot replaces dotpi event-sink source imports with the exact published package. Node run `32947362470` passes on Node 22.19.0/24 Linux/macOS with the Bun failure sentinel untouched, and retained Bun run `32947362415` passes all 25 historical surfaces on Linux/macOS.
+
+The second lot replaces the git-commits-push stats logger source import with exact event-sink 0.1.0, removes the dotagents CI source alias, and preserves the telemetry envelope in a direct Node smoke. Local Node 22.19.0, physical and gateway paths, frozen install, no-Bun sentinel, Bun-lock integrity, and vulnerability gates pass; cross-platform Node 22/24 and retained Bun CI remain pending.
