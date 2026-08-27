@@ -73,6 +73,17 @@ describe("repository validation chain", () => {
     expect(scriptsPackage.scripts.test).not.toContain("test:all");
   });
 
+  it("owns script sources from one parent package boundary", () => {
+    for (const relativePath of [
+      "scripts/coding-standards-consolidate/package.json",
+      "scripts/coding-standards-scanner/package.json",
+      "scripts/lib/coding-standards-schema/package.json",
+      "scripts/lib/stack-tools/package.json",
+    ]) {
+      expect(existsSync(join(repositoryRoot, relativePath))).toBe(false);
+    }
+  });
+
   it("disables implicit dependency installation in both nested packages", () => {
     for (const bunfigPath of [
       join(repositoryRoot, "scripts", "bunfig.toml"),

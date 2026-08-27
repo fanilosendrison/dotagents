@@ -41,14 +41,6 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  scripts/coding-standards-consolidate: {}
-
-  scripts/coding-standards-scanner: {}
-
-  scripts/lib/coding-standards-schema: {}
-
-  scripts/lib/stack-tools: {}
-
   skills/create-symlink-for-dot-folders:
     devDependencies:
       '@types/bun':

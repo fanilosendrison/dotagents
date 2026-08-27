@@ -55,8 +55,8 @@ step_id: 0
 
 ## Phase 2 — pnpm foundations
 
-- [x] Create the explicit 11-importer dotagents workspace and root-only dotpi workspace with the upstream exclusion.
-- [ ] Convert or remove the four scripts pseudo-packages.
+- [x] Create the explicit seven-importer dotagents workspace and root-only dotpi workspace with the upstream exclusion.
+- [x] Remove the four empty scripts pseudo-package manifests and inherit the single `@dotagents/scripts` package boundary; two clean frozen installs preserve the regenerated seven-importer lockfile.
 - [x] Add exact `pnpm@11.24.0` package-manager and Node `>=22.19.0` engine declarations at both roots.
 - [x] Enforce strict engines and disabled automatic peer installation through `.npmrc` plus effective pnpm workspace settings; both repositories pass two clean frozen installs with stable lockfiles.
 - [x] Declare the verified immutable dependencies in their consuming packages, including exact event-sink in git-commits-push before removing its source import.

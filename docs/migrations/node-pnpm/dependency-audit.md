@@ -58,7 +58,7 @@ The distributed examples contain one upstream maintainer absolute path and the c
 
 ## Final lock graph audit
 
-The independent pnpm 11.24.0 lockfiles are materialized and reproducible. Dotagents lock SHA-256 is `7b7ca6b4c92f138738c25105ec73b5a9044e432c552f2652f70917cc320873c7`; it contains exactly 10 importers. Dotpi lock SHA-256 is `34e6bad6d8693880e6380cfcc684850b9827d2b25a480a081dcad25fe1b3cd05`; it contains only the root importer and excludes `extensions/pi-subagents-4-turnlock/**`. Two independent frozen installations per repository leave both locks unchanged. Both final graphs report zero known vulnerabilities at every severity.
+The independent pnpm 11.24.0 lockfiles are materialized and reproducible. Dotagents lock SHA-256 is `75d8a5ac12833873602bfbbdf9f666d7a06a2b93515c68d77dad1223e425238c`; it contains exactly seven importers after removal of four empty scripts pseudo-package manifests. Dotpi lock SHA-256 is `3d2b2843ab78decbaa69f0f68546aec906f11fb34937f50b117b28128f855269`; it contains only the root importer and excludes `extensions/pi-subagents-4-turnlock/**`. Strict engine and peer-install policies are effective at both roots. Two independent frozen installations per repository leave both locks unchanged. Both final graphs report zero known vulnerabilities at every severity.
 
 The installed dotagents graph contains 21 unique packages and 3,483 distributed files. It declares no install lifecycle, native binary, or WASM artifact. Its runtime and tooling versions match the retained Bun locks except for `js-yaml`: the Bun-resolved 4.3.0 is vulnerable to `GHSA-5p4m-2wfm-xmqj` / `CVE-2026-59870`, so both manifests and locks intentionally select patched 4.3.1. No active source import of `js-yaml` exists in the audited tree.
 

@@ -26,7 +26,6 @@ import {
 ```
 lib/stack-tools/
 ├── CLAUDE.md
-├── package.json               # { name, type: module, private: true }
 └── src/
     ├── index.ts               # Public re-exports (stable surface)
     ├── extensions.ts          # CODE_EXTENSIONS, LINTER_EXTENSIONS, isCodeFile, isLinterCompatible
