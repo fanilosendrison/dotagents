@@ -3,7 +3,7 @@
   "repository": "dotagents",
   "sourceCommit": "74d46e8948172bdb2f79d0c7d2ba813c235abb4b",
   "expectedSurfaceCount": 74,
-  "migratedSurfaceCount": 0,
+  "migratedSurfaceCount": 1,
   "surfaces": [
     {
       "sourceFile": "agent-enforcers/command-validator/src/core/__tests__/runtime-contract.test.ts",
@@ -748,7 +748,7 @@
     },
     {
       "sourceFile": "skills/create-symlink-for-dot-folders/scripts/create_symlink.test.ts",
-      "targetFile": "skills/create-symlink-for-dot-folders/scripts/create_symlink.test.ts",
+      "targetFile": "skills/create-symlink-for-dot-folders/scripts/create-symlink.test.mjs",
       "role": "test",
       "testCaseNames": [
         "creates a symlink when nothing exists",
@@ -831,7 +831,7 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {
