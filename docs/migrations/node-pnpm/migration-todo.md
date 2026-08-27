@@ -51,6 +51,7 @@ step_id: 0
 - [x] Fix pre-existing failures in separate green commits.
 - [x] Annotate and publish both green baselines as `pre-node-pnpm-green`.
 - [ ] Record every direct-Git bootstrap commit until Node self-hosting succeeds.
+- [x] Record direct-Git Node runtime commit `2ee68a4efc7553aa1c631466de8f6c5c5b1c65f7` under the active bootstrap exception.
 
 ## Phase 2 — pnpm foundations
 
@@ -66,11 +67,11 @@ step_id: 0
 
 ## Phase 3 — Portable Node runtime
 
-- [!] Add and test the shared subprocess API; the isolated Node 22.19.0 High Sierra gate passes 22 tests locally, while Node 22.19/24 Linux/macOS evidence remains pending.
+- [x] Add and test the shared subprocess API; 22 tests pass under Node 22.19.0 on High Sierra, and run `33095210333` passes on Node 22.19/24 Linux/macOS without Bun while retained Bun run `33095210322` passes on Linux/macOS.
 - [ ] Add explicit js-yaml schema and differential tests.
-- [ ] Add package-local NodeNext build configurations.
+- [x] Add package-local NodeNext build configurations with declarations and source maps.
 - [ ] Add deterministic asset copying.
-- [ ] Add the explicit Node test runner with sequential execution and TAP or JUnit output.
+- [ ] Add the explicit Node test runner with sequential execution, fixed timeouts, TAP or JUnit output, and a zero-discovery failure.
 - [x] Start direct Node TypeScript stripping with a sequential `node:test` stats-logger smoke; Node run `32954252065` passes on Node 22.19.0/24 Linux/macOS without Bun, and retained Bun run `32954252069` passes on Linux/macOS.
 
 ## Phase 4 — Bootstraps and compatible recognition

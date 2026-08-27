@@ -29,6 +29,7 @@ step_id: 0
 - The locally compiled `~/.local/bin/jq` reports 1.7.1, has SHA-256 `5d1277d947b3106236efc43204b90afc2ac8b36b8ec6ee2da873b2b0e9622ee1`, and passes the JSON construction and query shapes used by loop-clean.
 - The official jq macOS prebuild was checksum-valid but rejected because its Mach-O load command is unsupported on High Sierra; it was not installed.
 - Both independent pnpm lockfiles pass two clean frozen installations with lifecycle scripts disabled and unchanged lock hashes; exact Pi/event-sink/Jiti/Turnlock imports pass from the materialized graphs.
+- The shared Node subprocess runtime passes 22 tests under Node 22.19.0 on High Sierra; GitHub Actions run `33095210333` passes the same runtime on Node 22.19/24 across Linux and macOS without Bun, and retained Bun run `33095210322` passes on Linux and macOS.
 - Full pnpm audits report zero known vulnerabilities. `js-yaml` is intentionally raised from Bun-resolved 4.3.0 to patched 4.3.1 for `GHSA-5p4m-2wfm-xmqj` / `CVE-2026-59870`.
 
 ## Blocked or missing
@@ -45,7 +46,7 @@ The private Pi auth file currently contains no `api_key` entry, and the document
 
 1. Run full loop-clean after Bun is available; its jq expressions already pass direct smoke tests.
 2. Run physical-root and gateway suites after deleting `node_modules` and `dist`.
-3. Run the no-Bun sentinel job.
-4. Record Node 24 evidence on supported Linux and macOS CI.
+3. Run the no-Bun sentinel job on High Sierra; the supported Linux/macOS CI sentinel is already green in run `33095210333`.
+4. Node 24 evidence on supported Linux and macOS CI is complete in run `33095210333`.
 
-Modern macOS CI must not substitute for these High Sierra checks.
+Modern macOS CI must not substitute for the remaining High Sierra checks.
