@@ -68,7 +68,7 @@ step_id: 0
 
 ## Phase 3 — Portable Node runtime
 
-- [x] Add and test the shared subprocess API; 22 tests pass under Node 22.19.0 on High Sierra, and run `33095210333` passes on Node 22.19/24 Linux/macOS without Bun while retained Bun run `33095210322` passes on Linux/macOS.
+- [x] Add and test the shared subprocess API, including deterministic exit/abort, exit/I/O-error, abort/I/O-error, and abort/spawn-error races; 26 subprocess tests pass under Node 22.19.0 on High Sierra, 12 repeated race runs remain stable, Node run `33121281919` passes on Node 22.19/24 Linux/macOS without Bun, and retained Bun run `33121281949` passes on Linux/macOS.
 - [x] Add exact `js-yaml@4.3.1` with explicit `CORE_SCHEMA`, Bun-compatible multi-document and alias semantics, duplicate/invalid-input errors, and differential vectors; Node run `33103539658` passes on Node 22.19/24 Linux/macOS without Bun and retained Bun run `33103539701` passes the historical suite plus the Bun 1.3.14 differential gate.
 - [x] Add package-local NodeNext build configurations with declarations and source maps.
 - [x] Add manifest-driven deterministic asset copying with confined paths, full source preflight, unique destinations, stable ordering, byte-exact output, and fixed file modes.
