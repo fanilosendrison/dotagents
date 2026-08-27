@@ -71,8 +71,8 @@ step_id: 0
 - [x] Add and test the shared subprocess API; 22 tests pass under Node 22.19.0 on High Sierra, and run `33095210333` passes on Node 22.19/24 Linux/macOS without Bun while retained Bun run `33095210322` passes on Linux/macOS.
 - [x] Add exact `js-yaml@4.3.1` with explicit `CORE_SCHEMA`, Bun-compatible multi-document and alias semantics, duplicate/invalid-input errors, and differential vectors; Node run `33103539658` passes on Node 22.19/24 Linux/macOS without Bun and retained Bun run `33103539701` passes the historical suite plus the Bun 1.3.14 differential gate.
 - [x] Add package-local NodeNext build configurations with declarations and source maps.
-- [ ] Add deterministic asset copying.
-- [ ] Add the explicit Node test runner with sequential execution, fixed timeouts, TAP or JUnit output, and a zero-discovery failure.
+- [x] Add manifest-driven deterministic asset copying with confined paths, full source preflight, unique destinations, stable ordering, byte-exact output, and fixed file modes.
+- [x] Add the explicit Node test runner with a closed upstream-free file set, sequential execution, a fixed 30-second timeout, TAP output, and fail-closed empty or missing discovery; Node run `33120493741` passes on Node 22.19/24 Linux/macOS without Bun and retained Bun run `33120493729` passes the historical suite on Linux/macOS.
 - [x] Start direct Node TypeScript stripping with a sequential `node:test` stats-logger smoke; Node run `32954252065` passes on Node 22.19.0/24 Linux/macOS without Bun, and retained Bun run `32954252069` passes on Linux/macOS.
 
 ## Phase 4 — Bootstraps and compatible recognition

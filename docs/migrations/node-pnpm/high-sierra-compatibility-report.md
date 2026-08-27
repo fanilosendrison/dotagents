@@ -30,7 +30,8 @@ step_id: 0
 - The official jq macOS prebuild was checksum-valid but rejected because its Mach-O load command is unsupported on High Sierra; it was not installed.
 - Both independent pnpm lockfiles pass two clean frozen installations with lifecycle scripts disabled and unchanged lock hashes; exact Pi/event-sink/Jiti/Turnlock imports pass from the materialized graphs.
 - The shared Node subprocess runtime passes 22 tests under Node 22.19.0 on High Sierra; GitHub Actions run `33095210333` passes the same runtime on Node 22.19/24 across Linux and macOS without Bun, and retained Bun run `33095210322` passes on Linux and macOS.
-- The shared YAML parser uses exact `js-yaml@4.3.1` with explicit `CORE_SCHEMA`; the combined Node runtime suite passes 29 tests with only the Bun differential skipped locally, Node run `33103539658` passes on Node 22.19/24 Linux/macOS without Bun, and Bun run `33103539701` passes the complete Bun 1.3.14 differential vectors.
+- The shared YAML parser uses exact `js-yaml@4.3.1` with explicit `CORE_SCHEMA`; Node run `33103539658` passes on Node 22.19/24 Linux/macOS without Bun, and Bun run `33103539701` passes the complete Bun 1.3.14 differential vectors.
+- The deterministic asset copier and closed `.mjs` runner pass the combined 38-test Node runtime suite with 37 passes and only the Bun differential skipped under Node 22.19.0 on High Sierra. Two clean frozen installations in a path containing spaces preserve lock SHA-256 `b7293c1ec53fbb1d386d42aaffc343eddc56ccfb5693133b984330d9962bf4b1`; Node run `33120493741` passes on Node 22.19/24 Linux/macOS without Bun, and retained Bun run `33120493729` passes on Linux/macOS.
 - Full pnpm audits report zero known vulnerabilities. `js-yaml` is intentionally raised from Bun-resolved 4.3.0 to patched 4.3.1 for `GHSA-5p4m-2wfm-xmqj` / `CVE-2026-59870`.
 
 ## Blocked or missing
