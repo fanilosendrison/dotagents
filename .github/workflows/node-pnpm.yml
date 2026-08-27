@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  node-runtime-and-stats-logger:
-    name: Node runtime and stats logger on ${{ matrix.os }} / Node ${{ matrix.node-version }}
+  node-runtime-bootstraps-and-stats-logger:
+    name: Node runtime, bootstraps, and stats logger on ${{ matrix.os }} / Node ${{ matrix.node-version }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -85,6 +85,13 @@ jobs:
           pnpm run typecheck:node-runtime
           pnpm run build:node-runtime
           pnpm run test:node-runtime
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Run the dependency-free symlink bootstrap tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run test:create-symlink
           test ! -s "$BUN_SENTINEL_LOG"
 
       - name: Typecheck and run the direct TypeScript stats smoke

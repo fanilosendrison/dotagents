@@ -1,27 +1,28 @@
 {
-  "name": "dotagents",
-  "private": true,
-  "packageManager": "pnpm@11.24.0",
-  "engines": {
-    "node": ">=22.19.0",
-    "pnpm": "11.24.0"
-  },
-  "scripts": {
-    "build:node-runtime": "pnpm --filter @dotagents/node-runtime run build",
-    "test": "bun run test:install && bun run test:root && bun run test:git-commits-push && bun run test:scripts && bun run test:protocol",
-    "test:install": "bun install --frozen-lockfile && bun install --cwd skills/create-symlink-for-dot-folders --frozen-lockfile && bun install --cwd skills/git-commits-push --frozen-lockfile && bun install --cwd skills/go --frozen-lockfile && bun install --cwd scripts --frozen-lockfile && bun install --cwd skills/loop-clean/protocol --frozen-lockfile",
-    "test:root": "bun test --timeout 60000 --path-ignore-patterns='scripts/**' --path-ignore-patterns='skills/git-commits-push/**' --path-ignore-patterns='skills/loop-clean/protocol/**'",
-    "test:git-commits-push": "bun run --cwd skills/git-commits-push test",
-    "test:scripts": "bun run --cwd scripts test",
-    "test:protocol": "bun run --cwd skills/loop-clean/protocol typecheck && bun run --cwd skills/loop-clean/protocol test:all",
-    "test:node-runtime": "pnpm --filter @dotagents/node-runtime run test",
-    "typecheck:node-runtime": "pnpm --filter @dotagents/node-runtime run typecheck"
-  },
-  "dependencies": {
-    "js-yaml": "4.3.1"
-  },
-  "devDependencies": {
-    "@types/bun": "1.3.14",
-    "@types/js-yaml": "^4.0.9"
-  }
+	"name": "dotagents",
+	"private": true,
+	"packageManager": "pnpm@11.24.0",
+	"engines": {
+		"node": ">=22.19.0",
+		"pnpm": "11.24.0"
+	},
+	"scripts": {
+		"build:node-runtime": "pnpm --filter @dotagents/node-runtime run build",
+		"test": "bun run test:install && bun run test:root && bun run test:git-commits-push && bun run test:scripts && bun run test:protocol",
+		"test:install": "bun install --frozen-lockfile && bun install --cwd skills/create-symlink-for-dot-folders --frozen-lockfile && bun install --cwd skills/git-commits-push --frozen-lockfile && bun install --cwd skills/go --frozen-lockfile && bun install --cwd scripts --frozen-lockfile && bun install --cwd skills/loop-clean/protocol --frozen-lockfile",
+		"test:root": "bun test --timeout 60000 --path-ignore-patterns='scripts/**' --path-ignore-patterns='skills/git-commits-push/**' --path-ignore-patterns='skills/loop-clean/protocol/**'",
+		"test:git-commits-push": "bun run --cwd skills/git-commits-push test",
+		"test:scripts": "bun run --cwd scripts test",
+		"test:protocol": "bun run --cwd skills/loop-clean/protocol typecheck && bun run --cwd skills/loop-clean/protocol test:all",
+		"test:create-symlink": "pnpm --filter create-symlink-for-dot-folders run test",
+		"test:node-runtime": "pnpm --filter @dotagents/node-runtime run test",
+		"typecheck:node-runtime": "pnpm --filter @dotagents/node-runtime run typecheck"
+	},
+	"dependencies": {
+		"js-yaml": "4.3.1"
+	},
+	"devDependencies": {
+		"@types/bun": "1.3.14",
+		"@types/js-yaml": "^4.0.9"
+	}
 }
