@@ -69,7 +69,7 @@ step_id: 0
 ## Phase 3 — Portable Node runtime
 
 - [x] Add and test the shared subprocess API; 22 tests pass under Node 22.19.0 on High Sierra, and run `33095210333` passes on Node 22.19/24 Linux/macOS without Bun while retained Bun run `33095210322` passes on Linux/macOS.
-- [ ] Add explicit js-yaml schema and differential tests.
+- [x] Add exact `js-yaml@4.3.1` with explicit `CORE_SCHEMA`, Bun-compatible multi-document and alias semantics, duplicate/invalid-input errors, and differential vectors; Node run `33103539658` passes on Node 22.19/24 Linux/macOS without Bun and retained Bun run `33103539701` passes the historical suite plus the Bun 1.3.14 differential gate.
 - [x] Add package-local NodeNext build configurations with declarations and source maps.
 - [ ] Add deterministic asset copying.
 - [ ] Add the explicit Node test runner with sequential execution, fixed timeouts, TAP or JUnit output, and a zero-discovery failure.
