@@ -65,3 +65,10 @@ jobs:
           set -euo pipefail
           cd "$HOME/.agents"
           bun run test
+
+      - name: Run Bun YAML differential vectors
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$HOME/.agents"
+          bun test packages/node-runtime/test/parse-yaml.test.ts
