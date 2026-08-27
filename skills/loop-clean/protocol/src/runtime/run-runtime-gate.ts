@@ -12,6 +12,19 @@ import {
 } from "./runtime-schema.ts";
 
 type CheckName = "test" | "lint" | "typecheck";
+type PackageManager = "bun" | "npm" | "pnpm" | "yarn";
+
+const PACKAGE_MANAGER_LOCKFILES: readonly {
+	readonly filename: string;
+	readonly packageManager: PackageManager;
+}[] = [
+	{ filename: "bun.lock", packageManager: "bun" },
+	{ filename: "bun.lockb", packageManager: "bun" },
+	{ filename: "pnpm-lock.yaml", packageManager: "pnpm" },
+	{ filename: "yarn.lock", packageManager: "yarn" },
+	{ filename: "package-lock.json", packageManager: "npm" },
+	{ filename: "npm-shrinkwrap.json", packageManager: "npm" },
+];
 
 interface RuntimeCommands {
 	readonly test: string;
@@ -81,25 +94,60 @@ function packageScripts(
 	return scripts;
 }
 
-function detectPackageManager(
+function isPackageManager(value: string): value is PackageManager {
+	return (
+		value === "bun" || value === "npm" || value === "pnpm" || value === "yarn"
+	);
+}
+
+function parsePackageManagerDeclaration(
+	value: unknown,
+	source: string,
+): PackageManager {
+	if (typeof value !== "string" || value.trim().length === 0) {
+		throw new Error(
+			`${source} package manager declaration must be a non-empty string`,
+		);
+	}
+	const [command = ""] = value.trim().toLowerCase().split(/\s+/);
+	const versionSeparator = command.indexOf("@");
+	const packageManager =
+		versionSeparator === -1 ? command : command.slice(0, versionSeparator);
+	if (!isPackageManager(packageManager)) {
+		throw new Error(
+			`Unsupported package manager declared in ${source}: ${JSON.stringify(value)}`,
+		);
+	}
+	return packageManager;
+}
+
+export function resolvePackageManager(
 	repositoryRoot: string,
 	stackEvaluation: unknown,
-): string {
-	const configured = normalizeToolName(
-		findStringProperty(stackEvaluation, "package_manager"),
+	packageJson: Record<string, unknown> | null,
+): PackageManager {
+	const configured = findStringProperty(stackEvaluation, "package_manager");
+	if (configured !== null) {
+		return parsePackageManagerDeclaration(configured, "STACK_EVAL.yaml");
+	}
+	if (packageJson && "packageManager" in packageJson) {
+		return parsePackageManagerDeclaration(
+			packageJson.packageManager,
+			"package.json packageManager",
+		);
+	}
+
+	const detectedLockfiles = PACKAGE_MANAGER_LOCKFILES.filter(({ filename }) =>
+		existsSync(join(repositoryRoot, filename)),
 	);
-	if (configured && ["bun", "pnpm", "yarn", "npm"].includes(configured)) {
-		return configured;
+	if (detectedLockfiles.length > 1) {
+		throw new Error(
+			`Multiple package-manager lockfiles found without a declaration: ${detectedLockfiles
+				.map(({ filename }) => filename)
+				.join(", ")}`,
+		);
 	}
-	if (
-		existsSync(join(repositoryRoot, "bun.lock")) ||
-		existsSync(join(repositoryRoot, "bun.lockb"))
-	) {
-		return "bun";
-	}
-	if (existsSync(join(repositoryRoot, "pnpm-lock.yaml"))) return "pnpm";
-	if (existsSync(join(repositoryRoot, "yarn.lock"))) return "yarn";
-	return "npm";
+	return detectedLockfiles[0]?.packageManager ?? "npm";
 }
 
 function packageScriptCommand(
@@ -116,7 +164,11 @@ async function resolveRuntimeCommands(
 	const stackEvaluation = await readStackEvaluation(repositoryRoot);
 	const packageJson = await readPackageJson(repositoryRoot);
 	const scripts = packageScripts(packageJson);
-	const packageManager = detectPackageManager(repositoryRoot, stackEvaluation);
+	const packageManager = resolvePackageManager(
+		repositoryRoot,
+		stackEvaluation,
+		packageJson,
+	);
 	const linter = normalizeToolName(
 		findStringProperty(stackEvaluation, "linter"),
 	);

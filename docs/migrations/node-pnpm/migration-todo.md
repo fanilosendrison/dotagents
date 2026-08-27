@@ -64,6 +64,7 @@ step_id: 0
 - [x] Generate one independent pnpm lockfile per repository.
 - [x] Compare resolved versions against every Bun lockfile and classify only type-only drift plus the js-yaml security correction.
 - [x] Validate two clean frozen installs per repository with unchanged lockfiles.
+- [x] Resolve package managers in normative declaration order and fail closed when multiple supported lockfiles exist without a `STACK_EVAL.yaml` or `package.json` declaration.
 
 ## Phase 3 — Portable Node runtime
 

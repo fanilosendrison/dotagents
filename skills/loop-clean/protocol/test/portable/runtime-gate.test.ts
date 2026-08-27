@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { runRuntimeGate } from "../../src/runtime/run-runtime-gate.ts";
+import {
+	resolvePackageManager,
+	runRuntimeGate,
+} from "../../src/runtime/run-runtime-gate.ts";
 import { collectScope } from "../../src/scope/collect-scope.ts";
 import {
 	createRepository,
@@ -13,6 +16,7 @@ const repositories: string[] = [];
 async function setup(
 	stackEvaluation?: string,
 	initialDirtyContent?: string,
+	repositoryFiles: Readonly<Record<string, string>> = {},
 ): Promise<{
 	readonly root: string;
 	readonly scopeFile: string;
@@ -26,6 +30,11 @@ async function setup(
 	if (initialDirtyContent !== undefined) {
 		await writeRepositoryFile(root, "dirty.ts", initialDirtyContent);
 	}
+	for (const [relativePath, contents] of Object.entries(repositoryFiles).sort(
+		([left], [right]) => left.localeCompare(right),
+	)) {
+		await writeRepositoryFile(root, relativePath, contents);
+	}
 	const manifest = await collectScope(root);
 	const scopeFile = join(root, ".git", "loop-clean-runtime-scope.json");
 	await Bun.write(scopeFile, `${JSON.stringify(manifest)}\n`);
@@ -34,6 +43,79 @@ async function setup(
 
 afterEach(async () => {
 	for (const root of repositories.splice(0)) await removeRepository(root);
+});
+
+describe("resolvePackageManager", () => {
+	test("prefers an explicit STACK_EVAL declaration over package.json and lockfiles", async () => {
+		const root = await createRepository({ withBaseline: false });
+		repositories.push(root);
+		await writeRepositoryFile(root, "bun.lock", "");
+		await writeRepositoryFile(root, "pnpm-lock.yaml", "");
+
+		expect(
+			resolvePackageManager(
+				root,
+				{ package_manager: "yarn" },
+				{ packageManager: "pnpm@11.24.0" },
+			),
+		).toBe("yarn");
+	});
+
+	test("prefers the standard packageManager field over conflicting lockfiles", async () => {
+		const root = await createRepository({ withBaseline: false });
+		repositories.push(root);
+		await writeRepositoryFile(root, "bun.lock", "");
+		await writeRepositoryFile(root, "pnpm-lock.yaml", "");
+
+		expect(
+			resolvePackageManager(root, null, { packageManager: "npm@10.9.0" }),
+		).toBe("npm");
+	});
+
+	test("recognizes every supported unique lockfile", async () => {
+		for (const [lockfile, expectedPackageManager] of [
+			["bun.lock", "bun"],
+			["bun.lockb", "bun"],
+			["pnpm-lock.yaml", "pnpm"],
+			["yarn.lock", "yarn"],
+			["package-lock.json", "npm"],
+			["npm-shrinkwrap.json", "npm"],
+		] as const) {
+			const root = await createRepository({ withBaseline: false });
+			repositories.push(root);
+			await writeRepositoryFile(root, lockfile, "");
+			expect(resolvePackageManager(root, null, {})).toBe(
+				expectedPackageManager,
+			);
+		}
+	});
+
+	test("fails closed when multiple lockfiles exist without a declaration", async () => {
+		const root = await createRepository({ withBaseline: false });
+		repositories.push(root);
+		await writeRepositoryFile(root, "bun.lock", "");
+		await writeRepositoryFile(root, "pnpm-lock.yaml", "");
+
+		expect(() => resolvePackageManager(root, null, {})).toThrow(
+			/Multiple package-manager lockfiles.*bun\.lock.*pnpm-lock\.yaml/i,
+		);
+	});
+
+	test("fails closed on an unsupported packageManager declaration", async () => {
+		const root = await createRepository({ withBaseline: false });
+		repositories.push(root);
+
+		expect(() =>
+			resolvePackageManager(root, null, { packageManager: "deno@2.0.0" }),
+		).toThrow(/Unsupported package manager.*package\.json.*deno/i);
+	});
+
+	test("preserves the npm fallback when no declaration or lockfile exists", async () => {
+		const root = await createRepository({ withBaseline: false });
+		repositories.push(root);
+
+		expect(resolvePackageManager(root, null, {})).toBe("npm");
+	});
 });
 
 describe("runRuntimeGate", () => {
@@ -90,6 +172,18 @@ describe("runRuntimeGate", () => {
 				output_tail: "",
 			},
 		]);
+	});
+
+	test("fails closed before checks when package-manager lockfiles are ambiguous", async () => {
+		const { root, scopeFile } = await setup(undefined, undefined, {
+			"bun.lock": "",
+			"package.json": `${JSON.stringify({ scripts: { test: "printf test" } })}\n`,
+			"pnpm-lock.yaml": "",
+		});
+
+		await expect(runRuntimeGate({ repoRoot: root, scopeFile })).rejects.toThrow(
+			/Multiple package-manager lockfiles.*bun\.lock.*pnpm-lock\.yaml/i,
+		);
 	});
 
 	test("emits stable critical findings for every failed check", async () => {
