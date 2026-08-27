@@ -12,6 +12,8 @@ packages:
   - skills/loop-clean/protocol
 
 shamefullyHoist: true
+engineStrict: true
+autoInstallPeers: false
 
 minimumReleaseAgeExclude:
   - '@fanilosendrison/event-sink@0.1.0'

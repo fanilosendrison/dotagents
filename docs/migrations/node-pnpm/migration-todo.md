@@ -55,10 +55,10 @@ step_id: 0
 
 ## Phase 2 — pnpm foundations
 
-- [x] Create the explicit 10-importer dotagents workspace and root-only dotpi workspace with the upstream exclusion.
+- [x] Create the explicit 11-importer dotagents workspace and root-only dotpi workspace with the upstream exclusion.
 - [ ] Convert or remove the four scripts pseudo-packages.
-- [ ] Add exact package-manager and minimum-engine declarations.
-- [ ] Add strict engine and peer-install policies.
+- [x] Add exact `pnpm@11.24.0` package-manager and Node `>=22.19.0` engine declarations at both roots.
+- [x] Enforce strict engines and disabled automatic peer installation through `.npmrc` plus effective pnpm workspace settings; both repositories pass two clean frozen installs with stable lockfiles.
 - [x] Declare the verified immutable dependencies in their consuming packages, including exact event-sink in git-commits-push before removing its source import.
 - [x] Override all Pi internal packages to exact 0.84.2 so pnpm cannot drift to 0.84.3.
 - [x] Generate one independent pnpm lockfile per repository.

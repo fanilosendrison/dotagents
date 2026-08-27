@@ -1,6 +1,11 @@
 {
   "name": "dotagents",
   "private": true,
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=22.19.0",
+    "pnpm": "11.24.0"
+  },
   "scripts": {
     "build:node-runtime": "pnpm --filter @dotagents/node-runtime run build",
     "test": "bun run test:install && bun run test:root && bun run test:git-commits-push && bun run test:scripts && bun run test:protocol",
