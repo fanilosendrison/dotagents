@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  stats-logger-runtime:
-    name: Stats logger on ${{ matrix.os }} / Node ${{ matrix.node-version }}
+  node-runtime-and-stats-logger:
+    name: Node runtime and stats logger on ${{ matrix.os }} / Node ${{ matrix.node-version }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -65,11 +65,20 @@ jobs:
           printf '%s\n' "$sentinel_dir" >> "$GITHUB_PATH"
           printf 'BUN_SENTINEL_LOG=%s\n' "$RUNNER_TEMP/bun-invocations.log" >> "$GITHUB_ENV"
 
-      - name: Typecheck and run the direct TypeScript smoke
+      - name: Typecheck, build, and test the shared Node runtime
         shell: bash
         run: |
           set -euo pipefail
           test "$(pnpm --version)" = "11.24.0"
+          pnpm run typecheck:node-runtime
+          pnpm run build:node-runtime
+          pnpm run test:node-runtime
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Typecheck and run the direct TypeScript stats smoke
+        shell: bash
+        run: |
+          set -euo pipefail
           pnpm --filter git-commits-push-tl run typecheck:node:stats
           pnpm --filter git-commits-push-tl run test:node:stats
           test ! -s "$BUN_SENTINEL_LOG"

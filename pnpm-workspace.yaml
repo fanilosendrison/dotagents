@@ -1,5 +1,6 @@
 packages:
   - .
+  - packages/*
   - scripts
   - scripts/coding-standards-consolidate
   - scripts/coding-standards-scanner
@@ -9,6 +10,8 @@ packages:
   - skills/git-commits-push
   - skills/go
   - skills/loop-clean/protocol
+
+shamefullyHoist: true
 
 minimumReleaseAgeExclude:
   - '@fanilosendrison/event-sink@0.1.0'

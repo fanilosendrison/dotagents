@@ -66,7 +66,7 @@ step_id: 0
 
 ## Phase 3 — Portable Node runtime
 
-- [ ] Add and test the shared subprocess API.
+- [!] Add and test the shared subprocess API; the isolated Node 22.19.0 High Sierra gate passes 22 tests locally, while Node 22.19/24 Linux/macOS evidence remains pending.
 - [ ] Add explicit js-yaml schema and differential tests.
 - [ ] Add package-local NodeNext build configurations.
 - [ ] Add deterministic asset copying.
