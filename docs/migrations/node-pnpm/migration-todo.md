@@ -86,7 +86,7 @@ step_id: 0
 
 ## Phase 5 — git-commits-push cutover
 
-- [ ] Compile both entrypoints and copy runtime assets.
+- [x] Compile both entrypoints and the shared trust-token dependency as strict NodeNext ESM with rewritten extensions, declarations, declaration maps, and source maps; deterministically copy exact `settings.json` and `system-prompt.md` bytes into the untracked artifact tree. Five Node artifact and gateway vectors pass two frozen installs in spaces/Unicode paths without touching the Bun sentinel, while the pnpm and Bun lockfiles remain byte-stable; Node run `33177422527` passes on Node 22.19/24 Linux/macOS, and retained Bun run `33177422521` passes on Linux/macOS.
 - [ ] Replace the shell pipeline with a signal-safe Node supervisor.
 - [ ] Preserve Turnlock-only stdout, exit codes, telemetry, queues, and retries.
 - [ ] Drain or explicitly close historical runs before cutover.
