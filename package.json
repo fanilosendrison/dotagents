@@ -17,7 +17,7 @@
 		"test:protocol": "bun run --cwd skills/loop-clean/protocol typecheck && bun run --cwd skills/loop-clean/protocol test:all",
 		"test:create-symlink": "pnpm --filter create-symlink-for-dot-folders run test",
 		"test:documentation-bootstraps": "node --test --test-concurrency=1 --test-timeout=30000 --test-reporter=tap skills/document-agent-enforcement/scripts/__tests__/bootstrap-enforcer-docs.test.mjs skills/document-agent-enforcement/scripts/__tests__/lib.test.mjs skills/document-self-modif/scripts/__tests__/bootstrap-docs.test.mjs skills/document-self-modif/scripts/__tests__/lib.test.mjs",
-		"test:git-commits-push-launch-recognition": "node --experimental-default-type=module --test --test-concurrency=1 --test-timeout=30000 --test-reporter=tap agent-enforcers/git-commits-push-enforcer/src/core/__tests__/launch-recognition.test.mjs",
+		"test:git-commits-push-launch-recognition": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test --test-concurrency=1 --test-timeout=30000 --test-reporter=tap agent-enforcers/git-commits-push-enforcer/src/core/__tests__/launch-recognition.node.mjs",
 		"test:node-runtime": "pnpm --filter @dotagents/node-runtime run test",
 		"test:skill-validator": "pnpm --filter @dotagents/skill-validator run test",
 		"typecheck:node-runtime": "pnpm --filter @dotagents/node-runtime run typecheck",

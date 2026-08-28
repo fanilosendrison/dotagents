@@ -1,17 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import {
-	detectRawGitMutation,
-	detectCommitIntent,
-	isGitCommitsPushSkillCommand,
-	evaluateEnforcement,
 	buildDirectGitDeniedReason,
-	TRUSTED_MARKER_ENV,
-	TRUSTED_MARKER_VALUE,
-	// Legacy
-	isGitCommit,
+	detectCommitIntent,
+	detectRawGitMutation,
+	evaluateEnforcement,
 	extractMessage,
-	isValidCC,
 	hasPush,
+	isGitCommit,
+	isGitCommitsPushSkillCommand,
+	isValidCC,
+	recognizeGitCommitsPushCommand,
 } from "../validator";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -78,16 +76,29 @@ describe("isGitCommitsPushSkillCommand", () => {
 	});
 
 	test("detects skill launch path", () => {
-		expect(
-			isGitCommitsPushSkillCommand(
-				"cd /Users/me/.agents/skills/git-commits-push && bun run start",
-			),
-		).toBe(true);
+		const historicalLaunch =
+			"cd /Users/me/.agents/skills/git-commits-push && bun run start";
+		const canonicalLaunch =
+			'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
+		expect(isGitCommitsPushSkillCommand(historicalLaunch)).toBe(true);
+		expect(recognizeGitCommitsPushCommand(historicalLaunch)).toBe("bun-launch");
+		expect(isGitCommitsPushSkillCommand(canonicalLaunch)).toBe(true);
+		expect(recognizeGitCommitsPushCommand(canonicalLaunch)).toBe("pnpm-launch");
 	});
 
 	test("rejects unrelated commands", () => {
 		expect(isGitCommitsPushSkillCommand("git commit -m 'test'")).toBe(false);
 		expect(isGitCommitsPushSkillCommand("ls -la")).toBe(false);
+		expect(
+			isGitCommitsPushSkillCommand(
+				"cd ~/.agents/skills/git-commits-push && pnpm run start",
+			),
+		).toBe(false);
+		expect(
+			isGitCommitsPushSkillCommand(
+				"cd ~/.agents/skills/git-commits-push; bun run start",
+			),
+		).toBe(false);
 	});
 });
 
