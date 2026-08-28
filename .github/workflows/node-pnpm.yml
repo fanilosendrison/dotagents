@@ -77,6 +77,13 @@ jobs:
           printf '%s\n' "$sentinel_dir" >> "$GITHUB_PATH"
           printf 'BUN_SENTINEL_LOG=%s\n' "$RUNNER_TEMP/bun-invocations.log" >> "$GITHUB_ENV"
 
+      - name: Validate test parity attribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run validate:test-parity
+          test ! -s "$BUN_SENTINEL_LOG"
+
       - name: Typecheck, build, and test the shared Node runtime
         shell: bash
         run: |

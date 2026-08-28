@@ -16,7 +16,8 @@
 		"test:protocol": "bun run --cwd skills/loop-clean/protocol typecheck && bun run --cwd skills/loop-clean/protocol test:all",
 		"test:create-symlink": "pnpm --filter create-symlink-for-dot-folders run test",
 		"test:node-runtime": "pnpm --filter @dotagents/node-runtime run test",
-		"typecheck:node-runtime": "pnpm --filter @dotagents/node-runtime run typecheck"
+		"typecheck:node-runtime": "pnpm --filter @dotagents/node-runtime run typecheck",
+		"validate:test-parity": "node scripts/validate-test-parity.mjs"
 	},
 	"dependencies": {
 		"js-yaml": "4.3.1"

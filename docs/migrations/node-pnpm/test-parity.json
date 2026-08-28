@@ -769,7 +769,7 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {
@@ -831,7 +831,7 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "green",
+      "parityStatus": "pending",
       "normativeChangeJustification": null
     },
     {
