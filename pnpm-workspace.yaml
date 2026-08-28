@@ -6,6 +6,7 @@ packages:
   - skills/git-commits-push
   - skills/go
   - skills/loop-clean/protocol
+  - skills/skill-creator
 
 shamefullyHoist: true
 engineStrict: true

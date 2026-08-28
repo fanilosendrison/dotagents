@@ -108,6 +108,15 @@ jobs:
           pnpm run test:documentation-bootstraps
           test ! -s "$BUN_SENTINEL_LOG"
 
+      - name: Typecheck, compile, and test the skill validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run typecheck:skill-validator
+          pnpm run test:skill-validator
+          pnpm run validate:skill skills/skill-creator
+          test ! -s "$BUN_SENTINEL_LOG"
+
       - name: Typecheck and run the direct TypeScript stats smoke
         shell: bash
         run: |
