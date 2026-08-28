@@ -3,7 +3,7 @@
   "repository": "dotagents",
   "sourceCommit": "74d46e8948172bdb2f79d0c7d2ba813c235abb4b",
   "expectedSurfaceCount": 74,
-  "migratedSurfaceCount": 1,
+  "migratedSurfaceCount": 5,
   "surfaces": [
     {
       "sourceFile": "agent-enforcers/command-validator/src/core/__tests__/runtime-contract.test.ts",
@@ -774,7 +774,7 @@
     },
     {
       "sourceFile": "skills/document-agent-enforcement/scripts/__tests__/bootstrap-enforcer-docs.test.ts",
-      "targetFile": "skills/document-agent-enforcement/scripts/__tests__/bootstrap-enforcer-docs.test.ts",
+      "targetFile": "skills/document-agent-enforcement/scripts/__tests__/bootstrap-enforcer-docs.test.mjs",
       "role": "test",
       "testCaseNames": [
         "rejects malformed JSON",
@@ -797,12 +797,12 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {
       "sourceFile": "skills/document-agent-enforcement/scripts/__tests__/lib.test.ts",
-      "targetFile": "skills/document-agent-enforcement/scripts/__tests__/lib.test.ts",
+      "targetFile": "skills/document-agent-enforcement/scripts/__tests__/lib.test.mjs",
       "role": "test",
       "testCaseNames": [
         "returns null for valid input with all fields",
@@ -831,12 +831,12 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {
       "sourceFile": "skills/document-self-modif/scripts/__tests__/bootstrap-docs.test.ts",
-      "targetFile": "skills/document-self-modif/scripts/__tests__/bootstrap-docs.test.ts",
+      "targetFile": "skills/document-self-modif/scripts/__tests__/bootstrap-docs.test.mjs",
       "role": "test",
       "testCaseNames": [
         "rejects malformed JSON",
@@ -859,12 +859,12 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {
       "sourceFile": "skills/document-self-modif/scripts/__tests__/lib.test.ts",
-      "targetFile": "skills/document-self-modif/scripts/__tests__/lib.test.ts",
+      "targetFile": "skills/document-self-modif/scripts/__tests__/lib.test.mjs",
       "role": "test",
       "testCaseNames": [
         "returns null for valid input",
@@ -913,7 +913,7 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {

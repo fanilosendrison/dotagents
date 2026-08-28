@@ -78,7 +78,8 @@ step_id: 0
 ## Phase 4 — Bootstraps and compatible recognition
 
 - [x] Migrate the active create-symlink bootstrap to dependency-free `.mjs` while retaining the historical TypeScript source, Bun test, and lockfile; all five named Node parity vectors, the gateway smoke, two frozen installs, and the Bun failure sentinel pass, Node run `33122709911` passes on Node 22.19/24 Linux/macOS, and retained Bun run `33122709858` passes on Linux/macOS.
-- [ ] Migrate documentation bootstraps to `.mjs`.
+- [x] Add a fail-closed parity-attribution validator after correcting the create-symlink row assignment; it checks counts, uniqueness, target confinement/readability, retained case names, and absence of `bun:test` in green targets. Node run `33152421996` and retained Bun run `33152421963` pass.
+- [x] Migrate both active documentation bootstraps and pure libraries to dependency-free `.mjs` while retaining all historical sources and tests; all 57 names and filesystem/output vectors pass through two frozen installs in a path with spaces without touching the Bun sentinel, Node run `33153119390` passes on Node 22.19/24 Linux/macOS, and retained Bun run `33153119383` passes on Linux/macOS.
 - [ ] Compile skill-creator validation tooling.
 - [ ] Accept both historical Bun and new pnpm commit-launch syntax.
 - [ ] Deploy compatible recognition to dotpi and zero-timeout-filter.
