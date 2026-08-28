@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const testDirectory = dirname(fileURLToPath(import.meta.url));
 const skillDirectory = resolve(testDirectory, "..");
@@ -33,7 +33,6 @@ const result = spawnSync(
 		env: {
 			...process.env,
 			SKILL_VALIDATOR_CLI: validatorPath,
-			SKILL_VALIDATOR_MODULE: pathToFileURL(validatorPath).href,
 		},
 		stdio: "inherit",
 		timeout: 120_000,

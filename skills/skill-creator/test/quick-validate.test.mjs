@@ -12,11 +12,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { validateSkillFull } from "../src/quick-validate.mts";
 
-const defaultModuleUrl = new URL("../src/quick-validate.mts", import.meta.url)
-	.href;
-const validatorModuleUrl =
-	process.env.SKILL_VALIDATOR_MODULE ?? defaultModuleUrl;
 const defaultCliPath = fileURLToPath(
 	new URL("../src/quick-validate.mts", import.meta.url),
 );
@@ -25,7 +22,6 @@ const historicalCliPath = fileURLToPath(
 	new URL("../scripts/quick_validate.ts", import.meta.url),
 );
 const isBun = typeof globalThis.Bun !== "undefined";
-const { validateSkillFull } = await import(validatorModuleUrl);
 
 const VALID_BODY = `# Instructions
 
