@@ -15,6 +15,7 @@
 		"test:scripts": "bun run --cwd scripts test",
 		"test:protocol": "bun run --cwd skills/loop-clean/protocol typecheck && bun run --cwd skills/loop-clean/protocol test:all",
 		"test:create-symlink": "pnpm --filter create-symlink-for-dot-folders run test",
+		"test:documentation-bootstraps": "node --test --test-concurrency=1 --test-timeout=30000 --test-reporter=tap skills/document-agent-enforcement/scripts/__tests__/bootstrap-enforcer-docs.test.mjs skills/document-agent-enforcement/scripts/__tests__/lib.test.mjs skills/document-self-modif/scripts/__tests__/bootstrap-docs.test.mjs skills/document-self-modif/scripts/__tests__/lib.test.mjs",
 		"test:node-runtime": "pnpm --filter @dotagents/node-runtime run test",
 		"typecheck:node-runtime": "pnpm --filter @dotagents/node-runtime run typecheck",
 		"validate:test-parity": "node scripts/validate-test-parity.mjs"

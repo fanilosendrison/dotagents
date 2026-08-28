@@ -101,6 +101,13 @@ jobs:
           pnpm run test:create-symlink
           test ! -s "$BUN_SENTINEL_LOG"
 
+      - name: Run the dependency-free documentation bootstrap tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run test:documentation-bootstraps
+          test ! -s "$BUN_SENTINEL_LOG"
+
       - name: Typecheck and run the direct TypeScript stats smoke
         shell: bash
         run: |
