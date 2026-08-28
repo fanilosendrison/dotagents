@@ -87,11 +87,13 @@ step_id: 0
 ## Phase 5 — git-commits-push cutover
 
 - [x] Compile both entrypoints and the shared trust-token dependency as strict NodeNext ESM with rewritten extensions, declarations, declaration maps, and source maps; deterministically copy exact `settings.json` and `system-prompt.md` bytes into the untracked artifact tree. Five Node artifact and gateway vectors pass two frozen installs in spaces/Unicode paths without touching the Bun sentinel, while the pnpm and Bun lockfiles remain byte-stable; Node run `33177422527` passes on Node 22.19/24 Linux/macOS, and retained Bun run `33177422521` passes on Linux/macOS.
-- [ ] Replace the shell pipeline with a signal-safe Node supervisor.
+- [x] Compile a shell-free Node supervisor that owns both isolated process groups, pipes producer stdout only into the bridge, preserves multi-megabyte backpressure, fails closed on either child or missing executable, terminates both trees on abort, and forwards SIGTERM. Six supervisor vectors pass Node run `33178828140`; retained Bun run `33178828142` remains green on Linux/macOS. The active launch intentionally remains on the compatibility pipeline until resume, queue, and security gates close.
+- [x] Authorize exact compiled `.js` trust-token helper stacks without accepting suffix lookalikes; the compiled helper mints a mode-0600 one-shot token, validation consumes it once, and direct minting remains blocked. Three compiled vectors and the extended historical core test pass Node run `33198648152` and retained Bun run `33198648080` on Linux/macOS; two frozen installs preserve every lock and leave the Bun sentinel empty.
+- [ ] Replace the active shell pipeline with the compiled Node supervisor.
 - [ ] Preserve Turnlock-only stdout, exit codes, telemetry, queues, and retries.
 - [ ] Drain or explicitly close historical runs before cutover.
 - [ ] Point resume and queue launches to compiled artifacts through `process.execPath`.
-- [ ] Pass trust-token, hook, secret-scanner, permissions, and leak gates.
+- [ ] Pass hook, secret-scanner, permissions, and leak gates.
 - [ ] Pass the bare-remote self-hosting gate.
 - [ ] Complete the first real Node-orchestrated migration commit and push.
 
