@@ -28,8 +28,29 @@ const TOKEN_PATTERN = /^[a-f0-9]{64}$/;
 const TRUSTED_ISSUER = "git-commits-push-internal-git-helper";
 const AUTHORIZED_ISSUER_STACK_FRAGMENTS = [
 	"/skills/git-commits-push/src/modules/git/git-exec.ts",
+	"/skills/git-commits-push/src/modules/git/git-exec.js",
 	"/skills/git-commits-push/src/utils/git-utils.ts",
+	"/skills/git-commits-push/src/utils/git-utils.js",
 ];
+
+function hasStackPathBoundary(stack: string, fragment: string): boolean {
+	let searchIndex = 0;
+	while (searchIndex < stack.length) {
+		const fragmentIndex = stack.indexOf(fragment, searchIndex);
+		if (fragmentIndex === -1) return false;
+		const nextCharacter = stack[fragmentIndex + fragment.length];
+		if (
+			nextCharacter === undefined ||
+			nextCharacter === ":" ||
+			nextCharacter === ")" ||
+			nextCharacter === "\n"
+		) {
+			return true;
+		}
+		searchIndex = fragmentIndex + fragment.length;
+	}
+	return false;
+}
 
 interface TrustTokenRecord {
 	version: 1;
@@ -62,7 +83,7 @@ export function isAuthorizedTrustTokenIssuerStack(
 	if (!stack) return false;
 	const normalizedStack = stack.replaceAll("\\", "/");
 	return AUTHORIZED_ISSUER_STACK_FRAGMENTS.some((fragment) =>
-		normalizedStack.includes(fragment),
+		hasStackPathBoundary(normalizedStack, fragment),
 	);
 }
 
@@ -83,7 +104,9 @@ function createTrustTokenRecord(): TrustTokenRecord {
 		issuerPid: process.pid,
 		issuerPpid: process.ppid,
 		issuerCwd: process.cwd(),
-		issuerStackHash: createHash("sha256").update(stack ?? "").digest("hex"),
+		issuerStackHash: createHash("sha256")
+			.update(stack ?? "")
+			.digest("hex"),
 	};
 }
 
@@ -95,11 +118,10 @@ export function createTrustToken(): string {
 	ensureStoreDir();
 	const token = randomBytes(32).toString("hex");
 	const tokenPath = join(STORE_DIR, token);
-	writeFileSync(
-		tokenPath,
-		JSON.stringify(createTrustTokenRecord()),
-		{ encoding: "utf-8", mode: 0o600 },
-	);
+	writeFileSync(tokenPath, JSON.stringify(createTrustTokenRecord()), {
+		encoding: "utf-8",
+		mode: 0o600,
+	});
 	return token;
 }
 
@@ -115,9 +137,9 @@ export function validateTrustToken(token: string | undefined): boolean {
 		const tokenPath = join(STORE_DIR, token);
 		if (!existsSync(tokenPath)) return false;
 
-		const record = JSON.parse(readFileSync(tokenPath, "utf-8")) as Partial<
-			TrustTokenRecord
-		>;
+		const record = JSON.parse(
+			readFileSync(tokenPath, "utf-8"),
+		) as Partial<TrustTokenRecord>;
 
 		if (
 			record.version !== 1 ||

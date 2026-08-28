@@ -26,6 +26,21 @@ describe("trust-store", () => {
 		).toBe(true);
 		expect(
 			isAuthorizedTrustTokenIssuerStack(
+				"at buildGitEnv (/repo/skills/git-commits-push/src/modules/git/git-exec.js:8:30)",
+			),
+		).toBe(true);
+		expect(
+			isAuthorizedTrustTokenIssuerStack(
+				"at trustedGitEnv (/repo/skills/git-commits-push/src/utils/git-utils.js:16:30)",
+			),
+		).toBe(true);
+		expect(
+			isAuthorizedTrustTokenIssuerStack(
+				"at forged (/repo/skills/git-commits-push/src/utils/git-utils.ts.lookalike:1:1)",
+			),
+		).toBe(false);
+		expect(
+			isAuthorizedTrustTokenIssuerStack(
 				"at test (/repo/gravity/tests/integration/git-commits-push-enforcer.test.ts:1:1)",
 			),
 		).toBe(false);
