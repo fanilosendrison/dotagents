@@ -75,6 +75,9 @@ importers:
       '@biomejs/biome':
         specifier: 2.5.2
         version: 2.5.2
+      '@dotagents/node-runtime':
+        specifier: workspace:*
+        version: link:../../packages/node-runtime
       '@types/bun':
         specifier: 1.3.14
         version: 1.3.14

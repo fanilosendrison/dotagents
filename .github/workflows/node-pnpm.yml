@@ -101,6 +101,14 @@ jobs:
           pnpm run test:node-runtime
           test ! -s "$BUN_SENTINEL_LOG"
 
+      - name: Typecheck, compile, and test git-commits-push artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run typecheck:git-commits-push
+          pnpm run test:git-commits-push-node-build
+          test ! -s "$BUN_SENTINEL_LOG"
+
       - name: Run the dependency-free symlink bootstrap tests
         shell: bash
         run: |
