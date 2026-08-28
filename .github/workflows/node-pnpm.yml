@@ -84,6 +84,13 @@ jobs:
           pnpm run validate:test-parity
           test ! -s "$BUN_SENTINEL_LOG"
 
+      - name: Test shared git-commits-push launch recognition
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run test:git-commits-push-launch-recognition
+          test ! -s "$BUN_SENTINEL_LOG"
+
       - name: Typecheck, build, and test the shared Node runtime
         shell: bash
         run: |

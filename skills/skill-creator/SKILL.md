@@ -239,7 +239,7 @@ Skills live in a git-tracked repo symlinked from `~/.agents/skills/`. Commit usi
 Conventional Commits via `/git-commits-push`:
 
 ```bash
-cd ~/.agents/skills/git-commits-push && bun run start
+cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start
 ```
 
 The skill will generate a proper commit message and auto-push.

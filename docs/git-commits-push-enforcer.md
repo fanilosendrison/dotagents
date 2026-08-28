@@ -33,8 +33,12 @@ Obfuscation techniques are detected and blocked: env prefixes, sudo, bash -c, en
 ### Skill invocation (shell-level)
 ```bash
 /git-commits-push
-cd ~/.agents/skills/git-commits-push && bun run start
+cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start
 ```
+
+During compatibility deployment, the shared recognizer also accepts the
+historical `bun run start` launch. Both forms must contain only the exact `cd`
+and package-manager segments; appended shell commands are rejected.
 
 ### Trusted skill execution (internal-only)
 The `/git-commits-push` skill creates short-lived, one-shot trust tokens from its internal Git helper call sites before spawning internal git subprocesses. The token is passed via `GIT_COMMITS_PUSH_ENFORCER_TOKEN` alongside `GIT_COMMITS_PUSH_ENFORCER_SOURCE=skill`. Direct `createTrustToken()` callers outside the skill Git helpers are rejected, and a marker without a valid helper-issued token is blocked.
