@@ -125,4 +125,23 @@ describe("repository validation chain", () => {
 			);
 		}
 	});
+
+	it("keeps the scripts manifest compatible with its retained frozen Bun lock", () => {
+		const scriptsManifest = readFileSync(
+			join(repositoryRoot, "scripts", "package.json"),
+			"utf8",
+		);
+		const scriptsBunLock = readFileSync(
+			join(repositoryRoot, "scripts", "bun.lock"),
+			"utf8",
+		);
+		for (const dependencyEntry of [
+			'"@types/bun": "1.3.14"',
+			'"typescript": "^5.9.3"',
+		]) {
+			assert.strictEqual(scriptsManifest.includes(dependencyEntry), true);
+			assert.strictEqual(scriptsBunLock.includes(dependencyEntry), true);
+		}
+		assert.strictEqual(scriptsManifest.includes('"@types/node"'), false);
+	});
 });
