@@ -1,15 +1,19 @@
 {
-  "name": "@dotagents/scripts",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "test": "bun test claude-facade lib/stack-tools lib/coding-standards-schema coding-standards-scanner coding-standards-consolidate"
-  },
-  "dependencies": {
-    "zod": "^4.3.5"
-  },
-  "devDependencies": {
-    "@types/bun": "1.3.14",
-    "typescript": "^5.9.3"
-  }
+	"name": "@dotagents/scripts",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "node test/run-tests.mjs",
+		"test:bun": "bun test claude-facade lib/stack-tools lib/coding-standards-schema coding-standards-scanner coding-standards-consolidate",
+		"test:node": "node test/run-tests.mjs",
+		"typecheck": "tsc -p tsconfig.json"
+	},
+	"dependencies": {
+		"zod": "^4.3.5"
+	},
+	"devDependencies": {
+		"@types/bun": "1.3.14",
+		"@types/node": "22.20.0",
+		"typescript": "5.9.3"
+	}
 }
