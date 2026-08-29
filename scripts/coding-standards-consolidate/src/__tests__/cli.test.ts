@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import type {
 	CodingStandardsReport,
 	Finding,
@@ -56,27 +57,25 @@ describe("parseArgs", () => {
 			"--files-json-dir=/b",
 			"--output=/c.json",
 		]);
-		expect(a.scannerJson).toBe("/a.json");
-		expect(a.filesJsonDir).toBe("/b");
-		expect(a.output).toBe("/c.json");
+		assert.strictEqual(a.scannerJson, "/a.json");
+		assert.strictEqual(a.filesJsonDir, "/b");
+		assert.strictEqual(a.output, "/c.json");
 	});
 
 	it("throws when scanner-json is missing", () => {
-		expect(() =>
-			parseArgs(["--files-json-dir=/b", "--output=/c.json"]),
-		).toThrow();
+		assert.throws(() => parseArgs(["--files-json-dir=/b", "--output=/c.json"]));
 	});
 
 	it("throws when files-json-dir is missing", () => {
-		expect(() =>
+		assert.throws(() =>
 			parseArgs(["--scanner-json=/a.json", "--output=/c.json"]),
-		).toThrow();
+		);
 	});
 
 	it("throws when output is missing", () => {
-		expect(() =>
+		assert.throws(() =>
 			parseArgs(["--scanner-json=/a.json", "--files-json-dir=/b"]),
-		).toThrow();
+		);
 	});
 });
 
@@ -89,23 +88,23 @@ describe("consolidate", () => {
 			severity: "minor",
 		});
 		const final = consolidate(mkReport([f1]), [mkReport([f2])]);
-		expect(final.findings).toHaveLength(2);
-		expect(final.verdict).toBe("ISSUES_FOUND");
-		expect(final.summary.notable).toBe(1);
-		expect(final.summary.minor).toBe(1);
+		assert.strictEqual(final.findings.length, 2);
+		assert.strictEqual(final.verdict, "ISSUES_FOUND");
+		assert.strictEqual(final.summary.notable, 1);
+		assert.strictEqual(final.summary.minor, 1);
 	});
 
 	it("produces CLEAN when everything is empty", () => {
 		const final = consolidate(mkReport([]), [mkReport([])]);
-		expect(final.verdict).toBe("CLEAN");
-		expect(final.findings).toHaveLength(0);
-		expect(final.blocking).toBe(false);
+		assert.strictEqual(final.verdict, "CLEAN");
+		assert.strictEqual(final.findings.length, 0);
+		assert.strictEqual(final.blocking, false);
 	});
 
 	it("deduplicates byte-equivalent findings by id", () => {
 		const finding = mkFinding({ id: "dddddddddddddddd", evidence: "same" });
 		const final = consolidate(mkReport([finding]), [mkReport([finding])]);
-		expect(final.findings).toHaveLength(1);
+		assert.strictEqual(final.findings.length, 1);
 	});
 
 	it("rejects one finding id with conflicting content", () => {
@@ -117,9 +116,10 @@ describe("consolidate", () => {
 			id: "eeeeeeeeeeeeeeee",
 			evidence: "agent",
 		});
-		expect(() =>
-			consolidate(mkReport([scannerFinding]), [mkReport([agentFinding])]),
-		).toThrow(/conflicting content/i);
+		assert.throws(
+			() => consolidate(mkReport([scannerFinding]), [mkReport([agentFinding])]),
+			/conflicting content/i,
+		);
 	});
 
 	it("recomputes blocking based on merged findings", () => {
@@ -128,20 +128,21 @@ describe("consolidate", () => {
 			severity: "critical",
 		});
 		const final = consolidate(mkReport([]), [mkReport([critical])]);
-		expect(final.blocking).toBe(true);
+		assert.strictEqual(final.blocking, true);
 	});
 
 	it("handles zero per-file reports (scanner only)", () => {
 		const f = mkFinding({ id: "abababababababab" });
 		const final = consolidate(mkReport([f]), []);
-		expect(final.findings).toHaveLength(1);
-		expect(final.scope_digest).toBe("a".repeat(64));
+		assert.strictEqual(final.findings.length, 1);
+		assert.strictEqual(final.scope_digest, "a".repeat(64));
 	});
 
 	it("rejects a per-file report with a divergent scope digest", () => {
-		expect(() =>
-			consolidate(mkReport([]), [mkReport([], "b".repeat(64))]),
-		).toThrow(/scope_digest/i);
+		assert.throws(
+			() => consolidate(mkReport([]), [mkReport([], "b".repeat(64))]),
+			/scope_digest/i,
+		);
 	});
 });
 
@@ -162,8 +163,8 @@ describe("consolidate — schema validation on reads (integration)", () => {
 		);
 		const f = mkFinding({ id: "ffffffffffffffff", severity: "major" });
 		const final = consolidate(mkReport([f]), []);
-		expect(() => validateReport(final)).not.toThrow();
-		expect(final.blocking).toBe(true);
+		assert.doesNotThrow(() => validateReport(final));
+		assert.strictEqual(final.blocking, true);
 	});
 
 	it("reading an invalid per-file JSON throws during parseReport", async () => {
@@ -172,6 +173,6 @@ describe("consolidate — schema validation on reads (integration)", () => {
 		);
 		const bad = join(tempDir, "bad.json");
 		writeFileSync(bad, '{"skill": "senior-review", "verdict": "CLEAN"}');
-		expect(() => parseReport("not json")).toThrow();
+		assert.throws(() => parseReport("not json"));
 	});
 });
