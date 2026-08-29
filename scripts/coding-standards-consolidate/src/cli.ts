@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * coding-standards-consolidate — deterministic merge of the scanner JSON
  * and per-file sub-agent JSONs into a single coding-standards report.
@@ -6,13 +6,15 @@
  * No LLM, no judgment. Merge, validate, recompute summary, emit.
  *
  * Usage:
- *   bun cli.ts \
+ *   node cli.ts \
  *     --scanner-json=<path> \
  *     --files-json-dir=<dir>  # directory containing *.json per-file reports
  *     --output=<path>
  */
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
+import { readdirSync, realpathSync } from "node:fs";
+import { readFile, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import {
 	type CodingStandardsReport,
@@ -103,7 +105,7 @@ export function consolidate(
 }
 
 async function readReport(path: string): Promise<CodingStandardsReport> {
-	const text = await Bun.file(path).text();
+	const text = await readFile(path, "utf8");
 	try {
 		return parseReport(text);
 	} catch (e) {
@@ -138,11 +140,23 @@ async function main(): Promise<void> {
 	const final = consolidate(scanner, perFile);
 	validateReport(final);
 
-	await Bun.write(args.output, `${JSON.stringify(final, null, 2)}\n`);
+	await writeFile(args.output, `${JSON.stringify(final, null, 2)}\n`);
+}
+
+function isDirectExecution(entrypointArgument = process.argv[1]): boolean {
+	if (entrypointArgument === undefined) return false;
+	try {
+		return (
+			realpathSync(fileURLToPath(import.meta.url)) ===
+			realpathSync(resolve(entrypointArgument))
+		);
+	} catch {
+		return false;
+	}
 }
 
 // Only run main when invoked directly — keeps the module importable for tests.
-if (import.meta.main) {
+if (isDirectExecution()) {
 	main().catch((err: unknown) => {
 		console.error(
 			"[coding-standards-consolidate] fatal:",
