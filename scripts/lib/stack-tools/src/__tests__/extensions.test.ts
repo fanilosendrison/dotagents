@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import {
 	CODE_EXTENSIONS,
 	isCodeFile,
@@ -10,83 +11,83 @@ describe("CODE_EXTENSIONS", () => {
 	it("contains all expected extensions", () => {
 		const expected = [".py", ".ts", ".tsx", ".js", ".jsx", ".sh", ".bash"];
 		for (const ext of expected) {
-			expect(CODE_EXTENSIONS.has(ext)).toBe(true);
+			assert.strictEqual(CODE_EXTENSIONS.has(ext), true);
 		}
 	});
 
 	it("does not contain non-code extensions", () => {
 		const notCode = [".md", ".json", ".yaml", ".html", ".css", ".txt"];
 		for (const ext of notCode) {
-			expect(CODE_EXTENSIONS.has(ext)).toBe(false);
+			assert.strictEqual(CODE_EXTENSIONS.has(ext), false);
 		}
 	});
 });
 
 describe("LINTER_EXTENSIONS", () => {
 	it("biome supports JS/TS extensions", () => {
-		expect(LINTER_EXTENSIONS.biome.has(".ts")).toBe(true);
-		expect(LINTER_EXTENSIONS.biome.has(".tsx")).toBe(true);
-		expect(LINTER_EXTENSIONS.biome.has(".js")).toBe(true);
-		expect(LINTER_EXTENSIONS.biome.has(".jsx")).toBe(true);
-		expect(LINTER_EXTENSIONS.biome.has(".py")).toBe(false);
+		assert.strictEqual(LINTER_EXTENSIONS.biome.has(".ts"), true);
+		assert.strictEqual(LINTER_EXTENSIONS.biome.has(".tsx"), true);
+		assert.strictEqual(LINTER_EXTENSIONS.biome.has(".js"), true);
+		assert.strictEqual(LINTER_EXTENSIONS.biome.has(".jsx"), true);
+		assert.strictEqual(LINTER_EXTENSIONS.biome.has(".py"), false);
 	});
 
 	it("ruff supports .py only", () => {
-		expect(LINTER_EXTENSIONS.ruff.has(".py")).toBe(true);
-		expect(LINTER_EXTENSIONS.ruff.has(".ts")).toBe(false);
+		assert.strictEqual(LINTER_EXTENSIONS.ruff.has(".py"), true);
+		assert.strictEqual(LINTER_EXTENSIONS.ruff.has(".ts"), false);
 	});
 
 	it("shellcheck supports .sh and .bash", () => {
-		expect(LINTER_EXTENSIONS.shellcheck.has(".sh")).toBe(true);
-		expect(LINTER_EXTENSIONS.shellcheck.has(".bash")).toBe(true);
-		expect(LINTER_EXTENSIONS.shellcheck.has(".ts")).toBe(false);
+		assert.strictEqual(LINTER_EXTENSIONS.shellcheck.has(".sh"), true);
+		assert.strictEqual(LINTER_EXTENSIONS.shellcheck.has(".bash"), true);
+		assert.strictEqual(LINTER_EXTENSIONS.shellcheck.has(".ts"), false);
 	});
 });
 
 describe("isCodeFile", () => {
 	it("returns true for code files", () => {
-		expect(isCodeFile("/project/src/main.ts")).toBe(true);
-		expect(isCodeFile("/project/app.py")).toBe(true);
-		expect(isCodeFile("/project/script.sh")).toBe(true);
-		expect(isCodeFile("/project/Component.tsx")).toBe(true);
-		expect(isCodeFile("/project/index.js")).toBe(true);
-		expect(isCodeFile("/project/build.bash")).toBe(true);
+		assert.strictEqual(isCodeFile("/project/src/main.ts"), true);
+		assert.strictEqual(isCodeFile("/project/app.py"), true);
+		assert.strictEqual(isCodeFile("/project/script.sh"), true);
+		assert.strictEqual(isCodeFile("/project/Component.tsx"), true);
+		assert.strictEqual(isCodeFile("/project/index.js"), true);
+		assert.strictEqual(isCodeFile("/project/build.bash"), true);
 	});
 
 	it("returns false for non-code files", () => {
-		expect(isCodeFile("/project/README.md")).toBe(false);
-		expect(isCodeFile("/project/config.json")).toBe(false);
-		expect(isCodeFile("/project/style.css")).toBe(false);
-		expect(isCodeFile("/project/index.html")).toBe(false);
-		expect(isCodeFile("/project/data.yaml")).toBe(false);
+		assert.strictEqual(isCodeFile("/project/README.md"), false);
+		assert.strictEqual(isCodeFile("/project/config.json"), false);
+		assert.strictEqual(isCodeFile("/project/style.css"), false);
+		assert.strictEqual(isCodeFile("/project/index.html"), false);
+		assert.strictEqual(isCodeFile("/project/data.yaml"), false);
 	});
 
 	it("handles case insensitivity", () => {
-		expect(isCodeFile("/project/main.TS")).toBe(true);
-		expect(isCodeFile("/project/app.PY")).toBe(true);
+		assert.strictEqual(isCodeFile("/project/main.TS"), true);
+		assert.strictEqual(isCodeFile("/project/app.PY"), true);
 	});
 });
 
 describe("isLinterCompatible", () => {
 	it("biome is compatible with TS/JS files", () => {
-		expect(isLinterCompatible("biome", "file.ts")).toBe(true);
-		expect(isLinterCompatible("biome", "file.jsx")).toBe(true);
+		assert.strictEqual(isLinterCompatible("biome", "file.ts"), true);
+		assert.strictEqual(isLinterCompatible("biome", "file.jsx"), true);
 	});
 
 	it("biome is not compatible with Python files", () => {
-		expect(isLinterCompatible("biome", "file.py")).toBe(false);
+		assert.strictEqual(isLinterCompatible("biome", "file.py"), false);
 	});
 
 	it("ruff is compatible with Python files", () => {
-		expect(isLinterCompatible("ruff", "file.py")).toBe(true);
+		assert.strictEqual(isLinterCompatible("ruff", "file.py"), true);
 	});
 
 	it("ruff is not compatible with TS files", () => {
-		expect(isLinterCompatible("ruff", "file.ts")).toBe(false);
+		assert.strictEqual(isLinterCompatible("ruff", "file.ts"), false);
 	});
 
 	it("unknown linter returns true (try anyway)", () => {
-		expect(isLinterCompatible("unknown-linter", "file.ts")).toBe(true);
-		expect(isLinterCompatible("unknown-linter", "file.py")).toBe(true);
+		assert.strictEqual(isLinterCompatible("unknown-linter", "file.ts"), true);
+		assert.strictEqual(isLinterCompatible("unknown-linter", "file.py"), true);
 	});
 });
