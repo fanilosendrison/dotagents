@@ -1,5 +1,7 @@
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { parseYaml } from "../../../../packages/node-runtime/src/index.ts";
 
 const STACK_EVAL_FILENAME = "STACK_EVAL.yaml";
 
@@ -27,13 +29,10 @@ export interface StackConfig {
 export async function readStackConfig(
 	stackEvalPath: string,
 ): Promise<StackConfig> {
-	const content = await Bun.file(stackEvalPath).text();
-
-	// Bun.YAML is available in Bun — zero dependency YAML parsing
-	// biome-ignore lint/suspicious/noExplicitAny: YAML parse returns untyped structure
-	const parsed = Bun.YAML.parse(content) as any;
-
-	const decisions = parsed?.decisions ?? {};
+	const content = await readFile(stackEvalPath, "utf8");
+	const parsed = parseYaml(content);
+	const decisions =
+		isRecord(parsed) && isRecord(parsed.decisions) ? parsed.decisions : {};
 
 	const rawLinter = decisions.linter ?? null;
 	const rawTypeChecker = decisions.type_checker ?? null;
@@ -42,6 +41,10 @@ export async function readStackConfig(
 		linter: normalizeValue(rawLinter),
 		typeChecker: normalizeValue(rawTypeChecker),
 	};
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** Normalize: "none" and empty strings → null, otherwise lowercase trimmed. */
