@@ -1,5 +1,6 @@
-import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { describe, it } from "node:test";
 import { computeFindingId } from "../id-hash.ts";
 
 describe("computeFindingId", () => {
@@ -11,7 +12,7 @@ describe("computeFindingId", () => {
 			"typing",
 			"weak type any used in bar return",
 		);
-		expect(id).toMatch(/^[0-9a-f]{16}$/);
+		assert.match(id, /^[0-9a-f]{16}$/);
 	});
 
 	it("is stable: same inputs produce the same output", () => {
@@ -24,7 +25,7 @@ describe("computeFindingId", () => {
 		];
 		const a = computeFindingId(...args);
 		const b = computeFindingId(...args);
-		expect(a).toBe(b);
+		assert.strictEqual(a, b);
 	});
 
 	it("matches the canonical formula exactly (regression guard)", () => {
@@ -50,31 +51,31 @@ describe("computeFindingId", () => {
 			.update(key)
 			.digest("hex")
 			.slice(0, 16);
-		expect(id).toBe(expected);
+		assert.strictEqual(id, expected);
 	});
 
 	it("changes when source changes", () => {
 		const a = computeFindingId("coding-standards", "f.ts", 1, "typing", "p");
 		const b = computeFindingId("coding-standardsX", "f.ts", 1, "typing", "p");
-		expect(a).not.toBe(b);
+		assert.notStrictEqual(a, b);
 	});
 
 	it("changes when file changes", () => {
 		const a = computeFindingId("coding-standards", "f.ts", 1, "typing", "p");
 		const b = computeFindingId("coding-standards", "g.ts", 1, "typing", "p");
-		expect(a).not.toBe(b);
+		assert.notStrictEqual(a, b);
 	});
 
 	it("changes when line_start changes", () => {
 		const a = computeFindingId("coding-standards", "f.ts", 1, "typing", "p");
 		const b = computeFindingId("coding-standards", "f.ts", 2, "typing", "p");
-		expect(a).not.toBe(b);
+		assert.notStrictEqual(a, b);
 	});
 
 	it("changes when axis changes", () => {
 		const a = computeFindingId("coding-standards", "f.ts", 1, "typing", "p");
 		const b = computeFindingId("coding-standards", "f.ts", 1, "naming", "p");
-		expect(a).not.toBe(b);
+		assert.notStrictEqual(a, b);
 	});
 
 	it("changes when problem changes (within first 80 chars)", () => {
@@ -86,7 +87,7 @@ describe("computeFindingId", () => {
 			"alpha",
 		);
 		const b = computeFindingId("coding-standards", "f.ts", 1, "typing", "beta");
-		expect(a).not.toBe(b);
+		assert.notStrictEqual(a, b);
 	});
 
 	it("does NOT change when problem differs only after the first 80 chars", () => {
@@ -107,14 +108,14 @@ describe("computeFindingId", () => {
 			"typing",
 			`${prefix}Y`,
 		);
-		expect(a).toBe(b);
+		assert.strictEqual(a, b);
 	});
 
 	it("distinguishes null line_start from 0 line_start", () => {
 		// null → "", 0 → "0" — these are DIFFERENT inputs to the hash.
 		const a = computeFindingId("coding-standards", "f.ts", null, "typing", "p");
 		const b = computeFindingId("coding-standards", "f.ts", 0, "typing", "p");
-		expect(a).not.toBe(b);
+		assert.notStrictEqual(a, b);
 	});
 
 	it("null line_start serialises as '' in the hash key", () => {
@@ -124,6 +125,6 @@ describe("computeFindingId", () => {
 			.update(["s", "f", "", "a", "p"].join("|"))
 			.digest("hex")
 			.slice(0, 16);
-		expect(nullCase).toBe(expected);
+		assert.strictEqual(nullCase, expected);
 	});
 });

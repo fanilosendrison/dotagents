@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { FindingSchema, parseReport, validateReport } from "../validator.ts";
 
 const validFinding = {
@@ -33,32 +34,32 @@ const validReport = {
 
 describe("FindingSchema", () => {
 	it("accepts a valid finding", () => {
-		expect(() => FindingSchema.parse(validFinding)).not.toThrow();
+		assert.doesNotThrow(() => FindingSchema.parse(validFinding));
 	});
 
 	it("rejects a bad id (not hex)", () => {
 		const bad = { ...validFinding, id: "NOT_HEX_XXXXXXXX" };
-		expect(() => FindingSchema.parse(bad)).toThrow();
+		assert.throws(() => FindingSchema.parse(bad));
 	});
 
 	it("rejects an id of wrong length", () => {
 		const bad = { ...validFinding, id: "abcdef" };
-		expect(() => FindingSchema.parse(bad)).toThrow();
+		assert.throws(() => FindingSchema.parse(bad));
 	});
 
 	it("rejects an unknown axis", () => {
 		const bad = { ...validFinding, axis: "not-an-axis" };
-		expect(() => FindingSchema.parse(bad)).toThrow();
+		assert.throws(() => FindingSchema.parse(bad));
 	});
 
 	it("rejects an unknown severity", () => {
 		const bad = { ...validFinding, severity: "catastrophic" };
-		expect(() => FindingSchema.parse(bad)).toThrow();
+		assert.throws(() => FindingSchema.parse(bad));
 	});
 
 	it("rejects empty observable_change when severity != design", () => {
 		const bad = { ...validFinding, observable_change: "" };
-		expect(() => FindingSchema.parse(bad)).toThrow();
+		assert.throws(() => FindingSchema.parse(bad));
 	});
 
 	it("allows empty observable_change when severity = design", () => {
@@ -67,23 +68,23 @@ describe("FindingSchema", () => {
 			severity: "design",
 			observable_change: "",
 		};
-		expect(() => FindingSchema.parse(ok)).not.toThrow();
+		assert.doesNotThrow(() => FindingSchema.parse(ok));
 	});
 
 	it("accepts null line_start / line_end", () => {
 		const ok = { ...validFinding, line_start: null, line_end: null };
-		expect(() => FindingSchema.parse(ok)).not.toThrow();
+		assert.doesNotThrow(() => FindingSchema.parse(ok));
 	});
 
 	it("rejects non-'coding-standards' source", () => {
 		const bad = { ...validFinding, source: "senior-review" };
-		expect(() => FindingSchema.parse(bad)).toThrow();
+		assert.throws(() => FindingSchema.parse(bad));
 	});
 });
 
 describe("ReportSchema", () => {
 	it("accepts a valid report", () => {
-		expect(() => validateReport(validReport)).not.toThrow();
+		assert.doesNotThrow(() => validateReport(validReport));
 	});
 
 	it("accepts a CLEAN empty report", () => {
@@ -102,22 +103,22 @@ describe("ReportSchema", () => {
 			},
 			blocking: false,
 		};
-		expect(() => validateReport(empty)).not.toThrow();
+		assert.doesNotThrow(() => validateReport(empty));
 	});
 
 	it("rejects report with wrong skill label", () => {
 		const bad = { ...validReport, skill: "senior-review" };
-		expect(() => validateReport(bad)).toThrow();
+		assert.throws(() => validateReport(bad));
 	});
 
 	it("rejects a missing scope digest", () => {
 		const { scope_digest: _omit, ...bad } = validReport;
-		expect(() => validateReport(bad)).toThrow();
+		assert.throws(() => validateReport(bad));
 	});
 
 	it("rejects report with invalid verdict", () => {
 		const bad = { ...validReport, verdict: "MAYBE" };
-		expect(() => validateReport(bad)).toThrow();
+		assert.throws(() => validateReport(bad));
 	});
 
 	it("rejects report missing summary", () => {
@@ -125,16 +126,16 @@ describe("ReportSchema", () => {
 			summary: unknown;
 			[k: string]: unknown;
 		};
-		expect(() => validateReport(rest)).toThrow();
+		assert.throws(() => validateReport(rest));
 	});
 
 	it("parseReport round-trips", () => {
 		const parsed = parseReport(JSON.stringify(validReport));
-		expect(parsed.findings[0]?.id).toBe(validFinding.id);
-		expect(parsed.verdict).toBe("ISSUES_FOUND");
+		assert.strictEqual(parsed.findings[0]?.id, validFinding.id);
+		assert.strictEqual(parsed.verdict, "ISSUES_FOUND");
 	});
 
 	it("parseReport throws on invalid JSON", () => {
-		expect(() => parseReport("not json")).toThrow();
+		assert.throws(() => parseReport("not json"));
 	});
 });
