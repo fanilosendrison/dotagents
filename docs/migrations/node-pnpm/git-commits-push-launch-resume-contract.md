@@ -55,3 +55,5 @@ The compiled implementation must pass trust-token, Git-hook, secret-scanner, tel
 ## Self-hosting gate
 
 The compatibility exception for direct Git ends only after the compiled Node orchestrator successfully validates, commits, and pushes a real migration commit through a temporary repository with a local bare remote, followed by the designated real migration commit and push.
+
+The gate is satisfied. Run `01M16Z8A030MJZAHMZX554CJPM` used the canonical Node launch to validate, commit, and push real changes to dotagents and dotpi; commits `10b5da5`, `5990b33`, and `3c1cf95` reached their remotes, and Node/Bun CI runs `33258149595`, `33258149602`, `33258151521`, and `33258151486` all passed. The closure record itself is committed through the same Node orchestrator. Direct agent-issued `git commit` and `git push` commands are prohibited after this closure; only Git subprocesses owned by the orchestrator remain permitted.
