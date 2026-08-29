@@ -2,7 +2,7 @@
 	"extends": "../tsconfig.json",
 	"compilerOptions": {
 		"erasableSyntaxOnly": true,
-		"types": ["node", "bun"]
+		"types": ["node"]
 	},
 	"include": ["**/*.ts"],
 	"exclude": ["node_modules"]

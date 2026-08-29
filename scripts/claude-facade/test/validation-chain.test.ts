@@ -42,12 +42,9 @@ describe("repository validation chain", () => {
 		assert.strictEqual(rootPackage.workspaces, undefined);
 		assert.strictEqual(
 			rootPackage.scripts.test,
-			"bun run test:install && bun run test:root && bun run test:git-commits-push && bun run test:scripts && bun run test:protocol",
+			"bun run test:root && bun run test:git-commits-push && bun run test:scripts && bun run test:protocol",
 		);
-		assert.strictEqual(
-			rootPackage.scripts["test:install"],
-			"bun install --frozen-lockfile && bun install --cwd skills/create-symlink-for-dot-folders --frozen-lockfile && bun install --cwd skills/git-commits-push --frozen-lockfile && bun install --cwd skills/go --frozen-lockfile && bun install --cwd scripts --frozen-lockfile && bun install --cwd skills/loop-clean/protocol --frozen-lockfile",
-		);
+		assert.strictEqual(rootPackage.scripts["test:install"], undefined);
 		assert.strictEqual(
 			rootPackage.scripts["test:root"],
 			"bun test --timeout 60000 --path-ignore-patterns='scripts/**' --path-ignore-patterns='skills/git-commits-push/**' --path-ignore-patterns='skills/loop-clean/protocol/**'",
@@ -75,7 +72,6 @@ describe("repository validation chain", () => {
 
 		for (const lockfilePath of [
 			join(repositoryRoot, "bun.lock"),
-			join(repositoryRoot, "scripts", "bun.lock"),
 			join(
 				repositoryRoot,
 				"skills",
@@ -115,33 +111,33 @@ describe("repository validation chain", () => {
 	});
 
 	it("disables implicit dependency installation in both nested packages", () => {
-		for (const bunfigPath of [
-			join(repositoryRoot, "scripts", "bunfig.toml"),
-			join(repositoryRoot, "skills", "loop-clean", "protocol", "bunfig.toml"),
-		]) {
-			assert.strictEqual(
-				readFileSync(bunfigPath, "utf8").trim(),
-				'[install]\nauto = "disable"',
-			);
-		}
+		assert.strictEqual(
+			existsSync(join(repositoryRoot, "scripts", "bunfig.toml")),
+			false,
+		);
+		assert.strictEqual(
+			readFileSync(
+				join(repositoryRoot, "skills", "loop-clean", "protocol", "bunfig.toml"),
+				"utf8",
+			).trim(),
+			'[install]\nauto = "disable"',
+		);
 	});
 
-	it("keeps the scripts manifest compatible with its retained frozen Bun lock", () => {
+	it("removes package-local Bun state after scripts parity passes", () => {
 		const scriptsManifest = readFileSync(
 			join(repositoryRoot, "scripts", "package.json"),
 			"utf8",
 		);
-		const scriptsBunLock = readFileSync(
-			join(repositoryRoot, "scripts", "bun.lock"),
-			"utf8",
+		assert.strictEqual(
+			existsSync(join(repositoryRoot, "scripts", "bun.lock")),
+			false,
 		);
-		for (const dependencyEntry of [
-			'"@types/bun": "1.3.14"',
-			'"typescript": "^5.9.3"',
-		]) {
-			assert.strictEqual(scriptsManifest.includes(dependencyEntry), true);
-			assert.strictEqual(scriptsBunLock.includes(dependencyEntry), true);
-		}
-		assert.strictEqual(scriptsManifest.includes('"@types/node"'), false);
+		assert.strictEqual(scriptsManifest.includes('"@types/bun"'), false);
+		assert.strictEqual(
+			scriptsManifest.includes('"@types/node": "22.20.0"'),
+			true,
+		);
+		assert.strictEqual(scriptsManifest.includes('"typescript": "5.9.3"'), true);
 	});
 });
