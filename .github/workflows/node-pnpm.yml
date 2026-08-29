@@ -101,6 +101,14 @@ jobs:
           pnpm run test:node-runtime
           test ! -s "$BUN_SENTINEL_LOG"
 
+      - name: Typecheck and test the scripts package
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run typecheck:scripts
+          pnpm run test:scripts-node
+          test ! -s "$BUN_SENTINEL_LOG"
+
       - name: Typecheck, compile, and test git-commits-push artifacts
         shell: bash
         run: |
