@@ -143,7 +143,8 @@ describe("production protocol contract", () => {
 			expect(scriptName).not.toMatch(/^loop-clean-protocol/);
 		}
 		expect(scriptsPackageJson.scripts.test).not.toMatch(/spec-drift/);
-		expect(scriptsPackageJson.scripts.test).toContain("lib/stack-tools");
+		expect(scriptsPackageJson.scripts.test).toBe("node test/run-tests.mjs");
+		expect(scriptsPackageJson.scripts["test:bun"]).toContain("lib/stack-tools");
 	});
 
 	test("loop-clean.sh passes bash syntax validation", () => {
@@ -249,13 +250,19 @@ describe("production protocol contract", () => {
 
 	test("script libraries and runtime paths are canonical", () => {
 		// stack-tools must be present
-		expect(existsSync(resolve(repositoryRoot, "scripts/lib/stack-tools/src/index.ts"))).toBe(true);
+		expect(
+			existsSync(
+				resolve(repositoryRoot, "scripts/lib/stack-tools/src/index.ts"),
+			),
+		).toBe(true);
 		// .agents/run is the canonical runtime
 		const shellScript = read("skills/loop-clean/loop-clean.sh");
 		expect(shellScript).toContain(".agents/run/loop-clean");
 		expect(shellScript).not.toMatch(/\.claude\/run\/loop-clean/);
 		// .claude/run exclusion for legacy ledgers
-		const collectScope = read("skills/loop-clean/protocol/src/scope/collect-scope.ts");
+		const collectScope = read(
+			"skills/loop-clean/protocol/src/scope/collect-scope.ts",
+		);
 		expect(collectScope).toContain(".claude/run");
 		expect(collectScope).toContain(".agents/run");
 	});
@@ -285,9 +292,15 @@ describe("production protocol contract", () => {
 		const filtered: string[] = [];
 		let inHelper = false;
 		for (const line of lines) {
-			if (line.includes("_run_protocol() {")) { inHelper = true; continue; }
+			if (line.includes("_run_protocol() {")) {
+				inHelper = true;
+				continue;
+			}
 			if (inHelper) {
-				if (line.trim() === "}") { inHelper = false; continue; }
+				if (line.trim() === "}") {
+					inHelper = false;
+					continue;
+				}
 				continue;
 			}
 			filtered.push(line);
@@ -300,5 +313,4 @@ describe("production protocol contract", () => {
 		expect(bunfig).toContain("[install]");
 		expect(bunfig).toContain('auto = "disable"');
 	});
-
 });
