@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, describe, test } from "node:test";
 import { resolveScope } from "../lib/scope-resolver.ts";
 
 const temporaryDirectories: string[] = [];
@@ -74,8 +75,8 @@ describe("resolveScope from loop-clean manifest", () => {
 			expectedDigest: digest,
 			cwd: directory,
 		});
-		expect(scope.files).toEqual(["src/included.ts"]);
-		expect(scope.digest).toBe(digest);
+		assert.deepStrictEqual(scope.files, ["src/included.ts"]);
+		assert.strictEqual(scope.digest, digest);
 	});
 
 	test("rejects a digest that differs from the orchestrator value", async () => {
@@ -83,20 +84,22 @@ describe("resolveScope from loop-clean manifest", () => {
 		const scopeFile = await writeScopeFile(directory, [
 			entry("src/example.ts"),
 		]);
-		await expect(
+		await assert.rejects(
 			resolveScope({
 				scopeFile,
 				expectedDigest: "b".repeat(64),
 				cwd: directory,
 			}),
-		).rejects.toThrow(/digest/i);
+			/digest/i,
+		);
 	});
 
 	test("rejects a manifest whose repo root differs from cwd", async () => {
 		const directory = await temporaryDirectory();
 		const other = await temporaryDirectory();
 		const scopeFile = await writeScopeFile(other, [entry("src/example.ts")]);
-		await expect(resolveScope({ scopeFile, cwd: directory })).rejects.toThrow(
+		await assert.rejects(
+			resolveScope({ scopeFile, cwd: directory }),
 			/repo_root/i,
 		);
 	});
@@ -105,9 +108,7 @@ describe("resolveScope from loop-clean manifest", () => {
 		const directory = await temporaryDirectory();
 		const scopeFile = join(directory, "scope.json");
 		await writeFile(scopeFile, "{broken");
-		await expect(resolveScope({ scopeFile, cwd: directory })).rejects.toThrow(
-			/JSON/i,
-		);
+		await assert.rejects(resolveScope({ scopeFile, cwd: directory }), /JSON/i);
 	});
 });
 
@@ -120,17 +121,17 @@ describe("resolveScope standalone", () => {
 		await writeFile(join(directory, "src", "nested", "two.ts"), "export {};\n");
 		await writeFile(join(directory, "other", "three.ts"), "export {};\n");
 		const all = await resolveScope({ mode: "all", cwd: directory });
-		expect(all.files).toEqual([
+		assert.deepStrictEqual(all.files, [
 			"other/three.ts",
 			"src/nested/two.ts",
 			"src/one.ts",
 		]);
-		expect(all.digest).toMatch(/^[0-9a-f]{64}$/);
+		assert.match(all.digest, /^[0-9a-f]{64}$/);
 		const targeted = await resolveScope({
 			mode: "path",
 			path: join(directory, "src"),
 			cwd: directory,
 		});
-		expect(targeted.files).toEqual(["src/nested/two.ts", "src/one.ts"]);
+		assert.deepStrictEqual(targeted.files, ["src/nested/two.ts", "src/one.ts"]);
 	});
 });

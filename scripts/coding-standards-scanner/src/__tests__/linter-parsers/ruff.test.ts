@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { parseRuffJson } from "../../lib/linter-parsers/ruff.ts";
 
 // Golden fixture from `ruff check --output-format json`.
@@ -23,20 +24,20 @@ const GOLDEN = JSON.stringify([
 describe("parseRuffJson", () => {
 	it("parses the golden fixture", () => {
 		const findings = parseRuffJson(GOLDEN);
-		expect(findings).toHaveLength(2);
-		expect(findings[0]?.ruleId).toBe("E722");
-		expect(findings[0]?.file).toBe("/repo/src/foo.py");
-		expect(findings[0]?.line_start).toBe(14);
-		expect(findings[1]?.ruleId).toBe("D103");
-		expect(findings[1]?.line_start).toBe(3);
+		assert.strictEqual(findings.length, 2);
+		assert.strictEqual(findings[0]?.ruleId, "E722");
+		assert.strictEqual(findings[0]?.file, "/repo/src/foo.py");
+		assert.strictEqual(findings[0]?.line_start, 14);
+		assert.strictEqual(findings[1]?.ruleId, "D103");
+		assert.strictEqual(findings[1]?.line_start, 3);
 	});
 
 	it("returns [] on empty output", () => {
-		expect(parseRuffJson("")).toEqual([]);
-		expect(parseRuffJson("[]")).toEqual([]);
+		assert.deepStrictEqual(parseRuffJson(""), []);
+		assert.deepStrictEqual(parseRuffJson("[]"), []);
 	});
 
 	it("returns [] on malformed JSON", () => {
-		expect(parseRuffJson("not json")).toEqual([]);
+		assert.deepStrictEqual(parseRuffJson("not json"), []);
 	});
 });
