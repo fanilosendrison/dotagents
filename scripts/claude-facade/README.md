@@ -16,22 +16,22 @@ dotagents → source canonique unique des ressources migrées
 
 ```bash
 # Installer la façade (crée les symlinks manquants)
-bun ~/.agents/scripts/claude-facade/src/cli.ts install
+node ~/.agents/scripts/claude-facade/src/cli.ts install
 
 # Vérifier l'état de la façade (ne modifie rien)
-bun ~/.agents/scripts/claude-facade/src/cli.ts check
+node ~/.agents/scripts/claude-facade/src/cli.ts check
 
 # Réparer les symlinks incorrects ou cassés
-bun ~/.agents/scripts/claude-facade/src/cli.ts install --repair
+node ~/.agents/scripts/claude-facade/src/cli.ts install --repair
 
 # Afficher les règles .gitignore attendues pour dotclaude
-bun ~/.agents/scripts/claude-facade/src/cli.ts gitignore-rules
+node ~/.agents/scripts/claude-facade/src/cli.ts gitignore-rules
 ```
 
 ## Tests
 
 ```bash
-cd ~/.agents/scripts/claude-facade && bun test
+cd ~/.agents/scripts && pnpm test
 ```
 
 Les tests s'exécutent dans des répertoires temporaires et ne touchent jamais

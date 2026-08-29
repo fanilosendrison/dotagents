@@ -6,7 +6,7 @@ semantic per-file reports.
 ## Usage
 
 ```bash
-bun src/cli.ts \
+node src/cli.ts \
   --scanner-json=/run/scanner.json \
   --files-json-dir=/run/files \
   --output=/run/coding-standards.json

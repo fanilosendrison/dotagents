@@ -1,13 +1,13 @@
 # Coding Standards Scanner
 
-Deterministic Bun CLI for the mechanical coding-standards pass.
+Deterministic Node CLI for the mechanical coding-standards pass.
 
 ## Usage
 
 ```bash
-bun src/cli.ts --scope-file=/absolute/run/iter-000/scope.json --output=/tmp/scanner.json
-bun src/cli.ts --scope=all --output=/tmp/scanner.json
-bun src/cli.ts --scope=path --path=src --output=/tmp/scanner.json
+node src/cli.ts --scope-file=/absolute/run/iter-000/scope.json --output=/tmp/scanner.json
+node src/cli.ts --scope=all --output=/tmp/scanner.json
+node src/cli.ts --scope=path --path=src --output=/tmp/scanner.json
 ```
 
 Loop-clean callers must use `--scope-file`. The scanner never derives another
