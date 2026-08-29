@@ -92,7 +92,7 @@ step_id: 0
 - [ ] Replace the active shell pipeline with the compiled Node supervisor.
 - [ ] Preserve Turnlock-only stdout, exit codes, telemetry, queues, and retries.
 - [ ] Drain or explicitly close historical runs before cutover.
-- [ ] Point resume and queue launches to compiled artifacts through `process.execPath`.
+- [x] Point compiled `resumeCommand` values and dequeued orders to the compiled orchestrator and supervisor through `process.execPath` plus shell-free argument arrays; reject historical or altered resume strings before spawning, preserve partial stdout on resume failure, and retain the exact Bun source commands during compatibility. Four Node vectors cover hostile run IDs, spaces/Unicode paths, incompatible persisted commands, non-zero resume output, queue environment, and absence of internal Bun/pnpm; two frozen installs preserve all locks and the Bun sentinel. Node run `33241797546` and retained Bun run `33241797544` pass on Linux/macOS.
 - [ ] Pass hook, secret-scanner, permissions, and leak gates.
 - [ ] Pass the bare-remote self-hosting gate.
 - [ ] Complete the first real Node-orchestrated migration commit and push.
