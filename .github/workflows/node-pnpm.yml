@@ -109,6 +109,13 @@ jobs:
           pnpm run test:scripts-node
           test ! -s "$BUN_SENTINEL_LOG"
 
+      - name: Typecheck and test the loop-clean protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run test:protocol
+          test ! -s "$BUN_SENTINEL_LOG"
+
       - name: Typecheck, compile, and test git-commits-push artifacts
         shell: bash
         run: |
