@@ -22,10 +22,9 @@ skills/go/
 ├── .gitignore                     # Ignores node_modules/, test-temp/, tmp/
 ├── AGENTS.md                      # You are here — agent development guidelines
 ├── SKILL.md                       # Skill declaration + instruction loader
-├── bun.lock
 ├── package.json
 ├── tsconfig.json
-├── node_modules/                  # Dependencies (zod)
+├── node_modules/                  # pnpm-managed dependencies (zod, fast-check)
 ├── src/
 │   └── stage-harness/             # Standalone stage execution harness
 │       ├── index.ts               # Public entry point (StageInput → StageOutput)

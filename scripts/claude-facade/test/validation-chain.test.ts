@@ -82,6 +82,11 @@ describe("repository validation chain", () => {
 			"pnpm --filter @dotagents/loop-clean-protocol run test:bun",
 		);
 
+		assert.strictEqual(
+			existsSync(join(repositoryRoot, "skills", "go", "bun.lock")),
+			false,
+		);
+
 		for (const lockfilePath of [
 			join(repositoryRoot, "bun.lock"),
 			join(
@@ -91,7 +96,6 @@ describe("repository validation chain", () => {
 				"bun.lock",
 			),
 			join(repositoryRoot, "skills", "git-commits-push", "bun.lock"),
-			join(repositoryRoot, "skills", "go", "bun.lock"),
 		]) {
 			assert.strictEqual(existsSync(lockfilePath), true);
 		}
