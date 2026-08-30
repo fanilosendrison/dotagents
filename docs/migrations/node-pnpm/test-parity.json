@@ -3,7 +3,7 @@
   "repository": "dotagents",
   "sourceCommit": "74d46e8948172bdb2f79d0c7d2ba813c235abb4b",
   "expectedSurfaceCount": 74,
-  "migratedSurfaceCount": 33,
+  "migratedSurfaceCount": 39,
   "surfaces": [
     {
       "sourceFile": "agent-enforcers/command-validator/src/core/__tests__/runtime-contract.test.ts",
@@ -27,7 +27,7 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {
@@ -88,7 +88,7 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {
@@ -113,7 +113,7 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {
@@ -192,7 +192,7 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {
@@ -224,7 +224,7 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {
@@ -257,7 +257,7 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {
