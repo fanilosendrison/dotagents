@@ -1,6 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { describe, expect, test } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
 import fc from "fast-check";
 import { runStage, type Stage, type StageInput } from "../../../src/stage-harness/index.ts";
 import {
@@ -35,9 +36,9 @@ describe("runStage properties", () => {
             passingStageWithEvidence,
             buildInput(second.workDir, secondArtifacts.artefactDir, second.baseSha),
           );
-          expect(firstOutput.status).toBe("passed");
-          expect(secondOutput.status).toBe("passed");
-          expect(firstOutput.trackedWorktreeHash).toBe(secondOutput.trackedWorktreeHash);
+          assert.strictEqual(firstOutput.status, "passed");
+          assert.strictEqual(secondOutput.status, "passed");
+          assert.strictEqual(firstOutput.trackedWorktreeHash, secondOutput.trackedWorktreeHash);
         } finally {
           await first.cleanup();
           await second.cleanup();
@@ -47,7 +48,7 @@ describe("runStage properties", () => {
       }),
       { numRuns: 8 },
     );
-  }, 60000);
+  });
 
   test("P2 untracked and ignored files do not affect tracked hash", async () => {
     const repo = await createCommittedRepo({ "src/a.txt": "alpha\n", ".gitignore": "ignored.txt\n" });
@@ -64,15 +65,15 @@ describe("runStage properties", () => {
         passingStageWithEvidence,
         buildInput(repo.workDir, secondArtifacts.artefactDir, repo.baseSha),
       );
-      expect(secondOutput.worktreeClean).toBe(false);
-      expect(secondOutput.trackedWorktreeHash).toBe(firstOutput.trackedWorktreeHash);
+      assert.strictEqual(secondOutput.worktreeClean, false);
+      assert.strictEqual(secondOutput.trackedWorktreeHash, firstOutput.trackedWorktreeHash);
       await fs.rm(path.join(repo.workDir, "untracked.txt"));
       await fs.writeFile(path.join(repo.workDir, "ignored.txt"), "ignored\n");
       const thirdOutput = await runStage(
         passingStageWithEvidence,
         buildInput(repo.workDir, thirdArtifacts.artefactDir, repo.baseSha),
       );
-      expect(thirdOutput.trackedWorktreeHash).toBe(firstOutput.trackedWorktreeHash);
+      assert.strictEqual(thirdOutput.trackedWorktreeHash, firstOutput.trackedWorktreeHash);
     } finally {
       await repo.cleanup();
       await firstArtifacts.cleanup();
@@ -91,7 +92,7 @@ describe("runStage properties", () => {
           buildInput(repo.workDir, artifacts.artefactDir, repo.baseSha),
         );
         assertErroredHasBlockingError(output);
-        expect(output.evidenceRefs).not.toContain(ref);
+        assert.ok(!(output.evidenceRefs).includes(ref));
         await assertOutputJsonMatchesReturn(output);
       } finally {
         await repo.cleanup();
@@ -117,8 +118,8 @@ describe("runStage properties", () => {
           calls += 1;
           return { status: "passed", evidenceRefs: [], errors: [] };
         };
-        await expect(runStage(stage, input)).rejects.toThrow();
-        expect(calls).toBe(0);
+        await assert.rejects(runStage(stage, input));
+        assert.strictEqual(calls, 0);
       }
     } finally {
       await repo.cleanup();
@@ -135,10 +136,10 @@ describe("runStage properties", () => {
         buildInput(repo.workDir, artifacts.artefactDir, repo.baseSha),
       );
       await assertOutputJsonMatchesReturn(output);
-      expect(output.status).toBe("passed");
-      expect(output.headShaAfter).not.toBeNull();
-      expect(output.trackedWorktreeHash).not.toBeNull();
-      expect(output.worktreeClean).not.toBeNull();
+      assert.strictEqual(output.status, "passed");
+      assert.notStrictEqual(output.headShaAfter, null);
+      assert.notStrictEqual(output.trackedWorktreeHash, null);
+      assert.notStrictEqual(output.worktreeClean, null);
     } finally {
       await repo.cleanup();
       await artifacts.cleanup();
@@ -153,9 +154,9 @@ describe("runStage properties", () => {
     ]);
     const symlinkA = await hashForEntries([{ kind: "symlink", path: "link", target: "a" }]);
     const symlinkB = await hashForEntries([{ kind: "symlink", path: "link", target: "b" }]);
-    expect(plain).not.toBe(changedBytes);
-    expect(plain).not.toBe(executable);
-    expect(symlinkA).not.toBe(symlinkB);
+    assert.notStrictEqual(plain, changedBytes);
+    assert.notStrictEqual(plain, executable);
+    assert.notStrictEqual(symlinkA, symlinkB);
   });
 
   test("P7 harness errors dominate stage status", async () => {
@@ -179,10 +180,10 @@ describe("runStage properties", () => {
           stage,
           buildInput(repo.workDir, artifacts.artefactDir, repo.baseSha),
         );
-        expect(output.status).toBe("errored");
+        assert.strictEqual(output.status, "errored");
         assertErroredHasBlockingError(output);
         if (status === "failed") {
-          expect(output.errors.some((error) => error.message === "stage issue")).toBe(true);
+          assert.strictEqual(output.errors.some((error) => error.message === "stage issue"), true);
         }
       } finally {
         await repo.cleanup();
@@ -201,10 +202,10 @@ describe("runStage properties", () => {
         passingStageWithEvidence,
         buildInput(repo.workDir, artifacts.artefactDir, repo.baseSha),
       );
-      expect(output.status).toBe("errored");
-      expect(output.headShaAfter).toBeNull();
-      expect(output.trackedWorktreeHash).not.toBeNull();
-      expect(output.worktreeClean).not.toBeNull();
+      assert.strictEqual(output.status, "errored");
+      assert.strictEqual(output.headShaAfter, null);
+      assert.notStrictEqual(output.trackedWorktreeHash, null);
+      assert.notStrictEqual(output.worktreeClean, null);
     } finally {
       await repo.cleanup();
       await artifacts.cleanup();
