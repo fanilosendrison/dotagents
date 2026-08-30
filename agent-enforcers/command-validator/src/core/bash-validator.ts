@@ -1,5 +1,5 @@
-import { SECURITY_RULES } from "./security-rules";
-import type { ValidationResult } from "./types";
+import { SECURITY_RULES } from "./security-rules.ts";
+import type { ValidationResult } from "./types.ts";
 import { homedir } from "node:os";
 
 const DANGEROUS_COMMANDS: readonly string[] = [

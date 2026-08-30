@@ -1,7 +1,7 @@
-import { RESTRICTED_TOOLS } from "./tool-rules";
-import { ToolPermissionValidator } from "./tool-validator";
-import { BashValidator } from "./bash-validator";
-import type { ValidationResult } from "./types";
+import { RESTRICTED_TOOLS } from "./tool-rules.ts";
+import { ToolPermissionValidator } from "./tool-validator.ts";
+import { BashValidator } from "./bash-validator.ts";
+import type { ValidationResult } from "./types.ts";
 
 export interface CommandValidatorOptions {
 	isPermissionGranted?: () => boolean;

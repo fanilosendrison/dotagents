@@ -1,4 +1,4 @@
-import type { ValidationResult } from "./types";
+import type { ValidationResult } from "./types.ts";
 import { isPermissionGranted } from "../../../permission-enforcer/src/core/state.ts";
 
 export interface ToolPermissionValidatorOptions {

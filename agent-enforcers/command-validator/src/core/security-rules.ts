@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { SecurityRules } from "./types";
+import type { SecurityRules } from "./types.ts";
 
 export const SECURITY_RULES: Readonly<SecurityRules> = Object.freeze({
 	CRITICAL_COMMANDS: [
