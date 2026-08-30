@@ -136,6 +136,7 @@ jobs:
         run: |
           set -euo pipefail
           pnpm run typecheck:git-commits-push
+          pnpm run test:git-commits-push-node-full
           pnpm run test:git-commits-push-node-build
           test ! -s "$BUN_SENTINEL_LOG"
 

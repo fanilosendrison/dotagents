@@ -83,7 +83,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "$HOME/.agents"
-          bun run test
+          bun run test:bun
 
       - name: Run Bun YAML differential vectors
         shell: bash
