@@ -137,7 +137,10 @@ describe("production protocol contract", () => {
 		const rootPackageJson = JSON.parse(read("package.json"));
 		const scriptsPackageJson = JSON.parse(read("scripts/package.json"));
 
-		assert.ok(rootPackageJson.scripts.test.includes("test:protocol:bun"));
+		assert.ok(rootPackageJson.scripts.test.includes("test:protocol"));
+		assert.ok(
+			rootPackageJson.scripts["test:bun"].includes("test:protocol:bun"),
+		);
 		assert.ok(
 			rootPackageJson.scripts["test:protocol"].includes(
 				"@dotagents/loop-clean-protocol",

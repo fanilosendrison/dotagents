@@ -42,7 +42,15 @@ describe("repository validation chain", () => {
 		assert.strictEqual(rootPackage.workspaces, undefined);
 		assert.strictEqual(
 			rootPackage.scripts.test,
+			"pnpm run test:git-commits-push-node-full && pnpm run test:root:node && pnpm run test:scripts-node && pnpm run test:go-node && pnpm run test:protocol",
+		);
+		assert.strictEqual(
+			rootPackage.scripts["test:bun"],
 			"bun run test:root && bun run test:git-commits-push && bun run test:scripts && bun run test:go && bun run test:protocol:bun",
+		);
+		assert.strictEqual(
+			rootPackage.scripts["test:root:node"],
+			"pnpm run test:node-runtime && pnpm run test:create-symlink && pnpm run test:documentation-bootstraps && pnpm run test:skill-validator && pnpm run test:git-commits-push-launch-recognition && pnpm run test:agent-enforcers-node",
 		);
 		assert.strictEqual(rootPackage.scripts["test:install"], undefined);
 		assert.strictEqual(
@@ -51,7 +59,11 @@ describe("repository validation chain", () => {
 		);
 		assert.strictEqual(
 			rootPackage.scripts["test:git-commits-push"],
-			"bun run --cwd skills/git-commits-push test",
+			"pnpm --filter git-commits-push-tl run test:bun",
+		);
+		assert.strictEqual(
+			rootPackage.scripts["test:git-commits-push-node-full"],
+			"pnpm --filter git-commits-push-tl run test",
 		);
 		assert.strictEqual(
 			rootPackage.scripts["test:scripts"],
