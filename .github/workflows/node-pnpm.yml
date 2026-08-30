@@ -109,6 +109,14 @@ jobs:
           pnpm run test:scripts-node
           test ! -s "$BUN_SENTINEL_LOG"
 
+      - name: Typecheck and test agent enforcers
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run typecheck:agent-enforcers
+          pnpm run test:agent-enforcers-node
+          test ! -s "$BUN_SENTINEL_LOG"
+
       - name: Typecheck and test the go stage harness
         shell: bash
         run: |
