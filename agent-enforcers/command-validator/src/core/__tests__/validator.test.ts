@@ -1,6 +1,6 @@
-import { describe, expect, test, spyOn, beforeEach, afterEach } from "bun:test";
+import assert from "node:assert/strict";
 import { homedir } from "node:os";
-import * as state from "../../../../permission-enforcer/src/core/state.ts";
+import { describe, test } from "node:test";
 import { BashValidator } from "../bash-validator.ts";
 import { CommandValidator } from "../validator.ts";
 
@@ -19,7 +19,7 @@ describe("CommandValidator Core Unit Tests", () => {
 			"mkdir /tmp/test",
 		];
 		for (const cmd of safeCmds) {
-			expect(validator.validate(cmd).action).toBe("allow");
+			assert.strictEqual(validator.validate(cmd).action, "allow");
 		}
 	});
 
@@ -29,7 +29,7 @@ describe("CommandValidator Core Unit Tests", () => {
 			"chmod +x ./bin/tool",
 		];
 		for (const cmd of allowed) {
-			expect(validator.validate(cmd).action).toBe("allow");
+			assert.strictEqual(validator.validate(cmd).action, "allow");
 		}
 
 		// Chained commands must NOT be allowed — the early return must not skip
@@ -40,15 +40,15 @@ describe("CommandValidator Core Unit Tests", () => {
 		];
 		for (const cmd of chained) {
 			const result = validator.validate(cmd);
-			expect(result.action).not.toBe("allow");
+			assert.notStrictEqual(result.action, "allow");
 		}
 	});
 
 	test("allows invalid/non-string input", () => {
-		expect(validator.validate(null).action).toBe("deny");
-		expect(validator.validate(undefined).action).toBe("deny");
-		expect(validator.validate(42).action).toBe("deny");
-		expect(validator.validate("").action).toBe("deny");
+		assert.strictEqual(validator.validate(null).action, "deny");
+		assert.strictEqual(validator.validate(undefined).action, "deny");
+		assert.strictEqual(validator.validate(42).action, "deny");
+		assert.strictEqual(validator.validate("").action, "deny");
 	});
 
 	test("denies rm -rf variants", () => {
@@ -64,30 +64,30 @@ describe("CommandValidator Core Unit Tests", () => {
 			"rm -rf *",
 		];
 		for (const cmd of blocked) {
-			expect(validator.containsRmRf(cmd)).toBe(true);
+			assert.strictEqual(validator.containsRmRf(cmd), true);
 		}
 	});
 
 	test("catches rm --recursive --force (long and mixed flags)", () => {
-		expect(validator.containsRmRf("rm --recursive --force /tmp/x")).toBe(true);
-		expect(validator.containsRmRf("rm --force --recursive /tmp/x")).toBe(true);
-		expect(validator.containsRmRf("rm -r --force /tmp/x")).toBe(true);
-		expect(validator.containsRmRf("rm --recursive -f /tmp/x")).toBe(true);
+		assert.strictEqual(validator.containsRmRf("rm --recursive --force /tmp/x"), true);
+		assert.strictEqual(validator.containsRmRf("rm --force --recursive /tmp/x"), true);
+		assert.strictEqual(validator.containsRmRf("rm -r --force /tmp/x"), true);
+		assert.strictEqual(validator.containsRmRf("rm --recursive -f /tmp/x"), true);
 	});
 
 	test("rm --recursive alone is NOT caught (no force)", () => {
-		expect(validator.containsRmRf("rm --recursive /tmp/x")).toBe(false);
+		assert.strictEqual(validator.containsRmRf("rm --recursive /tmp/x"), false);
 	});
 
 	test("rm --force alone is NOT caught (no recursive)", () => {
-		expect(validator.containsRmRf("rm --force /tmp/x")).toBe(false);
+		assert.strictEqual(validator.containsRmRf("rm --force /tmp/x"), false);
 	});
 
 	test("denies command with rm -rf verified by validate", () => {
 		const result = validator.validate("rm -rf /tmp/stuff");
-		expect(result.action).toBe("deny");
-		expect(result.severity).toBe("CRITICAL");
-		expect(result.violations).toContain("❌ rm -rf is forbidden - use trash instead");
+		assert.strictEqual(result.action, "deny");
+		assert.strictEqual(result.severity, "CRITICAL");
+		assert.ok((result.violations).includes("❌ rm -rf is forbidden - use trash instead"));
 	});
 
 	test("asks for dangerous commands", () => {
@@ -105,8 +105,8 @@ describe("CommandValidator Core Unit Tests", () => {
 		];
 		for (const cmd of dangerous) {
 			const result = validator.validate(cmd);
-			expect(result.action).toBe("ask");
-			expect(result.severity).toBe("HIGH");
+			assert.strictEqual(result.action, "ask");
+			assert.strictEqual(result.severity, "HIGH");
 		}
 	});
 
@@ -120,15 +120,15 @@ describe("CommandValidator Core Unit Tests", () => {
 		];
 		for (const cmd of destructive) {
 			const result = validator.validate(cmd);
-			expect(result.action).toBe("deny");
-			expect(result.severity).toBe("CRITICAL");
+			assert.strictEqual(result.action, "deny");
+			assert.strictEqual(result.severity, "CRITICAL");
 		}
 	});
 
 	test("network commands ask for confirmation", () => {
-		expect(validator.validate("nc -l 8080").action).toBe("ask");
-		expect(validator.validate("nmap localhost").action).toBe("ask");
-		expect(validator.validate("iptables -L").action).toBe("ask");
+		assert.strictEqual(validator.validate("nc -l 8080").action, "ask");
+		assert.strictEqual(validator.validate("nmap localhost").action, "ask");
+		assert.strictEqual(validator.validate("iptables -L").action, "ask");
 	});
 
 	test("detects dangerous command in pipeline", () => {
@@ -137,73 +137,65 @@ describe("CommandValidator Core Unit Tests", () => {
 			validator.validate("true && kill 1234"),
 		];
 		for (const r of results) {
-			expect(r.action).toBe("ask");
+			assert.strictEqual(r.action, "ask");
 		}
 	});
 
 	test("containsRmRf edge cases", () => {
-		expect(validator.containsRmRf("git rm file.txt")).toBe(false);
-		expect(validator.containsRmRf("npm rm package")).toBe(false);
-		expect(validator.containsRmRf("echo 'rm -rf is bad'")).toBe(true);
+		assert.strictEqual(validator.containsRmRf("git rm file.txt"), false);
+		assert.strictEqual(validator.containsRmRf("npm rm package"), false);
+		assert.strictEqual(validator.containsRmRf("echo 'rm -rf is bad'"), true);
 	});
 
 	test("containsDangerousCommand returns null for safe", () => {
-		expect(validator.containsDangerousCommand("ls -la")).toBeNull();
-		expect(validator.containsDangerousCommand("git status")).toBeNull();
+		assert.strictEqual(validator.containsDangerousCommand("ls -la"), null);
+		assert.strictEqual(validator.containsDangerousCommand("git status"), null);
 	});
 
 	test("containsDangerousCommand returns command name", () => {
-		expect(validator.containsDangerousCommand("sudo rm file")).toBe("sudo");
-		expect(validator.containsDangerousCommand("kill -9 123")).toBe("kill");
+		assert.strictEqual(validator.containsDangerousCommand("sudo rm file"), "sudo");
+		assert.strictEqual(validator.containsDangerousCommand("kill -9 123"), "kill");
 	});
 
 	describe("Modifying tools permission validation", () => {
-		let isPermissionGrantedSpy: any;
-
-		beforeEach(() => {
-			isPermissionGrantedSpy = spyOn(state, "isPermissionGranted");
-		});
-
-		afterEach(() => {
-			isPermissionGrantedSpy.mockRestore();
-		});
-
 		test("blocks modifying tools when permission is false", () => {
-			isPermissionGrantedSpy.mockReturnValue(false);
-			const result = validator.validate("some-content", "write_to_file");
-			expect(result.action).toBe("deny");
-			expect(result.severity).toBe("CRITICAL");
-			expect(result.violations[0]).toContain("Permission denied. You cannot implement code");
+			const deniedValidator = new CommandValidator({
+				isPermissionGranted: () => false,
+			});
+			const result = deniedValidator.validate("some-content", "write_to_file");
+			assert.strictEqual(result.action, "deny");
+			assert.strictEqual(result.severity, "CRITICAL");
+			assert.ok((result.violations[0]).includes("Permission denied. You cannot implement code"));
 		});
 
 		test("allows modifying tools when permission is true, without applying bash rules", () => {
-			isPermissionGrantedSpy.mockReturnValue(true);
-			// Si un outil de modification contient une chaîne de commande bash dangereuse, 
+			const allowedValidator = new CommandValidator({
+				isPermissionGranted: () => true,
+			});
+			// Si un outil de modification contient une chaîne de commande bash dangereuse,
 			// il ne doit PAS être bloqué (ex: écrire un script contenant rm -rf)
-			const result = validator.validate("rm -rf /", "write_to_file");
-			expect(result.action).toBe("allow");
+			const result = allowedValidator.validate("rm -rf /", "write_to_file");
+			assert.strictEqual(result.action, "allow");
 		});
 
 		test("allows non-modifying tools even when permission is false", () => {
-			isPermissionGrantedSpy.mockReturnValue(false);
-			const result = validator.validate("ls", "Bash");
-			expect(result.action).toBe("allow");
+			const deniedValidator = new CommandValidator({
+				isPermissionGranted: () => false,
+			});
+			const result = deniedValidator.validate("ls", "Bash");
+			assert.strictEqual(result.action, "allow");
 		});
 
 		test("supports an injected permission checker for scoped runtimes", () => {
 			const allowedValidator = new CommandValidator({
 				isPermissionGranted: () => true,
 			});
-			expect(allowedValidator.validate("content", "write_to_file").action).toBe(
-				"allow",
-			);
+			assert.strictEqual(allowedValidator.validate("content", "write_to_file").action, "allow");
 
 			const deniedValidator = new CommandValidator({
 				isPermissionGranted: () => false,
 			});
-			expect(deniedValidator.validate("content", "write_to_file").action).toBe(
-				"deny",
-			);
+			assert.strictEqual(deniedValidator.validate("content", "write_to_file").action, "deny");
 		});
 	});
 
@@ -215,119 +207,91 @@ describe("CommandValidator Core Unit Tests", () => {
 			const result = bashValidator.validate(
 				`node -e "writeFileSync('${protectedPath}', ...)"`,
 			);
-			expect(result.action).toBe("deny");
-			expect(result.violations[0]).toContain(
-				"Writing to protected paths is strictly forbidden",
-			);
+			assert.strictEqual(result.action, "deny");
+			assert.ok((result.violations[0]).includes("Writing to protected paths is strictly forbidden"));
 		});
 
 		test("denies write to protected path with tilde", () => {
 			const result = bashValidator.validate(
 				'echo test > ~/.agents/agent-enforcers/permission-enforcer/.state/config.json',
 			);
-			expect(result.action).toBe("deny");
+			assert.strictEqual(result.action, "deny");
 		});
 
 		test("denies write to protected path with $HOME", () => {
 			const result = bashValidator.validate(
 				'echo test > $HOME/.agents/agent-enforcers/permission-enforcer/.state/config.json',
 			);
-			expect(result.action).toBe("deny");
+			assert.strictEqual(result.action, "deny");
 		});
 
 		test("denies write to protected path with ${HOME}", () => {
 			const result = bashValidator.validate(
 				'echo test > ${HOME}/.agents/agent-enforcers/permission-enforcer/.state/config.json',
 			);
-			expect(result.action).toBe("deny");
+			assert.strictEqual(result.action, "deny");
 		});
 
 		test("denies P=~ tee variant", () => {
 			const result = bashValidator.validate(
 				'P=~/.agents/agent-enforcers/permission-enforcer/.state/config.json && echo ok | tee "$P"',
 			);
-			expect(result.action).toBe("deny");
+			assert.strictEqual(result.action, "deny");
 		});
 
 		test("allows tilde to non-protected path", () => {
-			expect(
-				bashValidator.validate("echo test > ~/Desktop/test.txt").action,
-			).toBe("allow");
+			assert.strictEqual(bashValidator.validate("echo test > ~/Desktop/test.txt").action, "allow");
 		});
 
 		test("allows $HOME to non-protected path", () => {
-			expect(
-				bashValidator.validate("echo test > $HOME/Documents/notes.txt").action,
-			).toBe("allow");
+			assert.strictEqual(bashValidator.validate("echo test > $HOME/Documents/notes.txt").action, "allow");
 		});
 
 		test("allows writes to /dev/null (harmless data sink)", () => {
-			expect(
-				bashValidator.validate("grep -i 'ideal-review' session_index.jsonl 2>/dev/null").action,
-			).toBe("allow");
-			expect(
-				bashValidator.validate("find /tmp -name '*.log' -type f 2>/dev/null | head -50").action,
-			).toBe("allow");
-			expect(
-				bashValidator.validate("npm install 2>/dev/null").action,
-			).toBe("allow");
+			assert.strictEqual(bashValidator.validate("grep -i 'ideal-review' session_index.jsonl 2>/dev/null").action, "allow");
+			assert.strictEqual(bashValidator.validate("find /tmp -name '*.log' -type f 2>/dev/null | head -50").action, "allow");
+			assert.strictEqual(bashValidator.validate("npm install 2>/dev/null").action, "allow");
 		});
 
 		test("still denies writes to /dev/sda (not /dev/null)", () => {
-			expect(
-				bashValidator.validate("echo bad > /dev/sda").action,
-			).toBe("deny");
+			assert.strictEqual(bashValidator.validate("echo bad > /dev/sda").action, "deny");
 		});
 
 		test("allows read-only access to protected path (cat, ls)", () => {
-			expect(
-				bashValidator.validate(
+			assert.strictEqual(bashValidator.validate(
 					"cat ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
-				).action,
-			).toBe("allow");
-			expect(
-				bashValidator.validate(
+				).action, "allow");
+			assert.strictEqual(bashValidator.validate(
 					"ls ~/.agents/agent-enforcers/permission-enforcer/.state/",
-				).action,
-			).toBe("allow");
+				).action, "allow");
 		});
 
 		test("allows chained commands: harmless write (2>/dev/null) in one segment, read-only protected path in another", () => {
-			expect(
-				bashValidator.validate(
+			assert.strictEqual(bashValidator.validate(
 					"cat ~/.agents/agent-enforcers/permission-enforcer/.gitignore 2>/dev/null; echo '---'; ls ~/.agents/agent-enforcers/permission-enforcer/.state/",
-				).action,
-			).toBe("allow");
+				).action, "allow");
 		});
 
 		test("allows chained commands: write to safe path, read-only protected path in another segment", () => {
-			expect(
-				bashValidator.validate(
+			assert.strictEqual(bashValidator.validate(
 					"echo ok > /tmp/safe.txt && ls ~/.agents/agent-enforcers/permission-enforcer/.state/",
-				).action,
-			).toBe("allow");
+				).action, "allow");
 		});
 
 		test("denies chained commands: write AND protected path in the same segment", () => {
-			expect(
-				bashValidator.validate(
+			assert.strictEqual(bashValidator.validate(
 					"ls /tmp; echo bad > ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
-				).action,
-			).toBe("deny");
+				).action, "deny");
 		});
 
 		test("denies mixed /dev/sda + /dev/null in same segment (not all refs are /dev/null)", () => {
-			expect(
-				bashValidator.validate("echo bad > /dev/sda 2>/dev/null").action,
-			).toBe("deny");
+			assert.strictEqual(bashValidator.validate("echo bad > /dev/sda 2>/dev/null").action, "deny");
 		});
 
 		test("allows chained: tee to safe path, ls of protected path in separate segment", () => {
-			expect(
-				bashValidator.validate(
+			assert.strictEqual(bashValidator.validate(
 					"echo ok | tee /tmp/log.txt; ls ~/.agents/agent-enforcers/permission-enforcer/.state/",
-				).action,
-			).toBe("allow");
+				).action, "allow");
 		});
 
 		test("blocks new write patterns on protected path (touch, truncate, sed -i, install, rsync)", () => {
@@ -339,41 +303,33 @@ describe("CommandValidator Core Unit Tests", () => {
 				"rsync /tmp/src ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
 			];
 			for (const cmd of blocked) {
-				expect(bashValidator.validate(cmd).action).toBe("deny");
+				assert.strictEqual(bashValidator.validate(cmd).action, "deny");
 			}
 		});
 
 		test("allows new write patterns on safe path", () => {
-			expect(bashValidator.validate("touch /tmp/safe.txt").action).toBe("allow");
-			expect(bashValidator.validate("sed -i 's/a/b/' /tmp/safe.txt").action).toBe("allow");
+			assert.strictEqual(bashValidator.validate("touch /tmp/safe.txt").action, "allow");
+			assert.strictEqual(bashValidator.validate("sed -i 's/a/b/' /tmp/safe.txt").action, "allow");
 		});
 
 		test("cp from protected source to safe destination is allowed (source not flagged)", () => {
-			expect(
-				bashValidator.validate("cp /usr/bin/foo /tmp/foo").action,
-			).toBe("allow");
+			assert.strictEqual(bashValidator.validate("cp /usr/bin/foo /tmp/foo").action, "allow");
 		});
 
 		test("cp to protected destination is denied", () => {
-			expect(
-				bashValidator.validate(
+			assert.strictEqual(bashValidator.validate(
 					"cp /tmp/src ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
-				).action,
-			).toBe("deny");
+				).action, "deny");
 		});
 
 		test("mv from protected source to safe destination is allowed", () => {
-			expect(
-				bashValidator.validate("mv /etc/hosts.old /tmp/hosts.old").action,
-			).toBe("allow");
+			assert.strictEqual(bashValidator.validate("mv /etc/hosts.old /tmp/hosts.old").action, "allow");
 		});
 
 		test("mv to protected destination is denied", () => {
-			expect(
-				bashValidator.validate(
+			assert.strictEqual(bashValidator.validate(
 					"mv /tmp/src ~/.agents/agent-enforcers/permission-enforcer/.state/config.json",
-				).action,
-			).toBe("deny");
+				).action, "deny");
 		});
 	});
 });

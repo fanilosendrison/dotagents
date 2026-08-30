@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
 import {
 	createRuntimeValidationDetails,
 	formatCodexDenyMessage,
@@ -19,9 +20,9 @@ const deniedResult: ValidationResult = {
 
 describe("command-validator runtime contract", () => {
 	test("detects bash and restricted tools as validation targets", () => {
-		expect(shouldValidateRuntimeTool("Bash", true)).toBe(true);
-		expect(shouldValidateRuntimeTool("write_to_file", false)).toBe(true);
-		expect(shouldValidateRuntimeTool("ViewFile", false)).toBe(false);
+		assert.strictEqual(shouldValidateRuntimeTool("Bash", true), true);
+		assert.strictEqual(shouldValidateRuntimeTool("write_to_file", false), true);
+		assert.strictEqual(shouldValidateRuntimeTool("ViewFile", false), false);
 	});
 
 	test("builds normalized telemetry details", () => {
@@ -32,13 +33,13 @@ describe("command-validator runtime contract", () => {
 			thinkingLevel: "high",
 		});
 
-		expect(details.rawCommand).toBe(`${"x".repeat(500)}…`);
-		expect(details.action).toBe("deny");
-		expect(details.parentModel).toBe("model");
-		expect(details.thinkingLevel).toBe("high");
-		expect(details.toolName).toBe("Bash");
-		expect(details.severity).toBe("CRITICAL");
-		expect(details.reason).toBe("first violation; second violation");
+		assert.strictEqual(details.rawCommand, `${"x".repeat(500)}…`);
+		assert.strictEqual(details.action, "deny");
+		assert.strictEqual(details.parentModel, "model");
+		assert.strictEqual(details.thinkingLevel, "high");
+		assert.strictEqual(details.toolName, "Bash");
+		assert.strictEqual(details.severity, "CRITICAL");
+		assert.strictEqual(details.reason, "first violation; second violation");
 	});
 
 	test("records normalized approval metadata", () => {
@@ -57,26 +58,16 @@ describe("command-validator runtime contract", () => {
 			},
 		);
 
-		expect(details.action).toBe("override_approved");
-		expect(details.override).toBe(true);
-		expect(details.userResponse).toBe("yes");
+		assert.strictEqual(details.action, "override_approved");
+		assert.strictEqual(details.override, true);
+		assert.strictEqual(details.userResponse, "yes");
 	});
 
 	test("formats shared reasons and runtime messages", () => {
-		expect(formatValidationReason(deniedResult)).toBe(
-			"first violation; second violation",
-		);
-		expect(formatValidationReason(deniedResult, ", ")).toBe(
-			"first violation, second violation",
-		);
-		expect(formatPiConfirmationMessage("x".repeat(120))).toBe(
-			`Allow: ${"x".repeat(100)}`,
-		);
-		expect(formatCodexDenyMessage("rm -rf /tmp/stuff", deniedResult)).toContain(
-			"Severity: CRITICAL",
-		);
-		expect(
-			formatCodexPendingApprovalMessage("sudo ls", deniedResult, "token"),
-		).toContain("allow-command token");
+		assert.strictEqual(formatValidationReason(deniedResult), "first violation; second violation");
+		assert.strictEqual(formatValidationReason(deniedResult, ", "), "first violation, second violation");
+		assert.strictEqual(formatPiConfirmationMessage("x".repeat(120)), `Allow: ${"x".repeat(100)}`);
+		assert.ok((formatCodexDenyMessage("rm -rf /tmp/stuff", deniedResult)).includes("Severity: CRITICAL"));
+		assert.ok((formatCodexPendingApprovalMessage("sudo ls", deniedResult, "token")).includes("allow-command token"));
 	});
 });

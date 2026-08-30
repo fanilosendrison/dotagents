@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import { existsSync, rmSync } from "fs";
 import {
     detectPermissionGrantSource,
@@ -26,57 +27,57 @@ describe("State Management", () => {
     });
 
     it("should return false if state file does not exist", () => {
-        expect(isPermissionGranted()).toBe(false);
+        assert.strictEqual(isPermissionGranted(), false);
     });
 
     it("should grant permission when /go is present at start", () => {
-        expect(updatePermissionState("/go my friend")).toBe(true);
-        expect(isPermissionGranted()).toBe(true);
+        assert.strictEqual(updatePermissionState("/go my friend"), true);
+        assert.strictEqual(isPermissionGranted(), true);
     });
 
     it("should grant permission when /go is present with whitespace", () => {
-        expect(updatePermissionState("please /go ahead")).toBe(true);
-        expect(isPermissionGranted()).toBe(true);
+        assert.strictEqual(updatePermissionState("please /go ahead"), true);
+        assert.strictEqual(isPermissionGranted(), true);
     });
 
     it("should grant permission when /go is alone", () => {
-        expect(updatePermissionState("/go")).toBe(true);
-        expect(isPermissionGranted()).toBe(true);
+        assert.strictEqual(updatePermissionState("/go"), true);
+        assert.strictEqual(isPermissionGranted(), true);
     });
 
     it("should grant permission when /go is formatted as a skill XML tag (Pi expanded)", () => {
-        expect(updatePermissionState('<skill name="go">...content...</skill>')).toBe(true);
-        expect(isPermissionGranted()).toBe(true);
+        assert.strictEqual(updatePermissionState('<skill name="go">...content...</skill>'), true);
+        assert.strictEqual(isPermissionGranted(), true);
     });
 
     it("should grant permission when /go is formatted as a skill XML tag with single quotes", () => {
-        expect(updatePermissionState("<skill name='go'>...content...</skill>")).toBe(true);
-        expect(isPermissionGranted()).toBe(true);
+        assert.strictEqual(updatePermissionState("<skill name='go'>...content...</skill>"), true);
+        assert.strictEqual(isPermissionGranted(), true);
     });
 
     it("should not grant permission if /go is part of a word like /google", () => {
-        expect(updatePermissionState("search on /google")).toBe(false);
-        expect(isPermissionGranted()).toBe(false);
+        assert.strictEqual(updatePermissionState("search on /google"), false);
+        assert.strictEqual(isPermissionGranted(), false);
     });
 
     it("should revoke permission if next prompt does not have /go", () => {
         updatePermissionState("/go do this");
-        expect(isPermissionGranted()).toBe(true);
+        assert.strictEqual(isPermissionGranted(), true);
 
         updatePermissionState("thanks");
-        expect(isPermissionGranted()).toBe(false);
+        assert.strictEqual(isPermissionGranted(), false);
     });
 
     it("should isolate scoped permission by agent session", () => {
         const sessionA = { agent: "codex", sessionId: "session-a" };
         const sessionB = { agent: "codex", sessionId: "session-b" };
 
-        expect(updatePermissionStateForScope("/go do this", sessionA)).toBe(true);
-        expect(isPermissionGrantedForScope(sessionA)).toBe(true);
+        assert.strictEqual(updatePermissionStateForScope("/go do this", sessionA), true);
+        assert.strictEqual(isPermissionGrantedForScope(sessionA), true);
 
-        expect(updatePermissionStateForScope("continue without edits", sessionB)).toBe(false);
-        expect(isPermissionGrantedForScope(sessionB)).toBe(false);
-        expect(isPermissionGrantedForScope(sessionA)).toBe(true);
+        assert.strictEqual(updatePermissionStateForScope("continue without edits", sessionB), false);
+        assert.strictEqual(isPermissionGrantedForScope(sessionB), false);
+        assert.strictEqual(isPermissionGrantedForScope(sessionA), true);
     });
 
     it("should preserve scoped permissions when legacy state is updated", () => {
@@ -85,24 +86,24 @@ describe("State Management", () => {
         updatePermissionStateForScope("/go do this", sessionA);
         updatePermissionState("plain legacy prompt");
 
-        expect(isPermissionGranted()).toBe(false);
-        expect(isPermissionGrantedForScope(sessionA)).toBe(true);
+        assert.strictEqual(isPermissionGranted(), false);
+        assert.strictEqual(isPermissionGrantedForScope(sessionA), true);
     });
 
     it("should isolate scoped permission by agent even with the same session id", () => {
         const codexSession = { agent: "codex", sessionId: "same-session" };
         const piSession = { agent: "pi", sessionId: "same-session" };
 
-        expect(updatePermissionStateForScope("/go do this", codexSession)).toBe(true);
-        expect(updatePermissionStateForScope("continue without edits", piSession)).toBe(false);
+        assert.strictEqual(updatePermissionStateForScope("/go do this", codexSession), true);
+        assert.strictEqual(updatePermissionStateForScope("continue without edits", piSession), false);
 
-        expect(isPermissionGrantedForScope(codexSession)).toBe(true);
-        expect(isPermissionGrantedForScope(piSession)).toBe(false);
+        assert.strictEqual(isPermissionGrantedForScope(codexSession), true);
+        assert.strictEqual(isPermissionGrantedForScope(piSession), false);
     });
 
     it("should report the matched grant source", () => {
-        expect(detectPermissionGrantSource("please /go ahead")).toBe("slash");
-        expect(detectPermissionGrantSource('<skill name="go">content</skill>')).toBe("skill-tag");
-        expect(detectPermissionGrantSource("please continue")).toBe("none");
+        assert.strictEqual(detectPermissionGrantSource("please /go ahead"), "slash");
+        assert.strictEqual(detectPermissionGrantSource('<skill name="go">content</skill>'), "skill-tag");
+        assert.strictEqual(detectPermissionGrantSource("please continue"), "none");
     });
 });
