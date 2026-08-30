@@ -84,7 +84,6 @@ describe("repository validation chain", () => {
 			),
 			join(repositoryRoot, "skills", "git-commits-push", "bun.lock"),
 			join(repositoryRoot, "skills", "go", "bun.lock"),
-			join(repositoryRoot, "skills", "loop-clean", "protocol", "bun.lock"),
 		]) {
 			assert.strictEqual(existsSync(lockfilePath), true);
 		}
@@ -120,11 +119,18 @@ describe("repository validation chain", () => {
 			false,
 		);
 		assert.strictEqual(
-			readFileSync(
+			existsSync(
 				join(repositoryRoot, "skills", "loop-clean", "protocol", "bunfig.toml"),
-				"utf8",
-			).trim(),
-			'[install]\nauto = "disable"',
+			),
+			false,
+		);
+		const protocolManifest = readFileSync(
+			join(repositoryRoot, "skills", "loop-clean", "protocol", "package.json"),
+			"utf8",
+		);
+		assert.strictEqual(
+			protocolManifest.includes('"packageManager": "pnpm@11.24.0"'),
+			true,
 		);
 	});
 

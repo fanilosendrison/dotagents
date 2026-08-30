@@ -290,12 +290,16 @@ describe("production protocol contract", () => {
 	test("protocol package is self-contained with package.json, bun.lock, and tsconfig.json", () => {
 		const protocolRoot = resolve(repositoryRoot, "skills/loop-clean/protocol");
 		assert.strictEqual(existsSync(resolve(protocolRoot, "package.json")), true);
-		assert.strictEqual(existsSync(resolve(protocolRoot, "bun.lock")), true);
+		assert.strictEqual(existsSync(resolve(protocolRoot, "bun.lock")), false);
 		assert.strictEqual(
 			existsSync(resolve(protocolRoot, "tsconfig.json")),
 			true,
 		);
-		assert.strictEqual(existsSync(resolve(protocolRoot, "bunfig.toml")), true);
+		assert.strictEqual(
+			existsSync(resolve(protocolRoot, "test/run-tests.mjs")),
+			true,
+		);
+		assert.strictEqual(existsSync(resolve(protocolRoot, "bunfig.toml")), false);
 	});
 
 	test("loop-clean.sh points to the adjacent protocol CLI", () => {
@@ -314,8 +318,11 @@ describe("production protocol contract", () => {
 	});
 
 	test("bunfig.toml disables runtime auto-install", () => {
-		const bunfig = read("skills/loop-clean/protocol/bunfig.toml");
-		assert.ok(bunfig.includes("[install]"));
-		assert.ok(bunfig.includes('auto = "disable"'));
+		const protocolRoot = resolve(repositoryRoot, "skills/loop-clean/protocol");
+		const protocolPackage = JSON.parse(
+			read("skills/loop-clean/protocol/package.json"),
+		);
+		assert.strictEqual(existsSync(resolve(protocolRoot, "bunfig.toml")), false);
+		assert.strictEqual(protocolPackage.packageManager, "pnpm@11.24.0");
 	});
 });
