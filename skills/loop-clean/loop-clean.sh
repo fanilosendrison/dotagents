@@ -11,7 +11,7 @@ readonly DEFAULT_PROTOCOL_CLI="$SCRIPT_DIR/protocol/src/cli.ts"
 readonly PROTOCOL_CLI="${LOOP_CLEAN_PROTOCOL_CLI:-$DEFAULT_PROTOCOL_CLI}"
 
 _run_protocol() {
-	bun --no-install "$PROTOCOL_CLI" "$@"
+	node "$PROTOCOL_CLI" "$@"
 }
 
 _sha256() {
@@ -24,7 +24,7 @@ _sha256() {
 
 _require_dependencies() {
 	local dependency
-	for dependency in bun jq git; do
+	for dependency in node jq git; do
 		if ! command -v "$dependency" >/dev/null 2>&1; then
 			echo "ERROR: loop-clean requires $dependency" >&2
 			exit 2
@@ -37,7 +37,7 @@ _require_dependencies() {
 	if [[ "$PROTOCOL_CLI" == "$DEFAULT_PROTOCOL_CLI" ]] \
 		&& [[ ! -d "$SCRIPT_DIR/protocol/node_modules/zod" ]]; then
 		echo "ERROR: loop-clean protocol dependencies are not installed." >&2
-		echo "Run: cd $SCRIPT_DIR/protocol && bun install --frozen-lockfile" >&2
+		echo "Run: cd $SCRIPT_DIR/../.. && pnpm install --frozen-lockfile --ignore-scripts" >&2
 		exit 2
 	fi
 }

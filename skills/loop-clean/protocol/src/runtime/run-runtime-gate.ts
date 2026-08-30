@@ -1,10 +1,15 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { CORE_SCHEMA, load } from "js-yaml";
 import { computeFindingId } from "../findings/finding-id.ts";
 import type { Finding } from "../findings/findings-schema.ts";
 import { collectScope } from "../scope/collect-scope.ts";
 import { parseScopeManifest } from "../scope/scope-schema.ts";
+import {
+	decodeProcessOutput,
+	executeProcess,
+} from "../shared/execute-process.ts";
 import { readJsonFile } from "../shared/json.ts";
 import {
 	type RuntimeGateReport,
@@ -65,7 +70,7 @@ async function readStackEvaluation(repositoryRoot: string): Promise<unknown> {
 	if (!existsSync(path)) return null;
 	const contents = await readFile(path, "utf8");
 	try {
-		return Bun.YAML.parse(contents) as unknown;
+		return load(contents, { schema: CORE_SCHEMA });
 	} catch (error) {
 		throw new Error(
 			`STACK_EVAL.yaml is invalid: ${error instanceof Error ? error.message : String(error)}`,
@@ -255,17 +260,14 @@ async function runCheck(
 			finding: null,
 		};
 	}
-	const processHandle = Bun.spawn(["bash", "-c", command], {
+	const result = await executeProcess("bash", ["-c", command], {
 		cwd: repositoryRoot,
-		stdout: "pipe",
-		stderr: "pipe",
 	});
-	const [stdout, stderr, exitCode] = await Promise.all([
-		new Response(processHandle.stdout).text(),
-		new Response(processHandle.stderr).text(),
-		processHandle.exited,
-	]);
-	const outputTail = boundedOutput(stdout, stderr);
+	const outputTail = boundedOutput(
+		decodeProcessOutput(result.stdout),
+		result.stderr,
+	);
+	const { exitCode } = result;
 	if (exitCode === 0) {
 		return {
 			check: {

@@ -1,3 +1,5 @@
+import { executeProcess } from "../shared/execute-process.ts";
+
 /**
  * Low-level git subprocess runner shared across the protocol package.
  *
@@ -15,15 +17,8 @@ export async function executeGitRead(
 	repositoryRoot: string,
 	args: readonly string[],
 ): Promise<GitExecution> {
-	const processHandle = Bun.spawn(["git", "-C", repositoryRoot, ...args], {
+	return await executeProcess("git", ["-C", repositoryRoot, ...args], {
+		cwd: repositoryRoot,
 		env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
-		stdout: "pipe",
-		stderr: "pipe",
 	});
-	const [stdout, stderr, exitCode] = await Promise.all([
-		new Response(processHandle.stdout).arrayBuffer(),
-		new Response(processHandle.stderr).text(),
-		processHandle.exited,
-	]);
-	return { exitCode, stdout: new Uint8Array(stdout), stderr };
 }
