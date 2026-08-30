@@ -42,7 +42,7 @@ describe("repository validation chain", () => {
 		assert.strictEqual(rootPackage.workspaces, undefined);
 		assert.strictEqual(
 			rootPackage.scripts.test,
-			"bun run test:root && bun run test:git-commits-push && bun run test:scripts && bun run test:protocol",
+			"bun run test:root && bun run test:git-commits-push && bun run test:scripts && bun run test:protocol:bun",
 		);
 		assert.strictEqual(rootPackage.scripts["test:install"], undefined);
 		assert.strictEqual(
@@ -67,7 +67,11 @@ describe("repository validation chain", () => {
 		);
 		assert.strictEqual(
 			rootPackage.scripts["test:protocol"],
-			"bun run --cwd skills/loop-clean/protocol typecheck && bun run --cwd skills/loop-clean/protocol test:all",
+			"pnpm --filter @dotagents/loop-clean-protocol run typecheck && pnpm --filter @dotagents/loop-clean-protocol run test:all",
+		);
+		assert.strictEqual(
+			rootPackage.scripts["test:protocol:bun"],
+			"pnpm --filter @dotagents/loop-clean-protocol run test:bun",
 		);
 
 		for (const lockfilePath of [

@@ -1,8 +1,16 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import assert from "node:assert/strict";
 import { existsSync, readdirSync } from "node:fs";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	chmod,
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { afterEach, describe, test } from "node:test";
 import { computeFindingId } from "../../src/findings/finding-id.ts";
 import type { RoutingCategory } from "../../src/routing/routing-schema.ts";
 import {
@@ -15,7 +23,7 @@ import {
 	writeRepositoryFile,
 } from "../helpers/git-fixture.ts";
 
-const repositoryRoot = resolve(import.meta.dir, "../../../../..");
+const repositoryRoot = resolve(import.meta.dirname, "../../../../..");
 const controller = join(repositoryRoot, "skills/loop-clean/loop-clean.sh");
 const repositories: string[] = [];
 const externalDirectories: string[] = [];
@@ -60,7 +68,7 @@ async function startRun(options?: {
 		cwd,
 		env: baseEnvironment,
 	});
-	expect(init.exitCode).toBe(0);
+	assert.strictEqual(init.exitCode, 0);
 	const exported = parseShellExports(init.stdout);
 	return {
 		root,
@@ -87,7 +95,7 @@ async function prepareIteration(
 		"prepare-iter",
 		String(iteration),
 	]);
-	expect(result.exitCode).toBe(0);
+	assert.strictEqual(result.exitCode, 0);
 	return parseShellExports(result.stdout);
 }
 
@@ -151,12 +159,12 @@ async function runCollection(
 		"runtime-gate",
 		String(iteration),
 	]);
-	expect(gate.exitCode).toBe(0);
+	assert.strictEqual(gate.exitCode, 0);
 	const collect = await controllerCommand(context, [
 		"collect-findings",
 		String(iteration),
 	]);
-	expect(collect.exitCode).toBe(0);
+	assert.strictEqual(collect.exitCode, 0);
 }
 
 function routingEntry(category: RoutingCategory, labelOrId: string) {
@@ -230,20 +238,23 @@ describe("loop-clean controller E2E", () => {
 		const subdirectory = join(root, "nested", "work");
 		await mkdir(subdirectory, { recursive: true });
 		const context = await startRun({ root, cwd: subdirectory });
-		expect(context.environment.LOOP_CLEAN_REPO_ROOT).toBe(root);
-		expect(context.environment.GIT_OPTIONAL_LOCKS).toBe("0");
-		expect(context.environment.LOOP_CLEAN_RUN_DIR).toStartWith(
-			join(root, ".agents/run/loop-clean/"),
+		assert.strictEqual(context.environment.LOOP_CLEAN_REPO_ROOT, root);
+		assert.strictEqual(context.environment.GIT_OPTIONAL_LOCKS, "0");
+		assert.ok(
+			context.environment.LOOP_CLEAN_RUN_DIR.startsWith(
+				join(root, ".agents/run/loop-clean/"),
+			),
 		);
-		expect(context.environment.LOOP_CLEAN_BACKLOG_PATH).toBe(
+		assert.strictEqual(
+			context.environment.LOOP_CLEAN_BACKLOG_PATH,
 			join(root, "backlog.md"),
 		);
 		const iteration = await prepareIteration(context, 0);
-		expect(Number(iteration.LOOP_CLEAN_AUDITABLE_COUNT)).toBe(0);
+		assert.strictEqual(Number(iteration.LOOP_CLEAN_AUDITABLE_COUNT), 0);
 		Object.assign(context.environment, iteration);
 		const decision = await controllerCommand(context, ["decide", "0"]);
-		expect(decision.exitCode).toBe(0);
-		expect(decision.stdout.trim()).toBe("EXIT_NO_CHANGES");
+		assert.strictEqual(decision.exitCode, 0);
+		assert.strictEqual(decision.stdout.trim(), "EXIT_NO_CHANGES");
 	});
 
 	test("returns EXIT_CLEAN only after all four reports and a passing or skipped runtime gate", async () => {
@@ -254,25 +265,31 @@ describe("loop-clean controller E2E", () => {
 		await writeSemanticReports(iteration);
 		await runCollection(context, 0, iteration);
 		const decision = await controllerCommand(context, ["decide", "0"]);
-		expect(decision.stdout.trim()).toBe("EXIT_CLEAN");
+		assert.strictEqual(decision.stdout.trim(), "EXIT_CLEAN");
 	});
 
-	test.each([
+	for (const source of [
 		"coding-standards",
 		"senior-review",
 		"dedup-codebase",
-	] as const)("continues for a finding emitted only by %s", async (source) => {
-		const root = await createLoopRepository();
-		await writeRepositoryFile(root, "fresh.ts", "export const fresh = true;\n");
-		const context = await startRun({ root });
-		const iteration = await prepareIteration(context, 0);
-		await writeSemanticReports(iteration, {
-			[source]: [semanticFinding(source, `${source}-id`)],
+	] as const) {
+		test(`continues for a finding emitted only by ${source}`, async () => {
+			const root = await createLoopRepository();
+			await writeRepositoryFile(
+				root,
+				"fresh.ts",
+				"export const fresh = true;\n",
+			);
+			const context = await startRun({ root });
+			const iteration = await prepareIteration(context, 0);
+			await writeSemanticReports(iteration, {
+				[source]: [semanticFinding(source, `${source}-id`)],
+			});
+			await runCollection(context, 0, iteration);
+			const decision = await controllerCommand(context, ["decide", "0"]);
+			assert.strictEqual(decision.stdout.trim(), "CONTINUE");
 		});
-		await runCollection(context, 0, iteration);
-		const decision = await controllerCommand(context, ["decide", "0"]);
-		expect(decision.stdout.trim()).toBe("CONTINUE");
-	});
+	}
 
 	test("runtime failure is actionable before decision and prevents false CLEAN", async () => {
 		const root = await createLoopRepository();
@@ -289,10 +306,10 @@ describe("loop-clean controller E2E", () => {
 		const findings = JSON.parse(
 			await readFile(iteration.LOOP_CLEAN_FINDINGS_FILE, "utf8"),
 		);
-		expect(findings.runtime_gate_status).toBe("fail");
-		expect(findings.actionable_findings[0].axis).toBe("runtime-failure");
+		assert.strictEqual(findings.runtime_gate_status, "fail");
+		assert.strictEqual(findings.actionable_findings[0].axis, "runtime-failure");
 		const decision = await controllerCommand(context, ["decide", "0"]);
-		expect(decision.stdout.trim()).toBe("CONTINUE");
+		assert.strictEqual(decision.stdout.trim(), "CONTINUE");
 	});
 
 	test("returns EXIT_HANDLED when every re-emitted finding was deferred", async () => {
@@ -304,14 +321,16 @@ describe("loop-clean controller E2E", () => {
 			"senior-review": [semanticFinding("senior-review", "deferred-id")],
 		});
 		await runCollection(context, 0, first);
-		expect(
+		assert.strictEqual(
 			(await controllerCommand(context, ["decide", "0"])).stdout.trim(),
-		).toBe("CONTINUE");
+			"CONTINUE",
+		);
 		await writeRouting(first, 0, { backlog_added: ["deferred-id"] });
 		Object.assign(context.environment, first);
-		expect(
+		assert.strictEqual(
 			(await controllerCommand(context, ["validate-routing", "0"])).exitCode,
-		).toBe(0);
+			0,
+		);
 
 		const second = await prepareIteration(context, 1);
 		await writeSemanticReports(second, {
@@ -319,7 +338,7 @@ describe("loop-clean controller E2E", () => {
 		});
 		await runCollection(context, 1, second);
 		const decision = await controllerCommand(context, ["decide", "1"]);
-		expect(decision.stdout.trim()).toBe("EXIT_HANDLED");
+		assert.strictEqual(decision.stdout.trim(), "EXIT_HANDLED");
 	});
 
 	test("detects actionable oscillation and treats a changed ID as new", async () => {
@@ -340,15 +359,16 @@ describe("loop-clean controller E2E", () => {
 				String(iterationNumber),
 			]);
 			if (iterationNumber === 0) {
-				expect(decision.stdout.trim()).toBe("CONTINUE");
+				assert.strictEqual(decision.stdout.trim(), "CONTINUE");
 				await writeRouting(iteration, 0, { fix_now_applied: [id] });
 				Object.assign(context.environment, iteration);
-				expect(
+				assert.strictEqual(
 					(await controllerCommand(context, ["validate-routing", "0"]))
 						.exitCode,
-				).toBe(0);
+					0,
+				);
 			} else {
-				expect(decision.stdout.trim()).toBe("EXIT_OSCILLATION");
+				assert.strictEqual(decision.stdout.trim(), "EXIT_OSCILLATION");
 			}
 		}
 	});
@@ -364,15 +384,18 @@ describe("loop-clean controller E2E", () => {
 			"export const created = true;\n",
 		);
 		const second = await prepareIteration(context, 1);
-		expect(second.LOOP_CLEAN_SCOPE_DIGEST).not.toBe(
+		assert.notStrictEqual(
+			second.LOOP_CLEAN_SCOPE_DIGEST,
 			first.LOOP_CLEAN_SCOPE_DIGEST,
 		);
 		const scope = JSON.parse(
 			await readFile(second.LOOP_CLEAN_SCOPE_FILE, "utf8"),
 		);
-		expect(
-			scope.entries.map((entry: { path: string }) => entry.path),
-		).toContain("created-by-fix.ts");
+		assert.ok(
+			scope.entries
+				.map((entry: { path: string }) => entry.path)
+				.includes("created-by-fix.ts"),
+		);
 	});
 
 	test("fails closed when a source report is missing", async () => {
@@ -389,14 +412,15 @@ describe("loop-clean controller E2E", () => {
 			iteration.LOOP_CLEAN_JSON_OUT_SENIOR_REVIEW,
 			`${JSON.stringify({ skill: "senior-review", scope_digest: iteration.LOOP_CLEAN_SCOPE_DIGEST, findings: [] })}\n`,
 		);
-		expect(
+		assert.strictEqual(
 			(await controllerCommand(context, ["runtime-gate", "0"])).exitCode,
-		).toBe(0);
+			0,
+		);
 		const collect = await controllerCommand(context, ["collect-findings", "0"]);
-		expect(collect.exitCode).not.toBe(0);
+		assert.notStrictEqual(collect.exitCode, 0);
 		const finalize = await controllerCommand(context, ["finalize"]);
-		expect(finalize.exitCode).not.toBe(0);
-		expect(finalize.stdout).toContain("EXIT_PROTOCOL_ERROR");
+		assert.notStrictEqual(finalize.exitCode, 0);
+		assert.ok(finalize.stdout.includes("EXIT_PROTOCOL_ERROR"));
 	});
 
 	test("preserves HEAD and index and only invokes read-only Git through the wrapper", async () => {
@@ -406,19 +430,25 @@ describe("loop-clean controller E2E", () => {
 		const iteration = await prepareIteration(context, 0);
 		await writeSemanticReports(iteration);
 		await runCollection(context, 0, iteration);
-		expect(
+		assert.strictEqual(
 			(await controllerCommand(context, ["decide", "0"])).stdout.trim(),
-		).toBe("EXIT_CLEAN");
+			"EXIT_CLEAN",
+		);
 		const finalize = await controllerCommand(context, ["finalize"]);
-		expect(finalize.exitCode).toBe(0);
-		expect(await runGit(root, ["rev-parse", "HEAD"])).toBe(context.initialHead);
-		expect(await runGit(root, ["ls-files", "--stage"])).toBe(
+		assert.strictEqual(finalize.exitCode, 0);
+		assert.strictEqual(
+			await runGit(root, ["rev-parse", "HEAD"]),
+			context.initialHead,
+		);
+		assert.strictEqual(
+			await runGit(root, ["ls-files", "--stage"]),
 			context.initialIndex,
 		);
 		const log = await readFile(context.wrapperLog, "utf8");
-		expect(log).not.toContain("BLOCKED_MUTATING_GIT_COMMAND");
+		assert.ok(!log.includes("BLOCKED_MUTATING_GIT_COMMAND"));
 		for (const line of log.trim().split("\n")) {
-			expect(line).toMatch(
+			assert.match(
+				line,
 				/(?:^|\t)(rev-parse|status|diff|ls-files|show|cat-file|check-ignore)(?:\t|$)/,
 			);
 		}
@@ -426,8 +456,8 @@ describe("loop-clean controller E2E", () => {
 			cwd: root,
 			env: context.environment,
 		});
-		expect(blocked.exitCode).toBe(97);
-		expect(blocked.stderr).toContain("BLOCKED_MUTATING_GIT_COMMAND add");
+		assert.strictEqual(blocked.exitCode, 97);
+		assert.ok(blocked.stderr.includes("BLOCKED_MUTATING_GIT_COMMAND add"));
 	});
 
 	test("finalize reports an external index mutation as a protocol error without restoring it", async () => {
@@ -436,29 +466,28 @@ describe("loop-clean controller E2E", () => {
 		const context = await startRun({ root });
 		await runGit(root, ["add", "fresh.ts"]);
 		const finalize = await controllerCommand(context, ["finalize"]);
-		expect(finalize.exitCode).not.toBe(0);
-		expect(finalize.stdout).toContain("EXIT_PROTOCOL_ERROR");
-		expect(finalize.stdout).toContain("index changed");
-		expect(await runGit(root, ["diff", "--cached", "--name-only"])).toContain(
-			"fresh.ts",
+		assert.notStrictEqual(finalize.exitCode, 0);
+		assert.ok(finalize.stdout.includes("EXIT_PROTOCOL_ERROR"));
+		assert.ok(finalize.stdout.includes("index changed"));
+		assert.ok(
+			(await runGit(root, ["diff", "--cached", "--name-only"])).includes(
+				"fresh.ts",
+			),
 		);
 	});
 
 	test("runtime-gate rejects scope when index changed after capture", async () => {
 		const root = await createLoopRepository();
 		const context = await startRun({ root });
-		const iteration = await prepareIteration(context, 0);
+		await prepareIteration(context, 0);
 
 		// Mutate the index without touching the worktree
 		await runGit(root, ["update-index", "--chmod=+x", ".gitignore"]);
 
 		// runtime-gate recalculates scope and must detect the index divergence
-		const gate = await controllerCommand(context, [
-			"runtime-gate",
-			"0",
-		]);
-		expect(gate.exitCode).not.toBe(0);
-		expect(gate.stderr).toMatch(/scope.*changed|index|diverg/i);
+		const gate = await controllerCommand(context, ["runtime-gate", "0"]);
+		assert.notStrictEqual(gate.exitCode, 0);
+		assert.match(gate.stderr, /scope.*changed|index|diverg/i);
 	});
 
 	test("treats a deferred finding with a new ID as actionable", async () => {
@@ -470,14 +499,16 @@ describe("loop-clean controller E2E", () => {
 			"senior-review": [semanticFinding("senior-review", "old-id")],
 		});
 		await runCollection(context, 0, first);
-		expect(
+		assert.strictEqual(
 			(await controllerCommand(context, ["decide", "0"])).stdout.trim(),
-		).toBe("CONTINUE");
+			"CONTINUE",
+		);
 		await writeRouting(first, 0, { backlog_added: ["old-id"] });
 		Object.assign(context.environment, first);
-		expect(
+		assert.strictEqual(
 			(await controllerCommand(context, ["validate-routing", "0"])).exitCode,
-		).toBe(0);
+			0,
+		);
 
 		const second = await prepareIteration(context, 1);
 		await writeSemanticReports(second, {
@@ -487,12 +518,14 @@ describe("loop-clean controller E2E", () => {
 		const findings = JSON.parse(
 			await readFile(second.LOOP_CLEAN_FINDINGS_FILE, "utf8"),
 		);
-		expect(
+		assert.deepStrictEqual(
 			findings.actionable_findings.map((entry: { id: string }) => entry.id),
-		).toEqual([semanticFindingIds.get("new-id")]);
-		expect(
+			[semanticFindingIds.get("new-id")],
+		);
+		assert.strictEqual(
 			(await controllerCommand(context, ["decide", "1"])).stdout.trim(),
-		).toBe("CONTINUE");
+			"CONTINUE",
+		);
 	});
 
 	test("returns EXIT_CEILING at iteration nine with changing actionable IDs", async () => {
@@ -511,24 +544,25 @@ describe("loop-clean controller E2E", () => {
 				String(iterationNumber),
 			]);
 			if (iterationNumber === 9) {
-				expect(decision.stdout.trim()).toBe("EXIT_CEILING");
+				assert.strictEqual(decision.stdout.trim(), "EXIT_CEILING");
 				break;
 			}
-			expect(decision.stdout.trim()).toBe("CONTINUE");
+			assert.strictEqual(decision.stdout.trim(), "CONTINUE");
 			await writeRouting(iteration, iterationNumber, {
 				fix_now_applied: [findingId],
 			});
 			Object.assign(context.environment, iteration);
-			expect(
+			assert.strictEqual(
 				(
 					await controllerCommand(context, [
 						"validate-routing",
 						String(iterationNumber),
 					])
 				).exitCode,
-			).toBe(0);
+				0,
+			);
 		}
-	}, 60_000);
+	});
 
 	test("finalize reports an external HEAD mutation without restoring it", async () => {
 		const root = await createLoopRepository();
@@ -541,11 +575,11 @@ describe("loop-clean controller E2E", () => {
 			"external head change",
 		]);
 		const changedHead = await runGit(root, ["rev-parse", "HEAD"]);
-		expect(changedHead).not.toBe(context.initialHead);
+		assert.notStrictEqual(changedHead, context.initialHead);
 		const finalize = await controllerCommand(context, ["finalize"]);
-		expect(finalize.exitCode).not.toBe(0);
-		expect(finalize.stdout).toContain("HEAD changed");
-		expect(await runGit(root, ["rev-parse", "HEAD"])).toBe(changedHead);
+		assert.notStrictEqual(finalize.exitCode, 0);
+		assert.ok(finalize.stdout.includes("HEAD changed"));
+		assert.strictEqual(await runGit(root, ["rev-parse", "HEAD"]), changedHead);
 	});
 
 	test("the dynamic Git wrapper blocks add, commit, and push", async () => {
@@ -556,9 +590,9 @@ describe("loop-clean controller E2E", () => {
 				cwd: root,
 				env: context.environment,
 			});
-			expect(blocked.exitCode).toBe(97);
-			expect(blocked.stderr).toContain(
-				`BLOCKED_MUTATING_GIT_COMMAND ${commandName}`,
+			assert.strictEqual(blocked.exitCode, 97);
+			assert.ok(
+				blocked.stderr.includes(`BLOCKED_MUTATING_GIT_COMMAND ${commandName}`),
 			);
 		}
 	});
@@ -569,8 +603,8 @@ describe("loop-clean controller E2E", () => {
 			cwd: root,
 			env: { LOOP_CLEAN_SESSION_ID: "audit-is-removed" },
 		});
-		expect(result.exitCode).toBe(2);
-		expect(result.stderr).toMatch(/unknown.*audit/i);
+		assert.strictEqual(result.exitCode, 2);
+		assert.match(result.stderr, /unknown.*audit/i);
 	});
 
 	test("init rejects a malformed baseline and leaves no final file behind", async () => {
@@ -583,14 +617,15 @@ describe("loop-clean controller E2E", () => {
 		const mockCli = join(mockDir, "mock-cli.ts");
 		await writeFile(
 			mockCli,
-			`const [, , command, ...rest] = process.argv;
+			`import { writeFile } from "node:fs/promises";
+const [, , command, ...rest] = process.argv;
 const args: Record<string, string> = {};
 for (let i = 0; i < rest.length; i++) {
   if (rest[i] === "--output") args.output = rest[++i];
   else if (rest[i] === "--repo-root") args["repo-root"] = rest[++i];
 }
 if (command === "capture-git" && args.output) {
-  await Bun.write(args.output, JSON.stringify({ schema_version: 99, head: "UNBORN", index_digest: "0000000000000000000000000000000000000000000000000000000000000000" }));
+  await writeFile(args.output, JSON.stringify({ schema_version: 99, head: "UNBORN", index_digest: "0000000000000000000000000000000000000000000000000000000000000000" }));
 }
 `,
 		);
@@ -603,12 +638,12 @@ if (command === "capture-git" && args.output) {
 				LOOP_CLEAN_PROTOCOL_CLI: mockCli,
 			},
 		});
-		expect(result.exitCode).toBe(4);
-		expect(result.stderr).toMatch(/valid Git baseline/);
+		assert.strictEqual(result.exitCode, 4);
+		assert.match(result.stderr, /valid Git baseline/);
 
 		// The invalid baseline must NOT exist at the final path
 		const runDir = join(root, ".agents/run/loop-clean", sessionId);
-		expect(existsSync(join(runDir, "git-baseline.json"))).toBe(false);
+		assert.strictEqual(existsSync(join(runDir, "git-baseline.json")), false);
 	});
 
 	test("same session ID can be re-initialized after a failed init", async () => {
@@ -620,14 +655,15 @@ if (command === "capture-git" && args.output) {
 		const mockCli = join(mockDir, "mock-cli.ts");
 		await writeFile(
 			mockCli,
-			`const [, , command, ...rest] = process.argv;
+			`import { writeFile } from "node:fs/promises";
+const [, , command, ...rest] = process.argv;
 const args: Record<string, string> = {};
 for (let i = 0; i < rest.length; i++) {
   if (rest[i] === "--output") args.output = rest[++i];
   else if (rest[i] === "--repo-root") args["repo-root"] = rest[++i];
 }
 if (command === "capture-git" && args.output) {
-  await Bun.write(args.output, "not-json");
+  await writeFile(args.output, "not-json");
 }
 `,
 		);
@@ -641,19 +677,22 @@ if (command === "capture-git" && args.output) {
 				LOOP_CLEAN_PROTOCOL_CLI: mockCli,
 			},
 		});
-		expect(first.exitCode).toBe(4);
+		assert.strictEqual(first.exitCode, 4);
 
 		// Second attempt with the same session ID: must succeed (no poisoned baseline)
 		const second = await runProcess(["bash", controller, "init"], {
 			cwd: root,
 			env: { LOOP_CLEAN_SESSION_ID: sessionId },
 		});
-		expect(second.exitCode).toBe(0);
+		assert.strictEqual(second.exitCode, 0);
 
 		const runDir = join(root, ".agents/run/loop-clean", sessionId);
-		expect(existsSync(join(runDir, "git-baseline.json"))).toBe(true);
+		assert.strictEqual(existsSync(join(runDir, "git-baseline.json")), true);
 		// Commit marker present → all artifacts must be present.
-		expect(existsSync(join(runDir, "deferred-findings.json"))).toBe(true);
+		assert.strictEqual(
+			existsSync(join(runDir, "deferred-findings.json")),
+			true,
+		);
 	});
 
 	test("a successful init publishes every artifact before the commit marker", async () => {
@@ -662,15 +701,18 @@ if (command === "capture-git" && args.output) {
 		const runDir = context.environment.LOOP_CLEAN_RUN_DIR;
 
 		// Invariant: if git-baseline.json exists, deferred-findings.json must exist.
-		expect(existsSync(join(runDir, "git-baseline.json"))).toBe(true);
-		expect(existsSync(join(runDir, "deferred-findings.json"))).toBe(true);
+		assert.strictEqual(existsSync(join(runDir, "git-baseline.json")), true);
+		assert.strictEqual(
+			existsSync(join(runDir, "deferred-findings.json")),
+			true,
+		);
 
 		// deferred-findings.json must be valid JSON with the expected schema.
 		const deferred = JSON.parse(
 			await readFile(join(runDir, "deferred-findings.json"), "utf8"),
 		);
-		expect(deferred.schema_version).toBe(1);
-		expect(Array.isArray(deferred.entries)).toBe(true);
+		assert.strictEqual(deferred.schema_version, 1);
+		assert.strictEqual(Array.isArray(deferred.entries), true);
 	});
 
 	test("CLI crash does not leave a partial baseline file", async () => {
@@ -682,14 +724,15 @@ if (command === "capture-git" && args.output) {
 		const mockCli = join(mockDir, "mock-cli.ts");
 		await writeFile(
 			mockCli,
-			`const [, , command, ...rest] = process.argv;
+			`import { writeFile } from "node:fs/promises";
+const [, , command, ...rest] = process.argv;
 const args: Record<string, string> = {};
 for (let i = 0; i < rest.length; i++) {
   if (rest[i] === "--output") args.output = rest[++i];
   else if (rest[i] === "--repo-root") args["repo-root"] = rest[++i];
 }
 if (command === "capture-git" && args.output) {
-  await Bun.write(args.output, "partial garbage");
+  await writeFile(args.output, "partial garbage");
   process.exit(1);
 }
 `,
@@ -703,12 +746,12 @@ if (command === "capture-git" && args.output) {
 				LOOP_CLEAN_PROTOCOL_CLI: mockCli,
 			},
 		});
-		expect(result.exitCode).toBe(4);
-		expect(result.stderr).toMatch(/failed to capture Git invariants/);
+		assert.strictEqual(result.exitCode, 4);
+		assert.match(result.stderr, /failed to capture Git invariants/);
 
 		// No final file must remain after a crash
 		const runDir = join(root, ".agents/run/loop-clean", sessionId);
-		expect(existsSync(join(runDir, "git-baseline.json"))).toBe(false);
+		assert.strictEqual(existsSync(join(runDir, "git-baseline.json")), false);
 	});
 
 	test("concurrent init with same session ID: exactly one claims the marker", async () => {
@@ -726,9 +769,10 @@ if (command === "capture-git" && args.output) {
 		await writeFile(
 			mockCli,
 			`import { readdirSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 
 const coord = process.env.MOCK_COORDINATION_DIR!;
-await Bun.write(\`\${coord}/ready-\${process.pid}\`, "");
+await writeFile(\`\${coord}/ready-\${process.pid}\`, "");
 
 // Busy-wait until both callers are ready.
 while (readdirSync(coord).length < 2) {
@@ -742,7 +786,7 @@ for (let i = 0; i < rest.length; i++) {
   else if (rest[i] === "--repo-root") args["repo-root"] = rest[++i];
 }
 if (command === "capture-git" && args.output) {
-  await Bun.write(args.output, JSON.stringify({
+  await writeFile(args.output, JSON.stringify({
     schema_version: 1,
     head: "0000000000000000000000000000000000000000",
     index_digest: "0000000000000000000000000000000000000000000000000000000000000000",
@@ -766,20 +810,26 @@ if (command === "capture-git" && args.output) {
 		const successes = [a, b].filter((r) => r.exitCode === 0);
 		const alreadyClaimed = [a, b].filter((r) => r.exitCode === 2);
 
-		expect(successes.length).toBe(1);
-		expect(alreadyClaimed.length).toBe(1);
-		expect(alreadyClaimed[0].stderr).toMatch(/already initialized|concurrently claimed/);
+		assert.strictEqual(successes.length, 1);
+		assert.strictEqual(alreadyClaimed.length, 1);
+		assert.match(
+			alreadyClaimed[0].stderr,
+			/already initialized|concurrently claimed/,
+		);
 
 		// The winner must have produced both artifacts.
 		const runDir = join(root, ".agents/run/loop-clean", sessionId);
-		expect(existsSync(join(runDir, "git-baseline.json"))).toBe(true);
-		expect(existsSync(join(runDir, "deferred-findings.json"))).toBe(true);
+		assert.strictEqual(existsSync(join(runDir, "git-baseline.json")), true);
+		assert.strictEqual(
+			existsSync(join(runDir, "deferred-findings.json")),
+			true,
+		);
 
 		// No temp files must remain after init.
 		for (const entry of readdirSync(runDir)) {
-			expect(entry).not.toMatch(/^\..*\.tmp\./);
+			assert.doesNotMatch(entry, /^\..*\.tmp\./);
 		}
-	}, 30_000);
+	});
 
 	test("ln infrastructure failure returns exit 4, not exit 2", async () => {
 		const root = await createLoopRepository();
@@ -800,12 +850,15 @@ if (command === "capture-git" && args.output) {
 			},
 		});
 
-		expect(result.exitCode).toBe(4);
-		expect(result.stderr).toMatch(/failed to publish Git baseline/);
-		expect(result.stderr).not.toMatch(/already initialized|concurrently claimed/);
+		assert.strictEqual(result.exitCode, 4);
+		assert.match(result.stderr, /failed to publish Git baseline/);
+		assert.doesNotMatch(
+			result.stderr,
+			/already initialized|concurrently claimed/,
+		);
 
 		// No final baseline must exist (ln never created it).
 		const runDir = join(root, ".agents/run/loop-clean", sessionId);
-		expect(existsSync(join(runDir, "git-baseline.json"))).toBe(false);
+		assert.strictEqual(existsSync(join(runDir, "git-baseline.json")), false);
 	});
 });

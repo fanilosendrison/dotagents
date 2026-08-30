@@ -30,7 +30,7 @@ function_suffix="$RANDOM"
 "$REAL_GIT" -C "$ROOT" config user.name "Loop Clean Live Test"
 "$REAL_GIT" -C "$ROOT" config user.email "loop-clean-live@example.invalid"
 printf '.agents/run/\n.claude/run/\nnode_modules/\n' > "$ROOT/.gitignore"
-printf '{"name":"loop-clean-live","type":"module","scripts":{"test":"bun test"}}\n' > "$ROOT/package.json"
+printf '{"name":"loop-clean-live","type":"module","scripts":{"test":"node --test"}}\n' > "$ROOT/package.json"
 "$REAL_GIT" -C "$ROOT" add .gitignore package.json
 "$REAL_GIT" -C "$ROOT" commit --quiet -m "fixture baseline"
 
@@ -54,13 +54,14 @@ export function debugLive${function_suffix}(value: any): unknown {
 }
 EOF
 cat > "$ROOT/test/live.test.ts" <<EOF
-import { expect, test } from "bun:test";
+import assert from "node:assert/strict";
+import test from "node:test";
 import { divideLive${function_suffix} } from "../src/live-$random_suffix.ts";
 test("division rejects a zero denominator", () => {
-  expect(() => divideLive${function_suffix}(4, 0)).toThrow();
+  assert.throws(() => divideLive${function_suffix}(4, 0));
 });
 EOF
-printf 'test_command: "bun test"\n' > "$ROOT/STACK_EVAL.yaml"
+printf 'test_command: "node --test"\n' > "$ROOT/STACK_EVAL.yaml"
 
 INITIAL_HEAD=$("$REAL_GIT" -C "$ROOT" rev-parse HEAD)
 INITIAL_INDEX=$("$REAL_GIT" -C "$ROOT" ls-files --stage -z | shasum -a 256 | awk '{print $1}')
@@ -113,7 +114,7 @@ if find "$RUN_DIR" -iname '*spec-drift*' -print -quit | grep -q .; then
 	exit 1
 fi
 
-if ! (cd "$ROOT" && bun test >/dev/null 2>&1); then
+if ! (cd "$ROOT" && node --test >/dev/null 2>&1); then
 	FINAL_ACTION=$(find "$RUN_DIR" -name decision.json -print0 | xargs -0 jq -r '.action' | tail -1)
 	[[ "$FINAL_ACTION" != "EXIT_CLEAN" ]] || {
 		echo "FAIL: broken test remained under a CLEAN result" >&2

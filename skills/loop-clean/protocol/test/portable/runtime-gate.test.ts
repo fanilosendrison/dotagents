@@ -1,5 +1,7 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import assert from "node:assert/strict";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { afterEach, describe, test } from "node:test";
 import {
 	resolvePackageManager,
 	runRuntimeGate,
@@ -37,7 +39,7 @@ async function setup(
 	}
 	const manifest = await collectScope(root);
 	const scopeFile = join(root, ".git", "loop-clean-runtime-scope.json");
-	await Bun.write(scopeFile, `${JSON.stringify(manifest)}\n`);
+	await writeFile(scopeFile, `${JSON.stringify(manifest)}\n`);
 	return { root, scopeFile, scopeDigest: manifest.digest };
 }
 
@@ -52,13 +54,14 @@ describe("resolvePackageManager", () => {
 		await writeRepositoryFile(root, "bun.lock", "");
 		await writeRepositoryFile(root, "pnpm-lock.yaml", "");
 
-		expect(
+		assert.strictEqual(
 			resolvePackageManager(
 				root,
 				{ package_manager: "yarn" },
 				{ packageManager: "pnpm@11.24.0" },
 			),
-		).toBe("yarn");
+			"yarn",
+		);
 	});
 
 	test("prefers the standard packageManager field over conflicting lockfiles", async () => {
@@ -67,9 +70,10 @@ describe("resolvePackageManager", () => {
 		await writeRepositoryFile(root, "bun.lock", "");
 		await writeRepositoryFile(root, "pnpm-lock.yaml", "");
 
-		expect(
+		assert.strictEqual(
 			resolvePackageManager(root, null, { packageManager: "npm@10.9.0" }),
-		).toBe("npm");
+			"npm",
+		);
 	});
 
 	test("recognizes every supported unique lockfile", async () => {
@@ -84,7 +88,8 @@ describe("resolvePackageManager", () => {
 			const root = await createRepository({ withBaseline: false });
 			repositories.push(root);
 			await writeRepositoryFile(root, lockfile, "");
-			expect(resolvePackageManager(root, null, {})).toBe(
+			assert.strictEqual(
+				resolvePackageManager(root, null, {}),
 				expectedPackageManager,
 			);
 		}
@@ -96,7 +101,8 @@ describe("resolvePackageManager", () => {
 		await writeRepositoryFile(root, "bun.lock", "");
 		await writeRepositoryFile(root, "pnpm-lock.yaml", "");
 
-		expect(() => resolvePackageManager(root, null, {})).toThrow(
+		assert.throws(
+			() => resolvePackageManager(root, null, {}),
 			/Multiple package-manager lockfiles.*bun\.lock.*pnpm-lock\.yaml/i,
 		);
 	});
@@ -105,16 +111,17 @@ describe("resolvePackageManager", () => {
 		const root = await createRepository({ withBaseline: false });
 		repositories.push(root);
 
-		expect(() =>
-			resolvePackageManager(root, null, { packageManager: "deno@2.0.0" }),
-		).toThrow(/Unsupported package manager.*package\.json.*deno/i);
+		assert.throws(
+			() => resolvePackageManager(root, null, { packageManager: "deno@2.0.0" }),
+			/Unsupported package manager.*package\.json.*deno/i,
+		);
 	});
 
 	test("preserves the npm fallback when no declaration or lockfile exists", async () => {
 		const root = await createRepository({ withBaseline: false });
 		repositories.push(root);
 
-		expect(resolvePackageManager(root, null, {})).toBe("npm");
+		assert.strictEqual(resolvePackageManager(root, null, {}), "npm");
 	});
 });
 
@@ -129,27 +136,28 @@ describe("runRuntimeGate", () => {
 			].join("\n"),
 		);
 		const report = await runRuntimeGate({ repoRoot: root, scopeFile });
-		expect(report.status).toBe("pass");
-		expect(report.scope_digest).toBe(scopeDigest);
-		expect(
+		assert.strictEqual(report.status, "pass");
+		assert.strictEqual(report.scope_digest, scopeDigest);
+		assert.deepStrictEqual(
 			report.checks.map((check) => [
 				check.name,
 				check.status,
 				check.output_tail,
 			]),
-		).toEqual([
-			["test", "pass", "test"],
-			["lint", "pass", "lint"],
-			["typecheck", "pass", "typecheck"],
-		]);
-		expect(report.findings).toEqual([]);
+			[
+				["test", "pass", "test"],
+				["lint", "pass", "lint"],
+				["typecheck", "pass", "typecheck"],
+			],
+		);
+		assert.deepStrictEqual(report.findings, []);
 	});
 
 	test("marks absent checks as skipped", async () => {
 		const { root, scopeFile } = await setup();
 		const report = await runRuntimeGate({ repoRoot: root, scopeFile });
-		expect(report.status).toBe("skipped");
-		expect(report.checks).toEqual([
+		assert.strictEqual(report.status, "skipped");
+		assert.deepStrictEqual(report.checks, [
 			{
 				name: "test",
 				command: "",
@@ -181,7 +189,8 @@ describe("runRuntimeGate", () => {
 			"pnpm-lock.yaml": "",
 		});
 
-		await expect(runRuntimeGate({ repoRoot: root, scopeFile })).rejects.toThrow(
+		await assert.rejects(
+			runRuntimeGate({ repoRoot: root, scopeFile }),
 			/Multiple package-manager lockfiles.*bun\.lock.*pnpm-lock\.yaml/i,
 		);
 	});
@@ -197,13 +206,14 @@ describe("runRuntimeGate", () => {
 		);
 		const first = await runRuntimeGate({ repoRoot: root, scopeFile });
 		const second = await runRuntimeGate({ repoRoot: root, scopeFile });
-		expect(first.status).toBe("fail");
-		expect(first.findings).toHaveLength(2);
-		expect(first.findings.map((entry) => entry.id)).toEqual(
+		assert.strictEqual(first.status, "fail");
+		assert.strictEqual(first.findings.length, 2);
+		assert.deepStrictEqual(
+			first.findings.map((entry) => entry.id),
 			second.findings.map((entry) => entry.id),
 		);
 		for (const entry of first.findings) {
-			expect(entry).toMatchObject({
+			assert.partialDeepStrictEqual(entry, {
 				source: "runtime-gate",
 				axis: "runtime-failure",
 				severity: "critical",
@@ -212,21 +222,22 @@ describe("runRuntimeGate", () => {
 				line_end: null,
 				fix_proposal: "Identify and fix the root cause of the failing check.",
 			});
-			expect(entry.problem).not.toMatch(/iter/i);
-			expect(entry.evidence.length).toBeLessThanOrEqual(8192);
+			assert.doesNotMatch(entry.problem, /iter/i);
+			assert.ok(entry.evidence.length <= 8192);
 		}
 	});
 
 	test("copies the current iteration scope digest", async () => {
 		const { root, scopeFile, scopeDigest } = await setup();
 		const report = await runRuntimeGate({ repoRoot: root, scopeFile });
-		expect(report.scope_digest).toBe(scopeDigest);
+		assert.strictEqual(report.scope_digest, scopeDigest);
 	});
 
 	test("fails closed when same-status content changed after scope capture", async () => {
 		const { root, scopeFile } = await setup(undefined, "dirty-v1\n");
 		await writeRepositoryFile(root, "dirty.ts", "dirty-v2\n");
-		await expect(runRuntimeGate({ repoRoot: root, scopeFile })).rejects.toThrow(
+		await assert.rejects(
+			runRuntimeGate({ repoRoot: root, scopeFile }),
 			/changed before runtime-gate/i,
 		);
 	});
@@ -235,7 +246,8 @@ describe("runRuntimeGate", () => {
 		const { root, scopeFile } = await setup(
 			'test_command: "printf mutation >> baseline.txt"\n',
 		);
-		await expect(runRuntimeGate({ repoRoot: root, scopeFile })).rejects.toThrow(
+		await assert.rejects(
+			runRuntimeGate({ repoRoot: root, scopeFile }),
 			/modified.*worktree/i,
 		);
 	});
