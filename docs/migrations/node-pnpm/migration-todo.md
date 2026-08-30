@@ -99,7 +99,7 @@ step_id: 0
 
 ## Phases 6 and 7 — dotagents packages and tests
 
-- [ ] Migrate scripts.
+- [x] Migrate `scripts`: all 16 retained surfaces now run through a closed `process.execPath` Node runner using `node:test` and `node:assert/strict`; the three CLIs use Node entrypoints and explicit ESM imports; stack-tools and the scanner consume the shared subprocess/YAML runtime plus `node:fs`; strict typecheck, 141 tests, three CLI smokes, parity validation, and two frozen installs in spaces/Unicode paths pass without invoking the Bun sentinel. The package-local Bun lock/configuration were removed only after Node run `33271564980` and Bun run `33271564979` established differential parity; the Bun baseline now executes against pnpm-locked dependencies, with cutover runs `33271871874` (Node 22.19/24 Linux/macOS) and `33271871906` (Bun 1.3.14 Linux/macOS) green.
 - [ ] Migrate loop-clean protocol and mutation runner.
 - [ ] Migrate go and preserve fast-check seeds and shrink paths.
 - [ ] Migrate agent-enforcer tests.
