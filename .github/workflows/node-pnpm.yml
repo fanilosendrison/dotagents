@@ -131,13 +131,28 @@ jobs:
           pnpm run test:protocol
           test ! -s "$BUN_SENTINEL_LOG"
 
-      - name: Typecheck, compile, and test git-commits-push artifacts
+      - name: Typecheck git-commits-push
         shell: bash
         run: |
           set -euo pipefail
           pnpm run typecheck:git-commits-push
+
+      - name: Test git-commits-push source suite
+        shell: bash
+        run: |
+          set -euo pipefail
           pnpm run test:git-commits-push-node-full
+
+      - name: Compile and test git-commits-push artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
           pnpm run test:git-commits-push-node-build
+
+      - name: Verify git-commits-push did not invoke Bun
+        shell: bash
+        run: |
+          set -euo pipefail
           test ! -s "$BUN_SENTINEL_LOG"
 
       - name: Run the dependency-free symlink bootstrap tests
