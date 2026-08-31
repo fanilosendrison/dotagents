@@ -4,7 +4,6 @@
 	"type": "module",
 	"scripts": {
 		"test": "node test/run-tests.mjs",
-		"test:bun": "bun test claude-facade lib/stack-tools lib/coding-standards-schema coding-standards-scanner coding-standards-consolidate",
 		"test:node": "node test/run-tests.mjs",
 		"typecheck": "tsc -p tsconfig.json"
 	},

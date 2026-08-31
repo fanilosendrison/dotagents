@@ -44,31 +44,27 @@ describe("repository validation chain", () => {
 			rootPackage.scripts.test,
 			"pnpm run test:git-commits-push-node-full && pnpm run test:root:node && pnpm run test:scripts-node && pnpm run test:go-node && pnpm run test:protocol",
 		);
-		assert.strictEqual(
-			rootPackage.scripts["test:bun"],
-			"bun run test:root && bun run test:git-commits-push && bun run test:scripts && bun run test:go && bun run test:protocol:bun",
-		);
+		assert.strictEqual(rootPackage.scripts["test:bun"], undefined);
 		assert.strictEqual(
 			rootPackage.scripts["test:root:node"],
-			"pnpm run test:node-runtime && pnpm run test:create-symlink && pnpm run test:documentation-bootstraps && pnpm run test:skill-validator && pnpm run test:git-commits-push-launch-recognition && pnpm run test:agent-enforcers-node",
+			"pnpm run test:node-runtime && pnpm run test:create-symlink && pnpm run test:documentation-bootstraps && pnpm run test:skill-validator && pnpm run test:git-commits-push-launch-recognition && pnpm run test:agent-enforcers-node && pnpm run test:document-wrapper && pnpm run test:bun-policy",
 		);
 		assert.strictEqual(rootPackage.scripts["test:install"], undefined);
 		assert.strictEqual(
-			rootPackage.scripts["test:root"],
-			"bun test --timeout 60000 --path-ignore-patterns='scripts/**' --path-ignore-patterns='skills/git-commits-push/**' --path-ignore-patterns='skills/go/**' --path-ignore-patterns='skills/loop-clean/protocol/**'",
+			rootPackage.scripts["test:document-wrapper"],
+			"node --test --test-concurrency=1 --test-timeout=30000 --test-reporter=tap skills/document-wrapper/scripts/__tests__/bootstrap-wrapper-docs.test.mjs skills/document-wrapper/scripts/__tests__/lib.test.mjs",
 		);
 		assert.strictEqual(
-			rootPackage.scripts["test:git-commits-push"],
-			"pnpm --filter git-commits-push-tl run test:bun",
+			rootPackage.scripts["test:bun-policy"],
+			"node --test --test-concurrency=1 --test-timeout=30000 --test-reporter=tap scripts/test/bun-policy.test.mjs",
 		);
+		assert.strictEqual(rootPackage.scripts["test:root"], undefined);
+		assert.strictEqual(rootPackage.scripts["test:git-commits-push"], undefined);
 		assert.strictEqual(
 			rootPackage.scripts["test:git-commits-push-node-full"],
 			"pnpm --filter git-commits-push-tl run test",
 		);
-		assert.strictEqual(
-			rootPackage.scripts["test:scripts"],
-			"bun run --cwd scripts test:bun",
-		);
+		assert.strictEqual(rootPackage.scripts["test:scripts"], undefined);
 		assert.strictEqual(
 			rootPackage.scripts["test:scripts-node"],
 			"pnpm --filter @dotagents/scripts run test",
@@ -77,10 +73,7 @@ describe("repository validation chain", () => {
 			rootPackage.scripts["typecheck:scripts"],
 			"pnpm --filter @dotagents/scripts run typecheck",
 		);
-		assert.strictEqual(
-			rootPackage.scripts["test:go"],
-			"pnpm --filter go-stage-harness run test:bun",
-		);
+		assert.strictEqual(rootPackage.scripts["test:go"], undefined);
 		assert.strictEqual(
 			rootPackage.scripts["test:go-node"],
 			"pnpm --filter go-stage-harness run typecheck && pnpm --filter go-stage-harness run test",
@@ -89,10 +82,12 @@ describe("repository validation chain", () => {
 			rootPackage.scripts["test:protocol"],
 			"pnpm --filter @dotagents/loop-clean-protocol run typecheck && pnpm --filter @dotagents/loop-clean-protocol run test:all",
 		);
+		assert.strictEqual(rootPackage.scripts["test:protocol:bun"], undefined);
 		assert.strictEqual(
-			rootPackage.scripts["test:protocol:bun"],
-			"pnpm --filter @dotagents/loop-clean-protocol run test:bun",
+			rootPackage.scripts["validate:bun-policy"],
+			"node scripts/validate-bun-policy.mjs",
 		);
+		assert.strictEqual(rootPackage.scripts["validate:test-parity"], undefined);
 
 		assert.strictEqual(
 			existsSync(join(repositoryRoot, "skills", "go", "bun.lock")),

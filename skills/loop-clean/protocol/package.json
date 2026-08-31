@@ -12,7 +12,6 @@
 		"test:portable": "node test/run-tests.mjs portable",
 		"test:repository": "node test/run-tests.mjs repository",
 		"test:all": "pnpm run test && pnpm run mutation",
-		"test:bun": "bun test --timeout 60000 test/portable test/repository && node test/mutation-runner.ts --test-runtime=bun",
 		"mutation": "node test/mutation-runner.ts",
 		"typecheck": "tsc -p tsconfig.json"
 	},

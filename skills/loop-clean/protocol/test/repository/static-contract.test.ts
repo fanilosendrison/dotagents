@@ -9,7 +9,6 @@ const read = (relativePath: string): string =>
 	readFileSync(resolve(repositoryRoot, relativePath), "utf8");
 
 const SKIP_DIRS = new Set(["node_modules", ".git"]);
-const SKIP_FILES = new Set(["bun.lock"]);
 
 function globFiles(root: string, pattern: string): string[] {
 	const prefix = pattern.replace(/\/\*\*$/, "");
@@ -21,7 +20,7 @@ function globFiles(root: string, pattern: string): string[] {
 			const full = join(d, name);
 			if (statSync(full).isDirectory()) {
 				if (!SKIP_DIRS.has(name)) walk(full);
-			} else if (!SKIP_FILES.has(name)) {
+			} else {
 				result.push(relative(root, full));
 			}
 		}
@@ -36,7 +35,7 @@ function sourceFiles(directory: string): string[] {
 		const path = join(directory, name);
 		if (statSync(path).isDirectory()) {
 			if (!SKIP_DIRS.has(name)) files.push(...sourceFiles(path));
-		} else if (path.endsWith(".ts") && !SKIP_FILES.has(name)) {
+		} else if (path.endsWith(".ts")) {
 			files.push(path);
 		}
 	}
@@ -139,16 +138,20 @@ describe("production protocol contract", () => {
 
 		assert.ok(rootPackageJson.scripts.test.includes("test:protocol"));
 		assert.ok(
-			rootPackageJson.scripts["test:bun"].includes("test:protocol:bun"),
-		);
-		assert.ok(
 			rootPackageJson.scripts["test:protocol"].includes(
 				"@dotagents/loop-clean-protocol",
 			),
 		);
-		assert.ok(
-			rootPackageJson.scripts["test:protocol:bun"].includes("test:bun"),
-		);
+		for (const scriptName of [
+			"test:bun",
+			"test:root",
+			"test:git-commits-push",
+			"test:scripts",
+			"test:go",
+			"test:protocol:bun",
+		]) {
+			assert.strictEqual(rootPackageJson.scripts[scriptName], undefined);
+		}
 		assert.ok(
 			!scriptsPackageJson.scripts.test.includes("skills/loop-clean/protocol"),
 		);
@@ -161,9 +164,7 @@ describe("production protocol contract", () => {
 			scriptsPackageJson.scripts.test,
 			"node test/run-tests.mjs",
 		);
-		assert.ok(
-			scriptsPackageJson.scripts["test:bun"].includes("lib/stack-tools"),
-		);
+		assert.strictEqual(scriptsPackageJson.scripts["test:bun"], undefined);
 	});
 
 	test("loop-clean.sh passes bash syntax validation", () => {
@@ -290,7 +291,7 @@ describe("production protocol contract", () => {
 		assert.ok(collectScope.includes(".agents/run"));
 	});
 
-	test("protocol package is self-contained with package.json, bun.lock, and tsconfig.json", () => {
+	test("protocol package is self-contained with its Node manifest and runner", () => {
 		const protocolRoot = resolve(repositoryRoot, "skills/loop-clean/protocol");
 		assert.strictEqual(existsSync(resolve(protocolRoot, "package.json")), true);
 		assert.strictEqual(existsSync(resolve(protocolRoot, "bun.lock")), false);
