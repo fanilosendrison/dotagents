@@ -45,7 +45,7 @@ Cross-platform branch CI run `32897464178` and annotated-tag CI run `32898343128
 
 An isolated pnpm graph installs 131 packages with no known high-severity vulnerability; `node-domexception@1.0.0` is deprecated. Root import, the `pi --version` CLI, Jiti TypeScript loading, Darwin terminal-modifier loading, native clipboard loading and resolution fallback, and Photon WASM image construction all pass on High Sierra.
 
-Pi 0.84.2 declares caret ranges for its internal packages. pnpm therefore resolves Pi Agent Core, AI, Client, Protocol, and TUI to 0.84.3 unless constrained, unlike the package's npm shrinkwrap and the installed 0.84.2 distribution. The future dotpi pnpm manifest must override all six internal packages to exact 0.84.2:
+Pi 0.84.2 declares caret ranges for its internal packages. pnpm therefore resolves Pi Agent Core, AI, Client, Protocol, and TUI to 0.84.3 unless constrained, unlike the package's npm shrinkwrap and the installed 0.84.2 distribution. The final dotpi pnpm manifest overrides all six internal packages to exact 0.84.2:
 
 - `@earendil-works/pi-agent-core`
 - `@earendil-works/pi-ai`
@@ -58,13 +58,13 @@ The distributed examples contain one upstream maintainer absolute path and the c
 
 ## Final lock graph audit
 
-The independent pnpm 11.24.0 lockfiles are materialized and reproducible. Dotagents lock SHA-256 is `1b8436748c0754076f667692139b0daf3af08b855632a00653dacb651cd62a93`; it contains eight importers after removal of four empty scripts pseudo-package manifests and addition of the non-empty skill-validator build package. Dotpi lock SHA-256 is `3d2b2843ab78decbaa69f0f68546aec906f11fb34937f50b117b28128f855269`; it contains only the root importer and excludes `extensions/pi-subagents-4-turnlock/**`. Strict engine and peer-install policies are effective at both roots. Two independent frozen installations per repository leave both locks unchanged. Both final graphs report zero known vulnerabilities at every severity.
+The independent pnpm 11.24.0 lockfiles are materialized and reproducible. Final dotagents lock SHA-256 is `3aed51d84692a597abc41fcecf2678525e4e689477274778a73054f4f61a9d04`; it contains eight importers after removal of four empty scripts pseudo-package manifests and addition of the non-empty skill-validator build package. Final dotpi lock SHA-256 is `52a8a344fdae9c987667456f238d2492b6020d8567609c6d52b107f644f0d42f`; it contains only the root importer and excludes `extensions/pi-subagents-4-turnlock/**`. Strict engine, peer-install, and denied-lifecycle policies are effective at both roots. Two independent frozen installations per repository in paths with spaces and Unicode leave both locks unchanged. Both final graphs report zero known vulnerabilities at every severity and contain neither `@types/bun` nor `bun-types`.
 
 The installed dotagents graph contains 21 unique packages and 3,483 distributed files. It declares no install lifecycle, native binary, or WASM artifact. Its runtime and tooling versions match the retained Bun locks except for `js-yaml`: the Bun-resolved 4.3.0 is vulnerable to `GHSA-5p4m-2wfm-xmqj` / `CVE-2026-59870`, so the root transition manifest, the consuming Node runtime package, and the pnpm lock intentionally select patched 4.3.1. The shared Node runtime now imports `js-yaml` through an explicit `CORE_SCHEMA`; Node and Bun 1.3.14 differential vectors cover core scalars, collections, aliases, multiple documents, duplicate keys, invalid YAML, and actionable locations.
 
 The installed dotpi graph contains 133 unique packages and 14,299 distributed files. Fifteen packages retain lifecycle declarations, but no lifecycle was executed during either frozen installation. Fourteen declarations are publish-time `prepare` scripts or the `@google/genai` no-op preinstall; `protobufjs@7.6.5` declares the sole postinstall. The six native artifacts are the previously validated Pi TUI Darwin/Windows modifiers and optional Darwin clipboard binaries. The two WASM artifacts are the non-runtime Doom extension example and the previously executed Photon image module. The sole deprecation remains `node-domexception@1.0.0`.
 
-All six Pi internal packages resolve exclusively to 0.84.2; no 0.84.3 package is present. Event-sink resolves to 0.1.0, Turnlock to 0.9.1, Pi Coding Agent/AI/TUI to 0.84.2, and Jiti to 2.7.0. Comparison against all seven Bun locks retains type-only drift in transitive `@types/node` and `undici-types`; dotpi now declares exact `@types/node@22.20.0` for its direct Node test surface while Bun and third-party transitives retain their independently locked type versions. Biome is held at the Bun-validated 2.5.2 and `@types/bun` at the Bun CI version 1.3.14.
+All six Pi internal packages resolve exclusively to 0.84.2; no 0.84.3 package is present. Event-sink resolves to 0.1.0, Turnlock to 0.9.1, Pi Coding Agent/AI/TUI to 0.84.2, and Jiti to 2.7.0. Historical lock comparison recorded only type-level drift in transitive `@types/node` and `undici-types`; dotpi declares exact `@types/node@22.20.0` for its direct Node test surface. Biome remains at the differential-validated 2.5.2 in its dotagents consumer, while all Bun runtime types have been removed.
 
 ## Event-sink package audit
 
@@ -78,8 +78,10 @@ The release source is committed as `e75692f34ef212c9ad173a37a73539f35f54c6ff` wi
 
 ## Gate status
 
-`SECOND_RUNTIME_PORTABILITY_LOT_GREEN`
+`NODE_PNPM_MIGRATION_GREEN`
 
 The publication, manifest, lockfile, integrity, clean-install, transitive-file, vulnerability, Bun baseline, and green-tag gates are closed. The first runtime portability lot replaces dotpi event-sink source imports with the exact published package. Node run `32947362470` passes on Node 22.19.0/24 Linux/macOS with the Bun failure sentinel untouched, and retained Bun run `32947362415` passes all 25 historical surfaces on Linux/macOS.
 
 The second lot replaces the git-commits-push stats logger source import with exact event-sink 0.1.0, removes the dotagents CI source alias, and preserves the telemetry envelope in a direct Node smoke. Node run `32954252065` passes on Node 22.19.0/24 Linux/macOS with the Bun failure sentinel untouched, and retained Bun run `32954252069` passes the complete historical suite on Linux/macOS.
+
+Final closure removes all Bun lockfiles, runtime types, required scripts, internal launch syntax, and baseline workflows only after differential gates pass. Exact active allowlists enforce 74/74 dotagents and 25/25 dotpi Node surfaces; historical sources are byte-exact archives outside package and runner boundaries. Final Node matrices pass as dotagents run `33405383157` at `3772ec4a135884953ff956479998acdfd5cad7c2` and dotpi run `33422658335` at `5ae546b7c9cefb34b25e4a5302672780441a7d95`.

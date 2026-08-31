@@ -40,7 +40,7 @@ step_id: 0
 - [x] Authenticate npm, push annotated tag `v0.9.1`, pass tag CI, publish, reproduce the registry tarball byte-for-byte, and verify runtime plus TypeScript clean installation.
 - [x] Complete the transitive distributed-file, lifecycle, native/WASM, deprecation, version-drift, and vulnerability audits.
 - [x] Build and test official jq 1.7.1 source for High Sierra and install it under `~/.local/bin`.
-- [ ] Complete remaining blocked items in the High Sierra prerequisite report.
+- [x] Close the High Sierra prerequisite report with local Node 22.19 wrapper evidence and supported Node 22.19/24 Linux/macOS matrices.
 
 ## Phase 1 — Raw and green baselines
 
@@ -105,31 +105,35 @@ step_id: 0
 - [x] Migrate agent-enforcer tests: 6 retained surfaces across command-validator, git-commits-push enforcement, path-guard, and permission state now use a symlink-aware closed Node runner and strict Node assertions. Relative production imports use explicit `.ts` specifiers; permission tests use the existing injected checker instead of mutable module spying. Targeted typecheck, 128 tests, the pre-existing 7 launch-recognition tests, scripts regressions, and two frozen installs in spaces/Unicode paths pass with an empty Bun sentinel. Node run `33314339244` and retained Bun run `33314339289` pass on Linux/macOS.
 - [x] Migrate all remaining root tests: the final 35 `git-commits-push` surfaces use a closed sequential Node runner, `node:test`, strict Node assertions, explicit source resume/dequeue launches, injectable LLM boundaries, and isolated agent/order test environments. The source suite passes 325 tests across 126 suites with no agent identity, while the compiled runner adds bounded GitHub failure annotations. Differential runs `33370323093` (Node 22.19/24 Linux/macOS) and `33370323096` (Bun 1.3.14 Linux/macOS) are green before package-local Bun state removal. After removing the package Bun lock, Bun engine, Bun types, and obsolete compatibility aliases, cutover runs `33372313883` (Node) and `33372313860` (Bun against pnpm-locked dependencies) pass on Linux/macOS with all 74 parity surfaces green and pnpm lock SHA-256 `1b8436748c0754076f667692139b0daf3af08b855632a00653dacb651cd62a93`.
 - [x] Complete every row in the 74-surface parity manifest.
-- [ ] Remove each package Bun lockfile only after package parity passes.
+- [x] Remove every package and root Bun lockfile only after differential parity passes; final dotagents lock SHA-256 is `3aed51d84692a597abc41fcecf2678525e4e689477274778a73054f4f61a9d04`.
 
 ## Phase 8 — dotpi tests
 
-- [ ] Create the independent dotpi pnpm project and lockfile.
-- [ ] Pin Pi 0.84.2, Jiti 2.7.0, TypeScript, and Node types locally.
-- [ ] Keep production extensions as Jiti-loaded TypeScript source.
-- [ ] Replace Bun resolution, query imports, implicit cache mocks, and absolute imports.
-- [ ] Complete every row in the 25-test parity manifest.
-- [ ] Keep pi-subagents-4-turnlock mechanically excluded.
+- [x] Create the independent dotpi pnpm project and lockfile.
+- [x] Pin Pi 0.84.2, Jiti 2.7.0, TypeScript, and Node types locally.
+- [x] Keep production extensions as Jiti-loaded TypeScript source.
+- [x] Replace Bun resolution, query imports, implicit cache mocks, and absolute imports.
+- [x] Complete every row in the 25-test parity manifest.
+- [x] Keep pi-subagents-4-turnlock mechanically excluded.
 
 ## Phase 9 — Gateway portability
 
-- [ ] Link package metadata, workspace metadata, lockfiles, policy, source, and node_modules.
-- [ ] Validate physical roots and all gateways.
-- [ ] Validate clean reinstall and rebuild in temporary homes and paths containing spaces.
-- [ ] Validate with Bun absent and with a logging Bun failure sentinel.
-- [ ] Pass the High Sierra gateway smoke using the local Node wrapper.
+- [x] Link package metadata, workspace metadata, lockfiles, policy, source, and node_modules.
+- [x] Validate physical roots and all gateways, including the shared-import `rootDirs` overlays.
+- [x] Validate clean reinstall and rebuild in temporary homes and paths containing spaces and Unicode.
+- [x] Validate with Bun absent and with a logging Bun failure sentinel.
+- [x] Pass the High Sierra gateway smoke using the local Node wrapper.
 
 ## Phase 10 — Documentation and cleanup
 
-- [ ] Update active skills, agent guides, context routers, READMEs, CI, and examples at cutover.
-- [ ] Remove active Bun APIs, types, shebangs, lockfiles, and obsolete bunfig files.
-- [ ] Remove active user-specific absolute paths.
-- [ ] Enforce the final Bun occurrence allowlist.
-- [ ] Retire required Bun parity CI.
-- [ ] Pass Node 22 and Node 24, Linux and macOS, typecheck, lint, tests, gateways, and High Sierra smoke.
-- [ ] Confirm clean repositories and no abandoned Turnlock run or migration lock.
+- [x] Update active skills, agent guides, context routers, READMEs, CI, and examples at cutover.
+- [x] Remove active Bun APIs, types, shebangs, lockfiles, obsolete bunfig files, and transitional launch syntax.
+- [x] Remove active user-specific absolute paths.
+- [x] Enforce the final exact Bun occurrence allowlists: 74/74 dotagents and 25/25 dotpi.
+- [x] Retire required Bun parity CI after the last differential evidence.
+- [x] Pass Node 22.19 and Node 24 on Linux and macOS, plus local typecheck, lint, tests, gateways, frozen installs, and High Sierra smoke. Final runs: dotagents `33405383157`, dotpi `33422658335`.
+- [x] Confirm both repositories clean and the compiled preflight reports every Turnlock run drained with no lock, queue artifact, or migration blocker.
+
+## Final closure
+
+The Node-only platform is published at dotagents `3772ec4a135884953ff956479998acdfd5cad7c2` and dotpi `5ae546b7c9cefb34b25e4a5302672780441a7d95`. Historical sources are byte-exact archives outside active package and test boundaries. Required execution uses Node `>=22.19.0` and pnpm `11.24.0`; Bun remains only in exact policy-enforcement literals and optional external-project interoperability boundaries.

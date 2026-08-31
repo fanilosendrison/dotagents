@@ -51,22 +51,23 @@ step_id: 0
 - Six agent-enforcer parity surfaces now run through a symlink-aware closed Node runner with explicit `.ts` production imports and injected permission-checker tests instead of mutable ESM module spies. Targeted typecheck, 128 tests across 13 suites, the separate 7 launch-recognition tests, and scripts regressions pass. Two frozen installs in spaces/Unicode paths preserve pnpm lock SHA-256 `be3c9ac7efcf9ddc652ad015483ba5bf32ad03351737548e1635e822220268d8` and leave the Bun sentinel empty. Node run `33314339244` and retained Bun run `33314339289` pass on Linux/macOS.
 - The final 35 `git-commits-push` parity surfaces now run under a symlink-aware closed sequential Node runner using `node:test`, strict assertions, explicit Node source resume/dequeue launches, injectable bridge boundaries, and isolated agent/order environments. The source suite passes 325 tests across 126 suites without any ambient agent identity; the compiled suite passes 33 tests and emits bounded GitHub failure annotations. Differential runs `33370323093` (Node 22.19/24 Linux/macOS) and `33370323096` (Bun 1.3.14 Linux/macOS) passed before removal of the package Bun lock, engine, and types. Two frozen installs in spaces/Unicode paths preserve pnpm lock SHA-256 `1b8436748c0754076f667692139b0daf3af08b855632a00653dacb651cd62a93` with an empty Bun sentinel; cutover runs `33372313883` and `33372313860` pass on Linux/macOS. All 74 dotagents parity surfaces are green.
 - Full pnpm audits report zero known vulnerabilities. `js-yaml` is intentionally raised from Bun-resolved 4.3.0 to patched 4.3.1 for `GHSA-5p4m-2wfm-xmqj` / `CVE-2026-59870`.
+- Final Node-only closure removes every root and package Bun lock, Bun type dependency, internal launch, required Bun script, and Bun baseline workflow. The active policy validates all 74 dotagents and 25 dotpi targets, exact permanent exceptions, manifests, workflows, and archived-source confinement. Physical roots, symlink gateways, isolated homes, two frozen installs with spaces/Unicode, and failure sentinels pass with lock SHA-256 values `3aed51d84692a597abc41fcecf2678525e4e689477274778a73054f4f61a9d04` (dotagents) and `52a8a344fdae9c987667456f238d2492b6020d8567609c6d52b107f644f0d42f` (dotpi). Final CI runs `33405383157` and `33422658335` pass Node 22.19/24 on Linux/macOS.
 
-## Blocked or missing
+## Remaining host limitations
 
-- Bun is absent, so the historical Bun 1.3.14 baseline cannot run on this host.
-- The current Git version does not provide `git switch`; scripts must use Git 2.17-compatible commands or document a newer prerequisite.
-- Node 24 is not installed on this host.
+- Bun is intentionally absent and is no longer an installation, build, launch, or required-test prerequisite.
+- The current Git version does not provide `git switch`; active scripts use the verified Git 2.17-compatible commands.
+- Node 24 is not installed on this host; the required Node 24 evidence is supplied by both Linux and macOS CI.
 
 ## Authentication bridge observation
 
 The private Pi auth file currently contains no `api_key` entry, and the documented shared credential registry is absent. The jq credential bridge is therefore inactive and cannot be exercised end to end without first configuring it. This does not block the current non-API-key Pi authentication, but the documentation and private configuration are not aligned.
 
-## Required completion evidence
+## Completion evidence
 
-1. Run full loop-clean after Bun is available; its jq expressions already pass direct smoke tests.
-2. Run physical-root and gateway suites after deleting `node_modules` and `dist`.
-3. Run the no-Bun sentinel job on High Sierra; the supported Linux/macOS CI sentinel is already green in run `33095210333`.
-4. Node 24 evidence on supported Linux and macOS CI is complete in run `33095210333`.
+1. The former Bun-dependent loop-clean requirement is superseded: the protocol passes 87 Node tests and all 9 mutants, and the final policy forbids an internal Bun runtime.
+2. Physical-root, gateway, clean-install, isolated-home, and paths-with-spaces/Unicode suites pass without `node_modules` or `dist` reuse.
+3. The local Node 22.19 wrapper leaves the Bun failure sentinel empty; supported Linux/macOS matrices enforce the same sentinel.
+4. Node 24 evidence passes on supported Linux and macOS in final runs `33405383157` and `33422658335`.
 
-Modern macOS CI must not substitute for the remaining High Sierra checks.
+High Sierra behavior remains covered by the local wrapper evidence above; modern macOS CI supplies the required cross-version matrix rather than replacing that evidence.

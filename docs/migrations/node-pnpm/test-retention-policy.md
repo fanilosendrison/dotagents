@@ -56,4 +56,6 @@ Fast-check seeds and shrink paths must remain visible in failures. Mutation name
 
 ## Completion rule
 
-A row becomes `green` only after its Node test passes, historical parity evidence passes, observable behavior is compared, and any matcher or fixture change is documented. The manifests must report 74 green dotagents surfaces and 25 green dotpi surfaces at completion.
+A row becomes `green` only after its Node test passes, historical parity evidence passes, observable behavior is compared, and any matcher or fixture change is documented. The manifests report 74 green dotagents surfaces and 25 green dotpi surfaces at completion.
+
+After final differential CI, retired source files move byte-for-byte under each repository's `docs/migrations/node-pnpm/archive/bun-source-baseline/` tree. Manifest `sourceFile` fields preserve their original locations and active `targetFile` paths remain readable. Archives are excluded from package boundaries, test runners, TypeScript projects, and runtime launch paths; they must not be restored to active locations.
