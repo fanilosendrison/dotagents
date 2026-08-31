@@ -107,7 +107,6 @@ describe("repository validation chain", () => {
 				"create-symlink-for-dot-folders",
 				"bun.lock",
 			),
-			join(repositoryRoot, "skills", "git-commits-push", "bun.lock"),
 		]) {
 			assert.strictEqual(existsSync(lockfilePath), true);
 		}
@@ -155,6 +154,31 @@ describe("repository validation chain", () => {
 		assert.strictEqual(
 			protocolManifest.includes('"packageManager": "pnpm@11.24.0"'),
 			true,
+		);
+	});
+
+	it("removes package-local Bun state after git-commits-push parity passes", () => {
+		const skillRoot = join(repositoryRoot, "skills", "git-commits-push");
+		const skillManifest = readFileSync(join(skillRoot, "package.json"), "utf8");
+		const skillTypeScriptConfiguration = readFileSync(
+			join(skillRoot, "tsconfig.json"),
+			"utf8",
+		);
+
+		assert.strictEqual(existsSync(join(skillRoot, "bun.lock")), false);
+		assert.strictEqual(skillManifest.includes('"@types/bun"'), false);
+		assert.strictEqual(skillManifest.includes('"bun": ">=1.1.0"'), false);
+		assert.strictEqual(
+			skillManifest.includes('"@types/node": "22.20.0"'),
+			true,
+		);
+		assert.strictEqual(
+			skillTypeScriptConfiguration.includes('"types": ["node"]'),
+			true,
+		);
+		assert.strictEqual(
+			skillTypeScriptConfiguration.includes('"types": ["bun"]'),
+			false,
 		);
 	});
 
