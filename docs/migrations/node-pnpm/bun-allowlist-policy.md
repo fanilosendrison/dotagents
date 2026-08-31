@@ -5,7 +5,7 @@ asset_type: "policy"
 domain: "runtime-interoperability"
 severity: "strict"
 name: "Optional Bun interoperability allowlist policy"
-version: "0.1.0"
+version: "1.0.0"
 ---
 
 # Optional Bun interoperability allowlist policy
@@ -16,18 +16,19 @@ Active in-scope code must not require Bun. Bun globals, modules, test imports, t
 
 ## Allowed categories
 
-An entry may use only one of these categories:
+An exact exception entry may use only one of these categories:
 
 - `external-project-interop`: package-manager detection or validation for a repository outside dotagents and dotpi;
-- `upstream-exclusion`: the mechanically excluded pi-subagents-4-turnlock tree;
-- `archive`: retained historical implementation material;
-- `superseded-specification`: a document listed in the successor registry.
+- `policy-enforcement`: the fail-closed validator, its regression test, or the CI failure sentinel;
+- `historical-artifact`: a non-executable artifact that cannot move into the excluded archive;
+- `upstream-vendored-code`: vendored code governed by an upstream owner;
+- `user-requested-opt-in`: an explicit optional interoperability surface that is never selected by default.
 
-Migration tooling and transitional launch syntax are not permanent categories. They must be removed before the final sweep.
+Migration tooling and transitional launch syntax are not permanent categories. They were moved into `docs/migrations/node-pnpm/archive/` or removed before activation.
 
 ## Entry requirements
 
-Every allowlist entry must specify an exact repository-relative path, category, required literals, owner, reason, and removal condition. Directory globs are permitted only for the upstream and archive categories. An occurrence that does not match both path and literal fails closed.
+Every allowlist entry specifies an exact repository-relative path, category, required literals, owner, rationale, and removal condition. Directory globs exist only in `excludedPathRules` for the mechanically excluded upstream tree and the migration archive. An occurrence that does not match both path and literals fails closed. Missing files, duplicate entries, or missing required literals are stale-policy failures.
 
 ## Interoperability boundary
 
@@ -42,6 +43,6 @@ Package-manager resolution order is:
 
 ## Enforcement
 
-The required no-Bun job removes Bun from `PATH` and adds a sentinel executable that exits non-zero while recording invocations. The invocation log must remain empty. A separate non-gating interoperability job may exercise external Bun projects.
+The policy is active. `pnpm run validate:bun-policy` checks lock/config files, package manifests, active source, workflows, test runtime imports, exact exceptions, and the `74/74` parity manifest. The Node CI prepends a sentinel executable that exits non-zero while recording invocations; its log must remain empty after every gate. A separate non-gating interoperability job may exercise external projects that explicitly select Bun.
 
-The machine-readable files are `bun-allowlist.json` in each migration documentation directory.
+The machine-readable files are `bun-allowlist.json` in each migration documentation directory. Dotpi applies the same validator to its own `25/25` corpus.
