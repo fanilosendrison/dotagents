@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { findStackEval, readStackConfig } from "../stack-config.ts";
 
 describe("findStackEval", () => {
@@ -21,7 +22,7 @@ describe("findStackEval", () => {
 			"decisions:\n  linter: biome",
 		);
 		const result = findStackEval(join(tempDir, "src", "file.ts"));
-		expect(result).toBe(join(tempDir, "STACK_EVAL.yaml"));
+		assert.strictEqual(result, join(tempDir, "STACK_EVAL.yaml"));
 	});
 
 	it("finds STACK_EVAL.yaml in parent directory", () => {
@@ -33,12 +34,12 @@ describe("findStackEval", () => {
 		);
 
 		const result = findStackEval(join(subDir, "file.ts"));
-		expect(result).toBe(join(tempDir, "STACK_EVAL.yaml"));
+		assert.strictEqual(result, join(tempDir, "STACK_EVAL.yaml"));
 	});
 
 	it("returns null when no STACK_EVAL.yaml found", () => {
 		const result = findStackEval(join(tempDir, "file.ts"));
-		expect(result).toBeNull();
+		assert.strictEqual(result, null);
 	});
 });
 
@@ -61,8 +62,8 @@ describe("readStackConfig", () => {
 		);
 
 		const config = await readStackConfig(yamlPath);
-		expect(config.linter).toBe("biome");
-		expect(config.typeChecker).toBe("tsc");
+		assert.strictEqual(config.linter, "biome");
+		assert.strictEqual(config.typeChecker, "tsc");
 	});
 
 	it("normalizes 'none' to null", async () => {
@@ -73,8 +74,8 @@ describe("readStackConfig", () => {
 		);
 
 		const config = await readStackConfig(yamlPath);
-		expect(config.linter).toBeNull();
-		expect(config.typeChecker).toBeNull();
+		assert.strictEqual(config.linter, null);
+		assert.strictEqual(config.typeChecker, null);
 	});
 
 	it("handles missing decisions gracefully", async () => {
@@ -82,8 +83,8 @@ describe("readStackConfig", () => {
 		writeFileSync(yamlPath, "project_name: test\n");
 
 		const config = await readStackConfig(yamlPath);
-		expect(config.linter).toBeNull();
-		expect(config.typeChecker).toBeNull();
+		assert.strictEqual(config.linter, null);
+		assert.strictEqual(config.typeChecker, null);
 	});
 
 	it("handles missing type_checker", async () => {
@@ -91,8 +92,8 @@ describe("readStackConfig", () => {
 		writeFileSync(yamlPath, "decisions:\n  linter: ruff\n");
 
 		const config = await readStackConfig(yamlPath);
-		expect(config.linter).toBe("ruff");
-		expect(config.typeChecker).toBeNull();
+		assert.strictEqual(config.linter, "ruff");
+		assert.strictEqual(config.typeChecker, null);
 	});
 
 	it("lowercases values", async () => {
@@ -103,7 +104,7 @@ describe("readStackConfig", () => {
 		);
 
 		const config = await readStackConfig(yamlPath);
-		expect(config.linter).toBe("biome");
-		expect(config.typeChecker).toBe("tsc");
+		assert.strictEqual(config.linter, "biome");
+		assert.strictEqual(config.typeChecker, "tsc");
 	});
 });

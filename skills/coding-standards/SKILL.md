@@ -38,7 +38,7 @@ must not alter the loop-clean manifest contract.
 Run from the resolved repository root:
 
 ```bash
-bun ~/.agents/scripts/coding-standards-scanner/src/cli.ts \
+node ~/.agents/scripts/coding-standards-scanner/src/cli.ts \
   --scope-file="$LOOP_CLEAN_SCOPE_FILE" \
   --output="$RUN_DIR/scanner.json"
 ```
@@ -68,7 +68,7 @@ must not duplicate mechanical rules.
 Run:
 
 ```bash
-bun ~/.agents/scripts/coding-standards-consolidate/src/cli.ts \
+node ~/.agents/scripts/coding-standards-consolidate/src/cli.ts \
   --scanner-json="$RUN_DIR/scanner.json" \
   --files-json-dir="$RUN_DIR/files" \
   --output="$LOOP_CLEAN_JSON_OUT"

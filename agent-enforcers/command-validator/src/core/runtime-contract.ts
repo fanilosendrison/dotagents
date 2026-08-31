@@ -1,9 +1,9 @@
-import { RESTRICTED_TOOLS } from "./tool-rules";
+import { RESTRICTED_TOOLS } from "./tool-rules.ts";
 import type {
 	ValidationAction,
 	ValidationResult,
 	ValidationSeverity,
-} from "./types";
+} from "./types.ts";
 
 export type RuntimeValidationAction =
 	| ValidationAction

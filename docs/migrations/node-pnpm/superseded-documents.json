@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "successor": "docs/migrations/node-pnpm/node-runtime-successor-contract.md",
+  "effectiveDate": "2026-08-25",
+  "supersessionScope": "bun-runtime-clauses-only",
+  "preservedAuthority": [
+    "business behavior",
+    "Turnlock protocols and schemas",
+    "security invariants",
+    "observable outputs and exit codes",
+    "telemetry contracts",
+    "Git and queue semantics"
+  ],
+  "documents": [
+    {
+      "path": "skills/go/specs/briefs/orchestrator/DC-BUN-SPAWN-ASYNC-RUNTIME.md",
+      "status": "superseded"
+    },
+    {
+      "path": "skills/go/specs/briefs/orchestrator/DC-GIT-CLI-BOOTSTRAP.md",
+      "status": "superseded"
+    },
+    {
+      "path": "skills/go/specs/briefs/orchestrator/NIB-M-GO-ASYNC-GIT-RUNNER.md",
+      "status": "superseded"
+    },
+    {
+      "path": "skills/go/specs/briefs/orchestrator/NIB-S-GO-TURNLOCK-ORCHESTRATOR.md",
+      "status": "partially-superseded"
+    },
+    {
+      "path": "skills/go/specs/briefs/orchestrator/NIB-T-GO-TURNLOCK-ORCHESTRATOR.md",
+      "status": "partially-superseded"
+    },
+    {
+      "path": "skills/go/specs/briefs/orchestrator/PLAN-GO-TURNLOCK-ORCHESTRATOR-PHASE-1.md",
+      "status": "partially-superseded"
+    },
+    {
+      "path": "skills/go/specs/working/orchestrator/turnlock-bridge.md",
+      "status": "superseded"
+    }
+  ]
+}

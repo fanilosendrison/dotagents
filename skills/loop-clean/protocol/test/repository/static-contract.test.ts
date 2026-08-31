@@ -1,13 +1,14 @@
-import { describe, expect, test } from "bun:test";
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { describe, test } from "node:test";
 
-const repositoryRoot = resolve(import.meta.dir, "../../../../..");
+const repositoryRoot = resolve(import.meta.dirname, "../../../../..");
 const read = (relativePath: string): string =>
 	readFileSync(resolve(repositoryRoot, relativePath), "utf8");
 
 const SKIP_DIRS = new Set(["node_modules", ".git"]);
-const SKIP_FILES = new Set(["bun.lock"]);
 
 function globFiles(root: string, pattern: string): string[] {
 	const prefix = pattern.replace(/\/\*\*$/, "");
@@ -19,7 +20,7 @@ function globFiles(root: string, pattern: string): string[] {
 			const full = join(d, name);
 			if (statSync(full).isDirectory()) {
 				if (!SKIP_DIRS.has(name)) walk(full);
-			} else if (!SKIP_FILES.has(name)) {
+			} else {
 				result.push(relative(root, full));
 			}
 		}
@@ -34,7 +35,7 @@ function sourceFiles(directory: string): string[] {
 		const path = join(directory, name);
 		if (statSync(path).isDirectory()) {
 			if (!SKIP_DIRS.has(name)) files.push(...sourceFiles(path));
-		} else if (path.endsWith(".ts") && !SKIP_FILES.has(name)) {
+		} else if (path.endsWith(".ts")) {
 			files.push(path);
 		}
 	}
@@ -57,7 +58,7 @@ describe("production protocol contract", () => {
 					(line) =>
 						!/\b(?:never|must not|do not|ne pas|interdit)\b/i.test(line),
 				);
-			expect(executableLines.join("\n")).not.toMatch(mutatingCommand);
+			assert.doesNotMatch(executableLines.join("\n"), mutatingCommand);
 		}
 	});
 
@@ -70,14 +71,16 @@ describe("production protocol contract", () => {
 		);
 		for (const path of sourceFiles(protocolSourceRoot)) {
 			const contents = readFileSync(path, "utf8");
-			expect(contents).not.toMatch(forbiddenLiteral);
-			if (contents.includes('Bun.spawn(["git"')) {
-				expect(contents).toContain('Bun.spawn(["git", "-C"');
-				expect(contents).toContain('GIT_OPTIONAL_LOCKS: "0"');
+			assert.doesNotMatch(contents, forbiddenLiteral);
+			if (contents.includes('executeProcess("git"')) {
+				assert.ok(contents.includes('["-C", repositoryRoot'));
+				assert.ok(contents.includes('GIT_OPTIONAL_LOCKS: "0"'));
 			}
 		}
-		expect(read("skills/loop-clean/loop-clean.sh")).toContain(
-			'_emit_export GIT_OPTIONAL_LOCKS "0"',
+		assert.ok(
+			read("skills/loop-clean/loop-clean.sh").includes(
+				'_emit_export GIT_OPTIONAL_LOCKS "0"',
+			),
 		);
 	});
 
@@ -114,49 +117,68 @@ describe("production protocol contract", () => {
 		for (const relativePath of allProductionPaths) {
 			const contents = read(relativePath);
 			for (const term of forbiddenLiteralTerms)
-				expect(contents).not.toContain(term);
-			expect(contents).not.toMatch(/spec[-_ ]drift/i);
+				assert.ok(!contents.includes(term));
+			assert.doesNotMatch(contents, /spec[-_ ]drift/i);
 		}
-		expect(existsSync(resolve(repositoryRoot, "scripts/spec-drift"))).toBe(
+		assert.strictEqual(
+			existsSync(resolve(repositoryRoot, "scripts/spec-drift")),
 			false,
 		);
-		expect(
+		assert.strictEqual(
 			existsSync(
 				resolve(repositoryRoot, "skills/loop-clean/loop-clean-test.sh"),
 			),
-		).toBe(false);
+			false,
+		);
 	});
 
 	test("registers the protocol suite once and no removed package scripts", () => {
 		const rootPackageJson = JSON.parse(read("package.json"));
 		const scriptsPackageJson = JSON.parse(read("scripts/package.json"));
 
-		expect(rootPackageJson.scripts.test).toContain("test:protocol");
-		expect(rootPackageJson.scripts["test:protocol"]).toContain(
-			"skills/loop-clean/protocol",
+		assert.ok(rootPackageJson.scripts.test.includes("test:protocol"));
+		assert.ok(
+			rootPackageJson.scripts["test:protocol"].includes(
+				"@dotagents/loop-clean-protocol",
+			),
 		);
-		expect(scriptsPackageJson.scripts.test).not.toContain(
-			"skills/loop-clean/protocol",
+		for (const scriptName of [
+			"test:bun",
+			"test:root",
+			"test:git-commits-push",
+			"test:scripts",
+			"test:go",
+			"test:protocol:bun",
+		]) {
+			assert.strictEqual(rootPackageJson.scripts[scriptName], undefined);
+		}
+		assert.ok(
+			!scriptsPackageJson.scripts.test.includes("skills/loop-clean/protocol"),
 		);
 		for (const scriptName of Object.keys(scriptsPackageJson.scripts)) {
-			expect(scriptName).not.toMatch(/^spec-drift(?::|$)/);
-			expect(scriptName).not.toMatch(/^loop-clean-protocol/);
+			assert.doesNotMatch(scriptName, /^spec-drift(?::|$)/);
+			assert.doesNotMatch(scriptName, /^loop-clean-protocol/);
 		}
-		expect(scriptsPackageJson.scripts.test).not.toMatch(/spec-drift/);
-		expect(scriptsPackageJson.scripts.test).toContain("lib/stack-tools");
+		assert.doesNotMatch(scriptsPackageJson.scripts.test, /spec-drift/);
+		assert.strictEqual(
+			scriptsPackageJson.scripts.test,
+			"node test/run-tests.mjs",
+		);
+		assert.strictEqual(scriptsPackageJson.scripts["test:bun"], undefined);
 	});
 
 	test("loop-clean.sh passes bash syntax validation", () => {
-		const result = Bun.spawnSync(
-			["bash", "-n", "skills/loop-clean/loop-clean.sh"],
+		const result = spawnSync(
+			"bash",
+			["-n", "skills/loop-clean/loop-clean.sh"],
 			{
 				cwd: repositoryRoot,
-				stdout: "pipe",
-				stderr: "pipe",
+				encoding: "utf8",
+				shell: false,
 			},
 		);
-		expect(result.exitCode).toBe(0);
-		expect(result.stderr.toString()).toBe("");
+		assert.strictEqual(result.status, 0);
+		assert.strictEqual(result.stderr, "");
 	});
 
 	test("documents and enforces the exact orchestration order", () => {
@@ -175,28 +197,29 @@ describe("production protocol contract", () => {
 		const protocolList = [...orchestrator.matchAll(/^\d+\. `([^`]+)`/gm)].map(
 			(match) => match[1],
 		);
-		expect(protocolList.slice(0, orderedMarkers.length)).toEqual(
+		assert.deepStrictEqual(
+			protocolList.slice(0, orderedMarkers.length),
 			orderedMarkers,
 		);
-		expect(orchestrator).toContain("four canonical sources");
-		expect(orchestrator).toContain("LOOP_CLEAN_SCOPE_FILE");
-		expect(orchestrator).toContain("must not recalculate the scope");
+		assert.ok(orchestrator.includes("four canonical sources"));
+		assert.ok(orchestrator.includes("LOOP_CLEAN_SCOPE_FILE"));
+		assert.ok(orchestrator.includes("must not recalculate the scope"));
 	});
 
 	test("makes findings.json the sole orchestrated routing input", () => {
 		const skill = read("skills/fix-or-backlog/SKILL.md");
-		expect(skill).toContain("$LOOP_CLEAN_FINDINGS_FILE");
+		assert.ok(skill.includes("$LOOP_CLEAN_FINDINGS_FILE"));
 		for (const sourceReport of [
 			"coding-standards.json",
 			"senior-review.json",
 			"dedup-codebase.json",
 			"runtime-gate.json",
 		]) {
-			expect(skill).not.toContain(sourceReport);
+			assert.ok(!skill.includes(sourceReport));
 		}
-		expect(skill).toContain("LOOP_CLEAN_BACKLOG_PATH");
-		expect(skill).toContain("LOOP_CLEAN_DESIGN_QUEUE_PATH");
-		expect(skill).not.toMatch(/>>\s*backlog\.md/);
+		assert.ok(skill.includes("LOOP_CLEAN_BACKLOG_PATH"));
+		assert.ok(skill.includes("LOOP_CLEAN_DESIGN_QUEUE_PATH"));
+		assert.doesNotMatch(skill, />>\s*backlog\.md/);
 	});
 
 	test("requires every producer to consume and echo the manifest digest", () => {
@@ -206,11 +229,11 @@ describe("production protocol contract", () => {
 			"skills/dedup-codebase/SKILL.md",
 		]) {
 			const contents = read(relativePath);
-			expect(contents).toContain("LOOP_CLEAN_SCOPE_FILE");
-			expect(contents).toContain("scope_digest");
+			assert.ok(contents.includes("LOOP_CLEAN_SCOPE_FILE"));
+			assert.ok(contents.includes("scope_digest"));
 		}
 		const orchestrator = read("agents/loop-clean-orchestrator.md");
-		expect(orchestrator).toContain("LOOP_CLEAN_SCOPE_DIGEST");
+		assert.ok(orchestrator.includes("LOOP_CLEAN_SCOPE_DIGEST"));
 	});
 
 	test("contains no residual references to the old protocol location and no ~/.claude in canonical sources", () => {
@@ -236,69 +259,74 @@ describe("production protocol contract", () => {
 		].filter((p) => !p.includes("/test/") && !p.endsWith(".test.ts"));
 		for (const relativePath of allProductionPaths) {
 			const contents = read(relativePath);
-			expect(contents).not.toContain("scripts/loop-clean-protocol");
-			expect(contents).not.toMatch(/~\/\.claude\//);
+			assert.ok(!contents.includes("scripts/loop-clean-protocol"));
+			assert.doesNotMatch(contents, /~\/\.claude\//);
 		}
 	});
 
 	test("old protocol directory no longer exists", () => {
-		expect(
+		assert.strictEqual(
 			existsSync(resolve(repositoryRoot, "scripts/loop-clean-protocol")),
-		).toBe(false);
+			false,
+		);
 	});
 
 	test("script libraries and runtime paths are canonical", () => {
 		// stack-tools must be present
-		expect(existsSync(resolve(repositoryRoot, "scripts/lib/stack-tools/src/index.ts"))).toBe(true);
+		assert.strictEqual(
+			existsSync(
+				resolve(repositoryRoot, "scripts/lib/stack-tools/src/index.ts"),
+			),
+			true,
+		);
 		// .agents/run is the canonical runtime
 		const shellScript = read("skills/loop-clean/loop-clean.sh");
-		expect(shellScript).toContain(".agents/run/loop-clean");
-		expect(shellScript).not.toMatch(/\.claude\/run\/loop-clean/);
+		assert.ok(shellScript.includes(".agents/run/loop-clean"));
+		assert.doesNotMatch(shellScript, /\.claude\/run\/loop-clean/);
 		// .claude/run exclusion for legacy ledgers
-		const collectScope = read("skills/loop-clean/protocol/src/scope/collect-scope.ts");
-		expect(collectScope).toContain(".claude/run");
-		expect(collectScope).toContain(".agents/run");
+		const collectScope = read(
+			"skills/loop-clean/protocol/src/scope/collect-scope.ts",
+		);
+		assert.ok(collectScope.includes(".claude/run"));
+		assert.ok(collectScope.includes(".agents/run"));
 	});
 
-	test("protocol package is self-contained with package.json, bun.lock, and tsconfig.json", () => {
+	test("protocol package is self-contained with its Node manifest and runner", () => {
 		const protocolRoot = resolve(repositoryRoot, "skills/loop-clean/protocol");
-		expect(existsSync(resolve(protocolRoot, "package.json"))).toBe(true);
-		expect(existsSync(resolve(protocolRoot, "bun.lock"))).toBe(true);
-		expect(existsSync(resolve(protocolRoot, "tsconfig.json"))).toBe(true);
-		expect(existsSync(resolve(protocolRoot, "bunfig.toml"))).toBe(true);
+		assert.strictEqual(existsSync(resolve(protocolRoot, "package.json")), true);
+		assert.strictEqual(existsSync(resolve(protocolRoot, "bun.lock")), false);
+		assert.strictEqual(
+			existsSync(resolve(protocolRoot, "tsconfig.json")),
+			true,
+		);
+		assert.strictEqual(
+			existsSync(resolve(protocolRoot, "test/run-tests.mjs")),
+			true,
+		);
+		assert.strictEqual(existsSync(resolve(protocolRoot, "bunfig.toml")), false);
 	});
 
 	test("loop-clean.sh points to the adjacent protocol CLI", () => {
 		const shellScript = read("skills/loop-clean/loop-clean.sh");
-		expect(shellScript).toContain("$SCRIPT_DIR/protocol/src/cli.ts");
-		expect(shellScript).not.toContain("scripts/loop-clean-protocol");
+		assert.ok(shellScript.includes("$SCRIPT_DIR/protocol/src/cli.ts"));
+		assert.ok(!shellScript.includes("scripts/loop-clean-protocol"));
 	});
 
 	test("all protocol CLI calls go through _run_protocol with --no-install", () => {
 		const shellScript = read("skills/loop-clean/loop-clean.sh");
-		// The _run_protocol helper must contain the exact bun --no-install invocation
-		expect(shellScript).toMatch(
-			/_run_protocol\(\)\s*\{\s*bun --no-install "\$PROTOCOL_CLI" "\$@"\s*\}/m,
+		assert.match(
+			shellScript,
+			/_run_protocol\(\)\s*\{\s*node "\$PROTOCOL_CLI" "\$@"\s*\}/m,
 		);
-		// Remove the _run_protocol function body before checking for bare bun calls
-		const lines = shellScript.split("\n");
-		const filtered: string[] = [];
-		let inHelper = false;
-		for (const line of lines) {
-			if (line.includes("_run_protocol() {")) { inHelper = true; continue; }
-			if (inHelper) {
-				if (line.trim() === "}") { inHelper = false; continue; }
-				continue;
-			}
-			filtered.push(line);
-		}
-		expect(filtered.join("\n")).not.toMatch(/bun.*\$PROTOCOL_CLI/);
+		assert.doesNotMatch(shellScript, /bun.*\$PROTOCOL_CLI/);
 	});
 
 	test("bunfig.toml disables runtime auto-install", () => {
-		const bunfig = read("skills/loop-clean/protocol/bunfig.toml");
-		expect(bunfig).toContain("[install]");
-		expect(bunfig).toContain('auto = "disable"');
+		const protocolRoot = resolve(repositoryRoot, "skills/loop-clean/protocol");
+		const protocolPackage = JSON.parse(
+			read("skills/loop-clean/protocol/package.json"),
+		);
+		assert.strictEqual(existsSync(resolve(protocolRoot, "bunfig.toml")), false);
+		assert.strictEqual(protocolPackage.packageManager, "pnpm@11.24.0");
 	});
-
 });

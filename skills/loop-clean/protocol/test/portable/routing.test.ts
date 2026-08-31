@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, describe, test } from "node:test";
 import { computeFindingId } from "../../src/findings/finding-id.ts";
 import type { RoutingCategory } from "../../src/routing/routing-schema.ts";
 import { validateRouting } from "../../src/routing/validate-routing.ts";
@@ -168,10 +169,11 @@ describe("validateRouting", () => {
 			...inputs,
 			deferredOutputFile: inputs.deferredFile,
 		});
-		expect(result.actionable_count).toBe(6);
-		expect(result.routed_count).toBe(6);
-		const deferred = JSON.parse(await Bun.file(inputs.deferredFile).text());
-		expect(deferred.entries).toEqual(
+		assert.strictEqual(result.actionable_count, 6);
+		assert.strictEqual(result.routed_count, 6);
+		const deferred = JSON.parse(await readFile(inputs.deferredFile, "utf8"));
+		assert.deepStrictEqual(
+			deferred.entries,
 			[
 				{
 					finding_id: routeId("backlog-new"),
@@ -210,18 +212,23 @@ describe("validateRouting", () => {
 		]) {
 			const inputs = await setup([finding("a"), finding("b")]);
 			await writeJson(inputs.routingFile, routing(categories));
-			await expect(
-				validateRouting({ ...inputs, deferredOutputFile: inputs.deferredFile }),
-			).resolves.toMatchObject({ actionable_count: 2, routed_count: 2 });
+			await assert.partialDeepStrictEqual(
+				await validateRouting({
+					...inputs,
+					deferredOutputFile: inputs.deferredFile,
+				}),
+				{ actionable_count: 2, routed_count: 2 },
+			);
 		}
 	});
 
 	test("rejects a forgotten finding", async () => {
 		const inputs = await setup([finding("a"), finding("b")]);
 		await writeJson(inputs.routingFile, routing({ fix_now_applied: ["a"] }));
-		await expect(
+		await assert.rejects(
 			validateRouting({ ...inputs, deferredOutputFile: inputs.deferredFile }),
-		).rejects.toThrow(/missing/i);
+			/missing/i,
+		);
 	});
 
 	test("rejects one finding routed into two categories", async () => {
@@ -230,9 +237,10 @@ describe("validateRouting", () => {
 			inputs.routingFile,
 			routing({ fix_now_applied: ["a"], backlog_added: ["a"] }),
 		);
-		await expect(
+		await assert.rejects(
 			validateRouting({ ...inputs, deferredOutputFile: inputs.deferredFile }),
-		).rejects.toThrow(/more than one/i);
+			/more than one/i,
+		);
 	});
 
 	test("rejects invented IDs", async () => {
@@ -241,9 +249,10 @@ describe("validateRouting", () => {
 			inputs.routingFile,
 			routing({ fix_now_applied: ["a"], backlog_added: ["invented"] }),
 		);
-		await expect(
+		await assert.rejects(
 			validateRouting({ ...inputs, deferredOutputFile: inputs.deferredFile }),
-		).rejects.toThrow(/non-actionable/i);
+			/non-actionable/i,
+		);
 	});
 
 	test("requires runtime failures to be fixed now", async () => {
@@ -256,9 +265,10 @@ describe("validateRouting", () => {
 			"escalated",
 		] as const) {
 			await writeJson(inputs.routingFile, routing({ [category]: ["runtime"] }));
-			await expect(
+			await assert.rejects(
 				validateRouting({ ...inputs, deferredOutputFile: inputs.deferredFile }),
-			).rejects.toThrow(/runtime.*fix_now_applied/i);
+				/runtime.*fix_now_applied/i,
+			);
 		}
 	});
 
@@ -268,9 +278,10 @@ describe("validateRouting", () => {
 			...routing({ fix_now_applied: ["a"] }),
 			scope_digest: "d".repeat(64),
 		});
-		await expect(
+		await assert.rejects(
 			validateRouting({ ...inputs, deferredOutputFile: inputs.deferredFile }),
-		).rejects.toThrow(/scope_digest/i);
+			/scope_digest/i,
+		);
 	});
 
 	test("rejects routed findings without category-specific evidence", async () => {
@@ -279,8 +290,8 @@ describe("validateRouting", () => {
 			...routing({ fix_now_applied: [] }),
 			fix_now_applied: [{ finding_id: routeId("a") }],
 		});
-		await expect(
+		await assert.rejects(
 			validateRouting({ ...inputs, deferredOutputFile: inputs.deferredFile }),
-		).rejects.toThrow();
+		);
 	});
 });

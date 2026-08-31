@@ -9,6 +9,10 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import {
+	decodeProcessOutput,
+	executeProcess,
+} from "../../src/shared/execute-process.ts";
 
 export interface ProcessResult {
 	readonly exitCode: number;
@@ -23,18 +27,17 @@ export async function runProcess(
 		readonly env?: Record<string, string | undefined>;
 	},
 ): Promise<ProcessResult> {
-	const processHandle = Bun.spawn([...command], {
+	const [executable, ...args] = command;
+	if (!executable) throw new Error("process command must not be empty");
+	const result = await executeProcess(executable, args, {
 		cwd: options.cwd,
 		env: { ...process.env, ...options.env },
-		stdout: "pipe",
-		stderr: "pipe",
 	});
-	const [stdout, stderr, exitCode] = await Promise.all([
-		new Response(processHandle.stdout).text(),
-		new Response(processHandle.stderr).text(),
-		processHandle.exited,
-	]);
-	return { exitCode, stdout, stderr };
+	return {
+		exitCode: result.exitCode,
+		stdout: decodeProcessOutput(result.stdout),
+		stderr: result.stderr,
+	};
 }
 
 export async function requireProcess(

@@ -1,18 +1,17 @@
-import { describe, expect, test } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
 import {
-	detectRawGitMutation,
-	detectCommitIntent,
-	isGitCommitsPushSkillCommand,
-	evaluateEnforcement,
 	buildDirectGitDeniedReason,
-	TRUSTED_MARKER_ENV,
-	TRUSTED_MARKER_VALUE,
-	// Legacy
-	isGitCommit,
+	detectCommitIntent,
+	detectRawGitMutation,
+	evaluateEnforcement,
 	extractMessage,
-	isValidCC,
 	hasPush,
-} from "../validator";
+	isGitCommit,
+	isGitCommitsPushSkillCommand,
+	isValidCC,
+	recognizeGitCommitsPushCommand,
+} from "../validator.ts";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Legacy utilities
@@ -20,20 +19,16 @@ import {
 
 describe("legacy utilities", () => {
 	test("isGitCommit detects git commit", () => {
-		expect(isGitCommit("git commit -m 'msg'")).toBe(true);
-		expect(isGitCommit("git push")).toBe(false);
+		assert.strictEqual(isGitCommit("git commit -m 'msg'"), true);
+		assert.strictEqual(isGitCommit("git push"), false);
 	});
 
 	test("extractMessage from double quotes", () => {
-		expect(extractMessage('git commit -m "feat(api): add route"')).toBe(
-			"feat(api): add route",
-		);
+		assert.strictEqual(extractMessage('git commit -m "feat(api): add route"'), "feat(api): add route");
 	});
 
 	test("extractMessage from single quotes", () => {
-		expect(extractMessage("git commit -m 'fix(ui): button'")).toBe(
-			"fix(ui): button",
-		);
+		assert.strictEqual(extractMessage("git commit -m 'fix(ui): button'"), "fix(ui): button");
 	});
 
 	test("extractMessage from heredoc", () => {
@@ -41,26 +36,26 @@ describe("legacy utilities", () => {
 feat(core): something
 details
 EOF`;
-		expect(extractMessage(cmd)).toBe("feat(core): something");
+		assert.strictEqual(extractMessage(cmd), "feat(core): something");
 	});
 
 	test("extractMessage returns null when no -m", () => {
-		expect(extractMessage("git commit")).toBeNull();
+		assert.strictEqual(extractMessage("git commit"), null);
 	});
 
 	test("isValidCC accepts valid CC messages", () => {
-		expect(isValidCC("feat(scope): add endpoint")).toBe(true);
-		expect(isValidCC("fix: repair")).toBe(true);
+		assert.strictEqual(isValidCC("feat(scope): add endpoint"), true);
+		assert.strictEqual(isValidCC("fix: repair"), true);
 	});
 
 	test("isValidCC rejects invalid CC messages", () => {
-		expect(isValidCC("WIP: something")).toBe(false);
-		expect(isValidCC("feat: ")).toBe(false);
+		assert.strictEqual(isValidCC("WIP: something"), false);
+		assert.strictEqual(isValidCC("feat: "), false);
 	});
 
 	test("hasPush detects git push", () => {
-		expect(hasPush("git commit -m '...' && git push")).toBe(true);
-		expect(hasPush("git commit")).toBe(false);
+		assert.strictEqual(hasPush("git commit -m '...' && git push"), true);
+		assert.strictEqual(hasPush("git commit"), false);
 	});
 });
 
@@ -70,24 +65,33 @@ EOF`;
 
 describe("isGitCommitsPushSkillCommand", () => {
 	test("detects /git-commits-push prefix", () => {
-		expect(isGitCommitsPushSkillCommand("/git-commits-push")).toBe(true);
+		assert.strictEqual(isGitCommitsPushSkillCommand("/git-commits-push"), true);
 	});
 
 	test("detects /git-commits-push with args", () => {
-		expect(isGitCommitsPushSkillCommand("/git-commits-push --force")).toBe(true);
+		assert.strictEqual(isGitCommitsPushSkillCommand("/git-commits-push --force"), true);
 	});
 
-	test("detects skill launch path", () => {
-		expect(
-			isGitCommitsPushSkillCommand(
-				"cd /Users/me/.agents/skills/git-commits-push && bun run start",
-			),
-		).toBe(true);
+	test("accepts the canonical skill launch and rejects the retired launch", () => {
+		const retiredLaunch =
+			"cd /Users/me/.agents/skills/git-commits-push && bun run start";
+		const canonicalLaunch =
+			'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
+		assert.strictEqual(isGitCommitsPushSkillCommand(retiredLaunch), false);
+		assert.strictEqual(recognizeGitCommitsPushCommand(retiredLaunch), null);
+		assert.strictEqual(isGitCommitsPushSkillCommand(canonicalLaunch), true);
+		assert.strictEqual(recognizeGitCommitsPushCommand(canonicalLaunch), "pnpm-launch");
 	});
 
 	test("rejects unrelated commands", () => {
-		expect(isGitCommitsPushSkillCommand("git commit -m 'test'")).toBe(false);
-		expect(isGitCommitsPushSkillCommand("ls -la")).toBe(false);
+		assert.strictEqual(isGitCommitsPushSkillCommand("git commit -m 'test'"), false);
+		assert.strictEqual(isGitCommitsPushSkillCommand("ls -la"), false);
+		assert.strictEqual(isGitCommitsPushSkillCommand(
+				"cd ~/.agents/skills/git-commits-push && pnpm run start",
+			), false);
+		assert.strictEqual(isGitCommitsPushSkillCommand(
+				"cd ~/.agents/skills/git-commits-push; bun run start",
+			), false);
 	});
 });
 
@@ -98,165 +102,135 @@ describe("isGitCommitsPushSkillCommand", () => {
 describe("detectRawGitMutation", () => {
 	// Basic detection
 	test("detects git commit", () => {
-		expect(detectRawGitMutation("git commit -m 'msg'")).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("git commit -m 'msg'"), "commit");
 	});
 
 	test("detects git commit-tree", () => {
-		expect(detectRawGitMutation("git commit-tree abc123")).toBe("commit-tree");
+		assert.strictEqual(detectRawGitMutation("git commit-tree abc123"), "commit-tree");
 	});
 
 	test("detects git push", () => {
-		expect(detectRawGitMutation("git push origin main")).toBe("push");
+		assert.strictEqual(detectRawGitMutation("git push origin main"), "push");
 	});
 
 	test("detects git push --force", () => {
-		expect(detectRawGitMutation("git push --force")).toBe("push");
+		assert.strictEqual(detectRawGitMutation("git push --force"), "push");
 	});
 
 	test("returns null for non-mutation commands", () => {
-		expect(detectRawGitMutation("git status")).toBeNull();
-		expect(detectRawGitMutation("git diff")).toBeNull();
-		expect(detectRawGitMutation("ls -la")).toBeNull();
+		assert.strictEqual(detectRawGitMutation("git status"), null);
+		assert.strictEqual(detectRawGitMutation("git diff"), null);
+		assert.strictEqual(detectRawGitMutation("ls -la"), null);
 	});
 
 	// Git options before the subcommand
 	test("skips git -C before subcommand", () => {
-		expect(detectRawGitMutation("git -C /tmp commit -m 'x'")).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("git -C /tmp commit -m 'x'"), "commit");
 	});
 
 	test("skips git -c before subcommand", () => {
-		expect(
-			detectRawGitMutation("git -c user.name=Bot commit -m 'x'"),
-		).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("git -c user.name=Bot commit -m 'x'"), "commit");
 	});
 
 	test("skips multiple git options", () => {
-		expect(
-			detectRawGitMutation("git -C /tmp -c user.name=Bot commit -m 'x'"),
-		).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("git -C /tmp -c user.name=Bot commit -m 'x'"), "commit");
 	});
 
 	// Env prefix obfuscation
 	test("detects env-prefixed git commit", () => {
-		expect(detectRawGitMutation("GIT_AUTHOR_NAME=Bot git commit -m 'x'")).toBe(
-			"commit",
-		);
+		assert.strictEqual(detectRawGitMutation("GIT_AUTHOR_NAME=Bot git commit -m 'x'"), "commit");
 	});
 
 	test("detects env-prefixed git push", () => {
-		expect(
-			detectRawGitMutation("GIT_SSH_COMMAND=ssh git push origin main"),
-		).toBe("push");
+		assert.strictEqual(detectRawGitMutation("GIT_SSH_COMMAND=ssh git push origin main"), "push");
 	});
 
 	test("detects multiple env vars before git", () => {
-		expect(
-			detectRawGitMutation(
+		assert.strictEqual(detectRawGitMutation(
 				"GIT_AUTHOR_NAME=Bot GIT_AUTHOR_EMAIL=b@t.com git commit -m 'x'",
-			),
-		).toBe("commit");
+			), "commit");
 	});
 
 	// Shell -c obfuscation
 	test("detects git commit through bash -c", () => {
-		expect(
-			detectRawGitMutation("bash -c 'git commit -m test'"),
-		).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("bash -c 'git commit -m test'"), "commit");
 	});
 
 	test("detects git push through sh -c", () => {
-		expect(
-			detectRawGitMutation("sh -c 'git push origin main'"),
-		).toBe("push");
+		assert.strictEqual(detectRawGitMutation("sh -c 'git push origin main'"), "push");
 	});
 
 	test("detects git commit through zsh -c", () => {
-		expect(
-			detectRawGitMutation("zsh -c 'git commit -m msg'"),
-		).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("zsh -c 'git commit -m msg'"), "commit");
 	});
 
 	// Sudo obfuscation
 	test("detects git commit through sudo", () => {
-		expect(detectRawGitMutation("sudo git commit -m 'x'")).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("sudo git commit -m 'x'"), "commit");
 	});
 
 	test("detects git push through sudo", () => {
-		expect(detectRawGitMutation("sudo git push origin main")).toBe("push");
+		assert.strictEqual(detectRawGitMutation("sudo git push origin main"), "push");
 	});
 
 	// Env with -S (split) flag
 	test("detects git commit through env -S", () => {
-		expect(
-			detectRawGitMutation("env -S 'git commit -m test'"),
-		).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("env -S 'git commit -m test'"), "commit");
 	});
 
 	// Command chaining
 	test("detects git commit in chained commands", () => {
-		expect(
-			detectRawGitMutation("echo hello && git commit -m 'x'"),
-		).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("echo hello && git commit -m 'x'"), "commit");
 	});
 
 	test("detects git push after semicolon", () => {
-		expect(
-			detectRawGitMutation("cd /tmp; git push origin main"),
-		).toBe("push");
+		assert.strictEqual(detectRawGitMutation("cd /tmp; git push origin main"), "push");
 	});
 
 	// env command prefix
 	test("detects git commit through env command", () => {
-		expect(
-			detectRawGitMutation("env VAR=1 git commit -m 'x'"),
-		).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("env VAR=1 git commit -m 'x'"), "commit");
 	});
 
 	// BYPASS_GIT_ENFORCER=1 env prefix — should still be detected
 	test("detects BYPASS_GIT_ENFORCER env-prefixed commit", () => {
-		expect(
-			detectRawGitMutation("BYPASS_GIT_ENFORCER=1 git commit -m 'x'"),
-		).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("BYPASS_GIT_ENFORCER=1 git commit -m 'x'"), "commit");
 	});
 
 	// nohup, command, exec wrappers
 	test("detects git commit through nohup", () => {
-		expect(detectRawGitMutation("nohup git commit -m 'x'")).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("nohup git commit -m 'x'"), "commit");
 	});
 
 	test("detects git commit through command wrapper", () => {
-		expect(detectRawGitMutation("command git commit -m 'x'")).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("command git commit -m 'x'"), "commit");
 	});
 
 	test("detects git commit through exec wrapper", () => {
-		expect(detectRawGitMutation("exec git commit -m 'x'")).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("exec git commit -m 'x'"), "commit");
 	});
 
 	// Complex env with shell
 	test("detects env-prefix + bash -c combo", () => {
-		expect(
-			detectRawGitMutation("VAR=x bash -c 'git commit -m test'"),
-		).toBe("commit");
+		assert.strictEqual(detectRawGitMutation("VAR=x bash -c 'git commit -m test'"), "commit");
 	});
 
 	// Edge cases
 	test("returns null for git without subcommand", () => {
-		expect(detectRawGitMutation("git")).toBeNull();
+		assert.strictEqual(detectRawGitMutation("git"), null);
 	});
 
 	test("returns null for non-git command containing git word", () => {
-		expect(detectRawGitMutation("echo 'use git commit to save'")).toBeNull();
+		assert.strictEqual(detectRawGitMutation("echo 'use git commit to save'"), null);
 	});
 
 	test("returns null for empty string", () => {
-		expect(detectRawGitMutation("")).toBeNull();
+		assert.strictEqual(detectRawGitMutation(""), null);
 	});
 
 	// commit-tree with options
 	test("detects git commit-tree with options", () => {
-		expect(
-			detectRawGitMutation("git commit-tree -p HEAD abc123"),
-		).toBe("commit-tree");
+		assert.strictEqual(detectRawGitMutation("git commit-tree -p HEAD abc123"), "commit-tree");
 	});
 });
 
@@ -266,19 +240,19 @@ describe("detectRawGitMutation", () => {
 
 describe("detectCommitIntent", () => {
 	test("classifies raw git commit as git-commit", () => {
-		expect(detectCommitIntent("git commit -m 'x'")).toBe("git-commit");
+		assert.strictEqual(detectCommitIntent("git commit -m 'x'"), "git-commit");
 	});
 
 	test("classifies raw git push as git-commit", () => {
-		expect(detectCommitIntent("git push")).toBe("git-commit");
+		assert.strictEqual(detectCommitIntent("git push"), "git-commit");
 	});
 
 	test("classifies skill invocation as git-commits-push", () => {
-		expect(detectCommitIntent("/git-commits-push")).toBe("git-commits-push");
+		assert.strictEqual(detectCommitIntent("/git-commits-push"), "git-commits-push");
 	});
 
 	test("returns null for unrelated commands", () => {
-		expect(detectCommitIntent("ls -la")).toBeNull();
+		assert.strictEqual(detectCommitIntent("ls -la"), null);
 	});
 });
 
@@ -296,9 +270,9 @@ describe("evaluateEnforcement", () => {
 			trustToken: "valid-token",
 			validateToken: () => true,
 		});
-		expect(result.action).toBe("allow");
-		expect(result.eventType).toBe("enforcer_triggered");
-		expect(result.detectedBy).toBe("git-commits-push");
+		assert.strictEqual(result.action, "allow");
+		assert.strictEqual(result.eventType, "enforcer_triggered");
+		assert.strictEqual(result.detectedBy, "git-commits-push");
 	});
 
 	// Forged marker (no valid token)
@@ -308,9 +282,9 @@ describe("evaluateEnforcement", () => {
 			legacyBypassSet: false,
 			trustedSkillMarkerSet: true,
 		});
-		expect(result.action).toBe("block");
-		expect(result.eventType).toBe("blocked");
-		expect(result.deniedReason).toContain("Forged trusted marker");
+		assert.strictEqual(result.action, "block");
+		assert.strictEqual(result.eventType, "blocked");
+		assert.ok(result.deniedReason?.includes("Forged trusted marker"));
 	});
 
 	test("blocks when trusted marker is set but token is invalid", () => {
@@ -321,8 +295,8 @@ describe("evaluateEnforcement", () => {
 			trustToken: "bad-token",
 			validateToken: () => false,
 		});
-		expect(result.action).toBe("block");
-		expect(result.deniedReason).toContain("Forged trusted marker");
+		assert.strictEqual(result.action, "block");
+		assert.ok(result.deniedReason?.includes("Forged trusted marker"));
 	});
 
 	// Skill invocations
@@ -332,9 +306,9 @@ describe("evaluateEnforcement", () => {
 			legacyBypassSet: false,
 			trustedSkillMarkerSet: false,
 		});
-		expect(result.action).toBe("allow");
-		expect(result.eventType).toBe("enforcer_triggered");
-		expect(result.detectedBy).toBe("git-commits-push");
+		assert.strictEqual(result.action, "allow");
+		assert.strictEqual(result.eventType, "enforcer_triggered");
+		assert.strictEqual(result.detectedBy, "git-commits-push");
 	});
 
 	// Non-commit commands
@@ -344,9 +318,9 @@ describe("evaluateEnforcement", () => {
 			legacyBypassSet: false,
 			trustedSkillMarkerSet: false,
 		});
-		expect(result.action).toBe("skip");
-		expect(result.eventType).toBe("skipped");
-		expect(result.skipReason).toBe("not-commit-intent");
+		assert.strictEqual(result.action, "skip");
+		assert.strictEqual(result.eventType, "skipped");
+		assert.strictEqual(result.skipReason, "not-commit-intent");
 	});
 
 	// Direct raw git — block
@@ -356,11 +330,11 @@ describe("evaluateEnforcement", () => {
 			legacyBypassSet: false,
 			trustedSkillMarkerSet: false,
 		});
-		expect(result.action).toBe("block");
-		expect(result.eventType).toBe("blocked");
-		expect(result.detectedBy).toBe("git-commit");
-		expect(result.mutation).toBe("commit");
-		expect(result.deniedReason).toContain("Direct git commits are blocked");
+		assert.strictEqual(result.action, "block");
+		assert.strictEqual(result.eventType, "blocked");
+		assert.strictEqual(result.detectedBy, "git-commit");
+		assert.strictEqual(result.mutation, "commit");
+		assert.ok(result.deniedReason?.includes("Direct git commits are blocked"));
 	});
 
 	test("blocks direct git push", () => {
@@ -369,8 +343,8 @@ describe("evaluateEnforcement", () => {
 			legacyBypassSet: false,
 			trustedSkillMarkerSet: false,
 		});
-		expect(result.action).toBe("block");
-		expect(result.mutation).toBe("push");
+		assert.strictEqual(result.action, "block");
+		assert.strictEqual(result.mutation, "push");
 	});
 
 	// Legacy bypass — allow (Pi/Codex mode)
@@ -381,9 +355,9 @@ describe("evaluateEnforcement", () => {
 			trustedSkillMarkerSet: false,
 			allowLegacyBypass: true,
 		});
-		expect(result.action).toBe("skip");
-		expect(result.eventType).toBe("skipped");
-		expect(result.skipReason).toBe("bypass-enforcer");
+		assert.strictEqual(result.action, "skip");
+		assert.strictEqual(result.eventType, "skipped");
+		assert.strictEqual(result.skipReason, "bypass-enforcer");
 	});
 
 	// Legacy bypass — block (Gravity mode)
@@ -394,9 +368,9 @@ describe("evaluateEnforcement", () => {
 			trustedSkillMarkerSet: false,
 			allowLegacyBypass: false,
 		});
-		expect(result.action).toBe("block");
-		expect(result.eventType).toBe("blocked");
-		expect(result.deniedReason).toContain("BYPASS_GIT_ENFORCER is deprecated");
+		assert.strictEqual(result.action, "block");
+		assert.strictEqual(result.eventType, "blocked");
+		assert.ok(result.deniedReason?.includes("BYPASS_GIT_ENFORCER is deprecated"));
 	});
 
 	// Env-prefix bypass attempt — still blocked (detected)
@@ -407,8 +381,8 @@ describe("evaluateEnforcement", () => {
 			trustedSkillMarkerSet: false,
 			allowLegacyBypass: false,
 		});
-		expect(result.action).toBe("block");
-		expect(result.detectedBy).toBe("git-commit");
+		assert.strictEqual(result.action, "block");
+		assert.strictEqual(result.detectedBy, "git-commit");
 	});
 
 	// Trusted marker overrides everything (with valid token)
@@ -420,7 +394,7 @@ describe("evaluateEnforcement", () => {
 			trustToken: "tok",
 			validateToken: () => true,
 		});
-		expect(result.action).toBe("allow");
+		assert.strictEqual(result.action, "allow");
 	});
 });
 
@@ -431,14 +405,14 @@ describe("evaluateEnforcement", () => {
 describe("buildDirectGitDeniedReason", () => {
 	test("includes the command in the reason", () => {
 		const reason = buildDirectGitDeniedReason("git commit -m 'x'");
-		expect(reason).toContain("Direct git commits are blocked");
-		expect(reason).toContain('git commit -m \'x\'');
+		assert.ok((reason).includes("Direct git commits are blocked"));
+		assert.ok((reason).includes('git commit -m \'x\''));
 	});
 
 	test("truncates long commands", () => {
 		const longCmd = "git commit -m '" + "x".repeat(100) + "'";
 		const reason = buildDirectGitDeniedReason(longCmd);
-		expect(reason.length).toBeLessThan(longCmd.length + 100);
-		expect(reason).toContain("...");
+		assert.ok((reason.length) < (longCmd.length + 100));
+		assert.ok((reason).includes("..."));
 	});
 });

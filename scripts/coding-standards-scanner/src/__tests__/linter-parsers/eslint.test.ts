@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { parseEslintJson } from "../../lib/linter-parsers/eslint.ts";
 
 // Golden fixture: shape of `eslint --format json` output (trimmed).
@@ -40,36 +41,39 @@ const GOLDEN = JSON.stringify([
 describe("parseEslintJson", () => {
 	it("parses the golden fixture", () => {
 		const findings = parseEslintJson(GOLDEN);
-		expect(findings).toHaveLength(2);
+		assert.strictEqual(findings.length, 2);
 
 		const any = findings.find(
 			(f) => f.ruleId === "@typescript-eslint/no-explicit-any",
 		);
-		expect(any).toBeDefined();
-		expect(any?.file).toBe("/repo/src/foo.ts");
-		expect(any?.line_start).toBe(12);
-		expect(any?.line_end).toBe(12);
+		assert.notStrictEqual(any, undefined);
+		assert.strictEqual(any?.file, "/repo/src/foo.ts");
+		assert.strictEqual(any?.line_start, 12);
+		assert.strictEqual(any?.line_end, 12);
 
 		const empty = findings.find((f) => f.ruleId === "no-empty");
-		expect(empty).toBeDefined();
-		expect(empty?.line_start).toBe(30);
-		expect(empty?.line_end).toBe(32);
+		assert.notStrictEqual(empty, undefined);
+		assert.strictEqual(empty?.line_start, 30);
+		assert.strictEqual(empty?.line_end, 32);
 	});
 
 	it("returns [] on empty input", () => {
-		expect(parseEslintJson("")).toEqual([]);
+		assert.deepStrictEqual(parseEslintJson(""), []);
 	});
 
 	it("returns [] on invalid JSON", () => {
-		expect(parseEslintJson("not json")).toEqual([]);
+		assert.deepStrictEqual(parseEslintJson("not json"), []);
 	});
 
 	it("returns [] on non-array JSON", () => {
-		expect(parseEslintJson('{"foo":"bar"}')).toEqual([]);
+		assert.deepStrictEqual(parseEslintJson('{"foo":"bar"}'), []);
 	});
 
 	it("drops messages with null ruleId (parser errors)", () => {
 		const findings = parseEslintJson(GOLDEN);
-		expect(findings.every((f) => f.ruleId !== null)).toBe(true);
+		assert.strictEqual(
+			findings.every((f) => f.ruleId !== null),
+			true,
+		);
 	});
 });

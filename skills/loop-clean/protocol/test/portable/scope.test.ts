@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import assert from "node:assert/strict";
 import { mkdir, realpath, unlink } from "node:fs/promises";
 import { join } from "node:path";
+import { afterEach, describe, test } from "node:test";
 import { collectScope } from "../../src/scope/collect-scope.ts";
 import { parsePorcelainV2 } from "../../src/scope/parse-porcelain-v2.ts";
 import {
@@ -39,7 +40,11 @@ describe("collectScope", () => {
 				`export const value = "${path}";\n`,
 			);
 		}
-		await writeRepositoryFile(root, ".gitignore", "ignored.ts\n.agents/run/\n.claude/run/\n");
+		await writeRepositoryFile(
+			root,
+			".gitignore",
+			"ignored.ts\n.agents/run/\n.claude/run/\n",
+		);
 		await writeRepositoryFile(root, "backlog.md", "# Backlog\n");
 		await writeRepositoryFile(root, "design-queue.md", "# Design queue\n");
 		await writeRepositoryFile(
@@ -94,48 +99,49 @@ describe("collectScope", () => {
 			manifest.entries.map((entry) => [entry.path, entry]),
 		);
 
-		expect([...byPath.keys()]).not.toContain("ignored.ts");
-		expect([...byPath.keys()]).not.toContain("committed-only.ts");
-		expect(byPath.get("unstaged.ts")).toMatchObject({
+		assert.ok(![...byPath.keys()].includes("ignored.ts"));
+		assert.ok(![...byPath.keys()].includes("committed-only.ts"));
+		assert.partialDeepStrictEqual(byPath.get("unstaged.ts"), {
 			kind: "tracked",
 			index_status: ".",
 			worktree_status: "M",
 			exists: true,
 			eligible_for_audit: true,
 		});
-		expect(byPath.get("staged.ts")).toMatchObject({
+		assert.partialDeepStrictEqual(byPath.get("staged.ts"), {
 			kind: "tracked",
 			index_status: "M",
 			worktree_status: ".",
 		});
-		expect(byPath.get("both.ts")).toMatchObject({
+		assert.partialDeepStrictEqual(byPath.get("both.ts"), {
 			index_status: "M",
 			worktree_status: "M",
 		});
-		expect(
-			manifest.entries.filter((entry) => entry.path === "both.ts"),
-		).toHaveLength(1);
-		expect(byPath.get("untracked.ts")).toMatchObject({
+		assert.strictEqual(
+			manifest.entries.filter((entry) => entry.path === "both.ts").length,
+			1,
+		);
+		assert.partialDeepStrictEqual(byPath.get("untracked.ts"), {
 			kind: "untracked",
 			exists: true,
 		});
-		expect(byPath.get("renamed name.ts")).toMatchObject({
+		assert.partialDeepStrictEqual(byPath.get("renamed name.ts"), {
 			kind: "renamed",
 			original_path: "old-name.ts",
 		});
-		expect(byPath.get("deleted.ts")).toMatchObject({
+		assert.partialDeepStrictEqual(byPath.get("deleted.ts"), {
 			kind: "deleted",
 			exists: false,
 		});
-		expect(byPath.has("path with spaces.ts")).toBe(true);
-		expect(byPath.has("src/café-東京.ts")).toBe(true);
+		assert.strictEqual(byPath.has("path with spaces.ts"), true);
+		assert.strictEqual(byPath.has("src/café-東京.ts"), true);
 		for (const ledgerPath of [
 			".claude/run/tracked.json",
 			"backlog.md",
 			"design-queue.md",
 			"backlog.archive.md",
 		]) {
-			expect(byPath.get(ledgerPath)).toMatchObject({
+			assert.partialDeepStrictEqual(byPath.get(ledgerPath), {
 				eligible_for_audit: false,
 			});
 		}
@@ -145,8 +151,8 @@ describe("collectScope", () => {
 		const root = await repository({ withBaseline: false });
 		await writeRepositoryFile(root, "first.ts", "export const first = true;\n");
 		const manifest = await collectScope(root);
-		expect(manifest.entries).toHaveLength(1);
-		expect(manifest.entries[0]).toMatchObject({
+		assert.strictEqual(manifest.entries.length, 1);
+		assert.partialDeepStrictEqual(manifest.entries[0], {
 			path: "first.ts",
 			kind: "untracked",
 			exists: true,
@@ -164,10 +170,11 @@ describe("collectScope", () => {
 		await writeRepositoryFile(inner, "inner-untracked.ts", "export {};\n");
 
 		const manifest = await collectScope(inner);
-		expect(manifest.repo_root).toBe(await realpath(inner));
-		expect(manifest.entries.map((entry) => entry.path)).toEqual([
-			"inner-untracked.ts",
-		]);
+		assert.strictEqual(manifest.repo_root, await realpath(inner));
+		assert.deepStrictEqual(
+			manifest.entries.map((entry) => entry.path),
+			["inner-untracked.ts"],
+		);
 	});
 
 	test("digest ignores record order, timestamp, and absolute repository path", async () => {
@@ -177,9 +184,9 @@ describe("collectScope", () => {
 		await writeRepositoryFile(second, "same.ts", "export {};\n");
 		const firstManifest = await collectScope(first);
 		const secondManifest = await collectScope(second);
-		expect(firstManifest.repo_root).not.toBe(secondManifest.repo_root);
-		expect(firstManifest.generated_at).toBeString();
-		expect(firstManifest.digest).toBe(secondManifest.digest);
+		assert.notStrictEqual(firstManifest.repo_root, secondManifest.repo_root);
+		assert.strictEqual(typeof firstManifest.generated_at, "string");
+		assert.strictEqual(firstManifest.digest, secondManifest.digest);
 	});
 
 	test("index_digest changes when only the staged blob changes (MM→M. scenario)", async () => {
@@ -196,33 +203,30 @@ describe("collectScope", () => {
 		await runGit(root, ["add", "mm-file.ts"]);
 		const afterStage = await collectScope(root);
 
-		// Restore worktree to HEAD content (v1) without touching the index
-		await runGit(root, [
-			"restore",
-			"--source=HEAD",
-			"--worktree",
-			"--",
-			"mm-file.ts",
-		]);
+		// Restore worktree to HEAD content (v1) without touching the index.
+		// `git restore` is unavailable on the Git 2.17 High Sierra baseline.
+		const headContents = await runGit(root, ["show", "HEAD:mm-file.ts"]);
+		await writeRepositoryFile(root, "mm-file.ts", `${headContents}\n`);
 		const indexOnlyModified = await collectScope(root);
 
 		// index_digest must change when something is staged
-		expect(afterWorktree.index_digest).not.toBe(afterStage.index_digest);
+		assert.notStrictEqual(afterWorktree.index_digest, afterStage.index_digest);
 
 		// content_digest is stable: both states have same worktree content (v2)
-		expect(afterWorktree.content_digest).toBe(afterStage.content_digest);
+		assert.strictEqual(afterWorktree.content_digest, afterStage.content_digest);
 
 		// When worktree is restored to HEAD but index is still modified:
 		// The entry set is the same (one modified tracked file),
 		// content_digest matches because worktree = HEAD (v1)
-		expect(indexOnlyModified.content_digest).not.toBe(
+		assert.notStrictEqual(
+			indexOnlyModified.content_digest,
 			afterStage.content_digest,
 		);
-		expect(indexOnlyModified.index_digest).toBe(afterStage.index_digest);
+		assert.strictEqual(indexOnlyModified.index_digest, afterStage.index_digest);
 
 		// digest (canonical) must differ between states
-		expect(afterWorktree.digest).not.toBe(afterStage.digest);
-		expect(afterStage.digest).not.toBe(indexOnlyModified.digest);
+		assert.notStrictEqual(afterWorktree.digest, afterStage.digest);
+		assert.notStrictEqual(afterStage.digest, indexOnlyModified.digest);
 	});
 
 	test("index_digest changes for executable mode change in the index", async () => {
@@ -236,10 +240,10 @@ describe("collectScope", () => {
 		await runGit(root, ["update-index", "--chmod=+x", "script.sh"]);
 		const after = await collectScope(root);
 
-		expect(after.index_digest).not.toBe(before.index_digest);
+		assert.notStrictEqual(after.index_digest, before.index_digest);
 		// content_digest changes because the scope gained an entry (index modified)
-		expect(after.content_digest).not.toBe(before.content_digest);
-		expect(after.digest).not.toBe(before.digest);
+		assert.notStrictEqual(after.content_digest, before.content_digest);
+		assert.notStrictEqual(after.digest, before.digest);
 	});
 
 	test("index unchanged but worktree modified: index_digest stable, content_digest changes", async () => {
@@ -253,10 +257,10 @@ describe("collectScope", () => {
 		await writeRepositoryFile(root, "mod.ts", "v2\n");
 		const after = await collectScope(root);
 
-		expect(after.index_digest).toBe(before.index_digest);
-		expect(after.content_digest).not.toBe(before.content_digest);
-		expect(after.digest).not.toBe(before.digest);
-		expect(after.entries[0]).toMatchObject({
+		assert.strictEqual(after.index_digest, before.index_digest);
+		assert.notStrictEqual(after.content_digest, before.content_digest);
+		assert.notStrictEqual(after.digest, before.digest);
+		assert.partialDeepStrictEqual(after.entries[0], {
 			index_status: ".",
 			worktree_status: "M",
 		});
@@ -268,9 +272,9 @@ describe("collectScope", () => {
 		const first = await collectScope(root);
 		await writeRepositoryFile(root, "dirty.ts", "dirty-v2\n");
 		const second = await collectScope(root);
-		expect(second.entries).toEqual(first.entries);
-		expect(second.content_digest).not.toBe(first.content_digest);
-		expect(second.digest).not.toBe(first.digest);
+		assert.deepStrictEqual(second.entries, first.entries);
+		assert.notStrictEqual(second.content_digest, first.content_digest);
+		assert.notStrictEqual(second.digest, first.digest);
 	});
 });
 
@@ -291,19 +295,15 @@ describe("parsePorcelainV2", () => {
 			].join("\0"),
 		);
 		const records = parsePorcelainV2(input);
-		expect(records.map((record) => record.kind)).toEqual([
-			"tracked",
-			"deleted",
-			"renamed",
-			"copied",
-			"unmerged",
-			"untracked",
-		]);
-		expect(records[2]).toMatchObject({
+		assert.deepStrictEqual(
+			records.map((record) => record.kind),
+			["tracked", "deleted", "renamed", "copied", "unmerged", "untracked"],
+		);
+		assert.partialDeepStrictEqual(records[2], {
 			path: "renamed.ts",
 			original_path: "old.ts",
 		});
-		expect(records[3]).toMatchObject({
+		assert.partialDeepStrictEqual(records[3], {
 			path: "copied.ts",
 			original_path: "source.ts",
 		});
@@ -311,6 +311,6 @@ describe("parsePorcelainV2", () => {
 
 	test("rejects non-UTF-8 Git paths instead of decoding them lossily", () => {
 		const input = Uint8Array.from([63, 32, 0xff, 0]);
-		expect(() => parsePorcelainV2(input)).toThrow(/UTF-8/i);
+		assert.throws(() => parsePorcelainV2(input), /UTF-8/i);
 	});
 });

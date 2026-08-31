@@ -70,7 +70,7 @@ field. Everything below feeds the mechanical step.
 Pipe the JSON from STEP 1 into the script bundled with this skill:
 
 ```bash
-echo '<json>' | ./scripts/bootstrap-docs
+echo '<json>' | node ~/.agents/skills/document-self-modif/scripts/bootstrap-docs.mjs
 ```
 
 It writes the markdown file, updates the docs index,
@@ -79,7 +79,7 @@ tree — all in one shot. **Zero LLM calls after STEP 1.**
 
 ## Bundled Resources
 
-- **[bootstrap-docs](scripts/bootstrap-docs)** — main script, does everything
-- **[lib.ts](scripts/lib.ts)** — pure functions for index, QuickNav, tree ops
-- **[bootstrap-docs.test.ts](scripts/__tests__/bootstrap-docs.test.ts)** — integration tests (8)
-- **[lib.test.ts](scripts/__tests__/lib.test.ts)** — unit tests (30)
+- **[bootstrap-docs.mjs](scripts/bootstrap-docs.mjs)** — active Node script, does everything
+- **[lib.mjs](scripts/lib.mjs)** — active pure functions for index, QuickNav, tree ops
+- **[bootstrap-docs.test.mjs](scripts/__tests__/bootstrap-docs.test.mjs)** — Node integration tests (7)
+- **[lib.test.mjs](scripts/__tests__/lib.test.mjs)** — Node unit tests (31)

@@ -1,4 +1,5 @@
 import { extname } from "node:path";
+import { runProcess } from "../../../../packages/node-runtime/src/index.ts";
 import type { StackConfig } from "./stack-config.ts";
 
 const TOOL_TIMEOUT_MS = 30_000;
@@ -20,12 +21,8 @@ export interface PipelineResult {
  *  semantics on missing linters). */
 export async function isInstalled(tool: string): Promise<boolean> {
 	try {
-		const proc = Bun.spawn(["which", tool], {
-			stdout: "pipe",
-			stderr: "pipe",
-		});
-		const exitCode = await proc.exited;
-		return exitCode === 0;
+		const result = await runProcess({ command: "which", args: [tool] });
+		return result.exitCode === 0;
 	} catch {
 		return false;
 	}
@@ -38,24 +35,16 @@ async function runTool(
 ): Promise<LintResult> {
 	const toolName = command[0];
 	try {
-		const proc = Bun.spawn(command, {
-			stdout: "pipe",
-			stderr: "pipe",
-			timeout: TOOL_TIMEOUT_MS,
-		});
-
-		const [stdout, stderr, exitCode] = await Promise.all([
-			new Response(proc.stdout).text(),
-			new Response(proc.stderr).text(),
-			proc.exited,
-		]);
-
-		const output = (stdout + stderr).trim();
+		const result = await runProcess(
+			{ command: toolName, args: command.slice(1) },
+			{ timeoutMs: TOOL_TIMEOUT_MS },
+		);
+		const output = (result.stdout + result.stderr).trim();
 
 		return {
 			tool: toolName,
 			phase,
-			success: exitCode === 0,
+			success: result.exitCode === 0,
 			output,
 		};
 	} catch (error) {

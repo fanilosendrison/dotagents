@@ -1,18 +1,45 @@
 {
-  "name": "dotagents",
-  "private": true,
-  "scripts": {
-    "test": "bun run test:install && bun run test:root && bun run test:scripts && bun run test:protocol",
-    "test:install": "bun install --frozen-lockfile && bun install --cwd skills/create-symlink-for-dot-folders --frozen-lockfile && bun install --cwd skills/git-commits-push --frozen-lockfile && bun install --cwd skills/go --frozen-lockfile && bun install --cwd scripts --frozen-lockfile && bun install --cwd skills/loop-clean/protocol --frozen-lockfile",
-    "test:root": "bun test --timeout 60000 --path-ignore-patterns='scripts/**' --path-ignore-patterns='skills/loop-clean/protocol/**'",
-    "test:scripts": "bun run --cwd scripts test",
-    "test:protocol": "bun run --cwd skills/loop-clean/protocol typecheck && bun run --cwd skills/loop-clean/protocol test:all"
-  },
-  "dependencies": {
-    "js-yaml": "^4.1.0"
-  },
-  "devDependencies": {
-    "@types/bun": "^1.3.14",
-    "@types/js-yaml": "^4.0.9"
-  }
+	"name": "dotagents",
+	"private": true,
+	"type": "module",
+	"packageManager": "pnpm@11.24.0",
+	"engines": {
+		"node": ">=22.19.0",
+		"pnpm": "11.24.0"
+	},
+	"scripts": {
+		"build:git-commits-push": "pnpm --filter git-commits-push-tl run build:node",
+		"build:node-runtime": "pnpm --filter @dotagents/node-runtime run build",
+		"build:skill-validator": "pnpm --filter @dotagents/skill-validator run build",
+		"test": "pnpm run test:git-commits-push-node-full && pnpm run test:root:node && pnpm run test:scripts-node && pnpm run test:go-node && pnpm run test:protocol",
+		"test:root:node": "pnpm run test:node-runtime && pnpm run test:create-symlink && pnpm run test:documentation-bootstraps && pnpm run test:skill-validator && pnpm run test:git-commits-push-launch-recognition && pnpm run test:agent-enforcers-node && pnpm run test:document-wrapper && pnpm run test:bun-policy",
+		"test:git-commits-push-node-full": "pnpm --filter git-commits-push-tl run test",
+		"test:scripts-node": "pnpm --filter @dotagents/scripts run test",
+		"test:go-node": "pnpm --filter go-stage-harness run typecheck && pnpm --filter go-stage-harness run test",
+		"test:protocol": "pnpm --filter @dotagents/loop-clean-protocol run typecheck && pnpm --filter @dotagents/loop-clean-protocol run test:all",
+		"test:agent-enforcers-node": "node agent-enforcers/test/run-tests.mjs",
+		"test:create-symlink": "pnpm --filter create-symlink-for-dot-folders run test",
+		"test:documentation-bootstraps": "node --test --test-concurrency=1 --test-timeout=30000 --test-reporter=tap skills/document-agent-enforcement/scripts/__tests__/bootstrap-enforcer-docs.test.mjs skills/document-agent-enforcement/scripts/__tests__/lib.test.mjs skills/document-self-modif/scripts/__tests__/bootstrap-docs.test.mjs skills/document-self-modif/scripts/__tests__/lib.test.mjs",
+		"test:document-wrapper": "node --test --test-concurrency=1 --test-timeout=30000 --test-reporter=tap skills/document-wrapper/scripts/__tests__/bootstrap-wrapper-docs.test.mjs skills/document-wrapper/scripts/__tests__/lib.test.mjs",
+		"test:bun-policy": "node --test --test-concurrency=1 --test-timeout=30000 --test-reporter=tap scripts/test/bun-policy.test.mjs",
+		"test:git-commits-push-launch-recognition": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test --test-concurrency=1 --test-timeout=30000 --test-reporter=tap agent-enforcers/git-commits-push-enforcer/src/core/__tests__/launch-recognition.node.mjs",
+		"test:git-commits-push-node-build": "pnpm --filter git-commits-push-tl run test:node:build",
+		"test:node-runtime": "pnpm --filter @dotagents/node-runtime run test",
+		"test:skill-validator": "pnpm --filter @dotagents/skill-validator run test",
+		"typecheck:agent-enforcers": "tsc -p agent-enforcers/tsconfig.json",
+		"typecheck:git-commits-push": "pnpm --filter git-commits-push-tl run typecheck:node",
+		"typecheck:node-runtime": "pnpm --filter @dotagents/node-runtime run typecheck",
+		"typecheck:scripts": "pnpm --filter @dotagents/scripts run typecheck",
+		"typecheck:skill-validator": "pnpm --filter @dotagents/skill-validator run typecheck",
+		"validate:skill": "pnpm run build:skill-validator && node skills/skill-creator/dist/quick-validate.mjs",
+		"validate:bun-policy": "node scripts/validate-bun-policy.mjs"
+	},
+	"dependencies": {
+		"js-yaml": "4.3.1"
+	},
+	"devDependencies": {
+		"@types/js-yaml": "^4.0.9",
+		"@types/node": "22.20.0",
+		"typescript": "5.9.3"
+	}
 }

@@ -26,13 +26,12 @@ import {
 ```
 lib/stack-tools/
 ├── CLAUDE.md
-├── package.json               # { name, type: module, private: true }
 └── src/
     ├── index.ts               # Public re-exports (stable surface)
     ├── extensions.ts          # CODE_EXTENSIONS, LINTER_EXTENSIONS, isCodeFile, isLinterCompatible
     ├── stack-config.ts        # findStackEval, readStackConfig, StackConfig
     ├── runner.ts              # isInstalled, runLintPipeline, LintResult, PipelineResult
-    └── __tests__/             # bun:test files mirroring lib module by module
+    └── __tests__/             # node:test files mirroring lib module by module
 ```
 
 ## Consumers
@@ -45,7 +44,7 @@ are not part of the stable surface.
 
 ## Invariants
 
-- **Zero npm deps** : uses Bun built-ins only (`Bun.YAML`, `Bun.spawn`, `Bun.file`).
+- **Shared runtime**: uses the repository Node runtime for subprocesses and fixed-schema YAML parsing, plus `node:fs` for file access.
 - **Fail-open** : `isInstalled` returns `false` on any failure, `runLintPipeline` returns a failing `LintResult` instead of throwing.
 - **Stable API** : the shapes of `StackConfig`, `LintResult`, `PipelineResult` must not change without updating all consumers in the same commit.
 - **30s tool timeout** : individual tool invocations are timeboxed in `runner.ts` via `TOOL_TIMEOUT_MS`.

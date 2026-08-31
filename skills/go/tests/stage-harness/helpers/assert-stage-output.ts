@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { expect } from "bun:test";
+import assert from "node:assert/strict";
 import type { StageOutput } from "../../../src/stage-harness/index.ts";
 
 export async function assertOutputJsonMatchesReturn(
@@ -10,7 +10,7 @@ export async function assertOutputJsonMatchesReturn(
     path.join(output.artefactDir, "output.json"),
     "utf8",
   );
-  expect(JSON.parse(payload)).toEqual(output);
+  assert.deepStrictEqual(JSON.parse(payload), output);
 }
 
 export async function assertNoOutputJson(artefactDir: string): Promise<void> {
@@ -30,14 +30,12 @@ export async function assertNoOutputJson(artefactDir: string): Promise<void> {
 }
 
 export function assertCanonicalFieldsAvailable(output: StageOutput): void {
-  expect(output.headShaAfter).not.toBeNull();
-  expect(output.trackedWorktreeHash).not.toBeNull();
-  expect(output.worktreeClean).not.toBeNull();
+  assert.notStrictEqual(output.headShaAfter, null);
+  assert.notStrictEqual(output.trackedWorktreeHash, null);
+  assert.notStrictEqual(output.worktreeClean, null);
 }
 
 export function assertErroredHasBlockingError(output: StageOutput): void {
-  expect(output.status).toBe("errored");
-  expect(output.errors.some((error) => error.severity === "blocking")).toBe(
-    true,
-  );
+  assert.strictEqual(output.status, "errored");
+  assert.strictEqual(output.errors.some((error) => error.severity === "blocking"), true);
 }

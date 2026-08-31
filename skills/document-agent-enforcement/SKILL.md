@@ -5,7 +5,7 @@ description: Document an agent-enforcer script (security rule, validator, linter
 
 # Document an Agent Enforcer
 
-Read `~/.agent/AGENTS.md`.
+Read `~/.agents/AGENTS.md`.
 You are documenting a strict security rule or guardrail script located in the `~/.agents/agent-enforcers/` directory.
 
 ## STEP 1. Read the Source Code
@@ -146,7 +146,7 @@ All share the **same core logic** : `<shared-file>`. Only include rows that exis
 Pipe the JSON from STEP 2 into the script bundled with this skill:
 
 ```bash
-echo '<json>' | ./scripts/bootstrap-enforcer-docs
+echo '<json>' | node ~/.agents/skills/document-agent-enforcement/scripts/bootstrap-enforcer-docs.mjs
 ```
 
 It writes `<topic>.md` in `~/.agents/docs/`, and updates the docs index all in one shot. **Zero LLM calls after STEP 2.**

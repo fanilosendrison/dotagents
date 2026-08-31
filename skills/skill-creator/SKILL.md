@@ -88,7 +88,7 @@ Run the setup:
 ./scripts/setup.sh
 ```
 
-For advanced usage, see [the reference guide](references/REFERENCE.md).
+For advanced usage, see [the workflow guide](references/workflows.md).
 ~~~
 
 ### Progressive Disclosure
@@ -156,7 +156,7 @@ Follow these steps in order. Skip a step only if there's a clear reason.
 2. Plan reusable contents (scripts, references, assets)
 3. Create the skill directory and SKILL.md
 4. Edit: implement resources and write SKILL.md
-5. Validate with [quick_validate.ts](scripts/quick_validate.ts)
+5. Validate with the compiled Node validator
 6. Iterate after real usage
 7. Commit to the dotagents repo
 
@@ -217,14 +217,14 @@ Delete any example files and directories you don't need.
 
 ### Step 5: Validate
 
-Run [scripts/quick_validate.ts](scripts/quick_validate.ts) to check the skill:
+Run the compiled Node validator ([source](src/quick-validate.mts)) from the shared gateway:
 
 ```bash
-bun scripts/quick_validate.ts <path/to/skill-folder>
+pnpm --dir ~/.agents run validate:skill <path/to/skill-folder>
 ```
 
-Zero dependencies. Checks frontmatter, naming, description quality, TODO markers,
-cross-references, and orphan files. Fix all errors before delivering the skill.
+It uses the locked root toolchain and checks frontmatter, naming, description quality,
+TODO markers, cross-references, and orphan files. Fix all errors before delivery.
 
 ### Step 6: Iterate
 
@@ -237,7 +237,7 @@ Skills live in a git-tracked repo symlinked from `~/.agents/skills/`. Commit usi
 Conventional Commits via `/git-commits-push`:
 
 ```bash
-cd ~/.agents/skills/git-commits-push && bun run start
+cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start
 ```
 
 The skill will generate a proper commit message and auto-push.

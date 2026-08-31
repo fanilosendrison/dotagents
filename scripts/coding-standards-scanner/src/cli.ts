@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * coding-standards-scanner — mechanical pass of the coding-standards skill.
  *
@@ -7,12 +7,14 @@
  * missing linters (warn to stderr, skip).
  *
  * Usage:
- *   bun cli.ts --scope-file=<scope.json> --output=<path>
- *   bun cli.ts --scope=all               --output=<path>
- *   bun cli.ts --scope=path --path=src   --output=<path>
+ *   node cli.ts --scope-file=<scope.json> --output=<path>
+ *   node cli.ts --scope=all               --output=<path>
+ *   node cli.ts --scope=path --path=src   --output=<path>
  */
 import { existsSync } from "node:fs";
-import { extname } from "node:path";
+import { readFile, writeFile } from "node:fs/promises";
+import { delimiter, extname } from "node:path";
+import { runProcess } from "../../../packages/node-runtime/src/index.ts";
 import {
 	computeBlocking,
 	computeSummary,
@@ -41,9 +43,8 @@ import { resolveScope, type ScopeMode } from "./lib/scope-resolver.ts";
 import { severityForRule } from "./lib/severity-defaults.ts";
 
 // Prepend the project-local node_modules/.bin so linters installed as
-// devDependencies (biome, eslint, etc.) are discoverable by `which` and by
-// Bun.spawn([toolName, ...]) without requiring a global install.
-process.env.PATH = `${process.cwd()}/node_modules/.bin:${process.env.PATH ?? ""}`;
+// devDependencies (biome, eslint, etc.) are discoverable without a global install.
+process.env.PATH = `${process.cwd()}/node_modules/.bin${delimiter}${process.env.PATH ?? ""}`;
 
 interface CliArgs {
 	scope: ScopeMode;
@@ -83,6 +84,13 @@ function parseArgs(argv: string[]): CliArgs {
 }
 
 type Bucket = ".ts/.tsx/.js/.jsx" | ".py" | ".sh/.bash";
+
+async function captureLinterStdout(command: string[]): Promise<string> {
+	const [tool, ...args] = command;
+	if (tool === undefined) throw new Error("linter command must not be empty");
+	const result = await runProcess({ command: tool, args });
+	return result.stdout;
+}
 
 function bucketOf(file: string): Bucket | null {
 	const ext = extname(file).toLowerCase();
@@ -139,13 +147,11 @@ async function runBiome(files: string[]): Promise<RawLinterFinding[]> {
 		return [];
 	}
 	try {
-		const proc = Bun.spawn(["biome", "check", "--reporter=json", ...files], {
-			stdout: "pipe",
-			stderr: "pipe",
-		});
-		const [stdout] = await Promise.all([
-			new Response(proc.stdout).text(),
-			proc.exited,
+		const stdout = await captureLinterStdout([
+			"biome",
+			"check",
+			"--reporter=json",
+			...files,
 		]);
 		return parseBiomeJson(stdout);
 	} catch (e) {
@@ -158,13 +164,11 @@ async function runBiome(files: string[]): Promise<RawLinterFinding[]> {
 
 async function runEslint(files: string[]): Promise<RawLinterFinding[]> {
 	try {
-		const proc = Bun.spawn(["eslint", "--format", "json", ...files], {
-			stdout: "pipe",
-			stderr: "pipe",
-		});
-		const [stdout] = await Promise.all([
-			new Response(proc.stdout).text(),
-			proc.exited,
+		const stdout = await captureLinterStdout([
+			"eslint",
+			"--format",
+			"json",
+			...files,
 		]);
 		return parseEslintJson(stdout);
 	} catch (e) {
@@ -177,13 +181,12 @@ async function runEslint(files: string[]): Promise<RawLinterFinding[]> {
 
 async function runRuff(files: string[]): Promise<RawLinterFinding[]> {
 	try {
-		const proc = Bun.spawn(
-			["ruff", "check", "--output-format", "json", ...files],
-			{ stdout: "pipe", stderr: "pipe" },
-		);
-		const [stdout] = await Promise.all([
-			new Response(proc.stdout).text(),
-			proc.exited,
+		const stdout = await captureLinterStdout([
+			"ruff",
+			"check",
+			"--output-format",
+			"json",
+			...files,
 		]);
 		return parseRuffJson(stdout);
 	} catch (e) {
@@ -196,13 +199,11 @@ async function runRuff(files: string[]): Promise<RawLinterFinding[]> {
 
 async function runShellcheck(files: string[]): Promise<RawLinterFinding[]> {
 	try {
-		const proc = Bun.spawn(["shellcheck", "-f", "json", ...files], {
-			stdout: "pipe",
-			stderr: "pipe",
-		});
-		const [stdout] = await Promise.all([
-			new Response(proc.stdout).text(),
-			proc.exited,
+		const stdout = await captureLinterStdout([
+			"shellcheck",
+			"-f",
+			"json",
+			...files,
 		]);
 		return parseShellcheckJson(stdout);
 	} catch (e) {
@@ -223,7 +224,7 @@ async function runGrepRules(files: string[]): Promise<RawLinterFinding[]> {
 	for (const file of files) {
 		let text = "";
 		try {
-			text = await Bun.file(file).text();
+			text = await readFile(file, "utf8");
 		} catch {
 			continue; // file unreadable — skip (could be deleted in the diff scope)
 		}
@@ -320,7 +321,7 @@ async function main(): Promise<void> {
 	// Validate before writing — catches any bug in the emitter.
 	validateReport(report);
 
-	await Bun.write(args.output, `${JSON.stringify(report, null, 2)}\n`);
+	await writeFile(args.output, `${JSON.stringify(report, null, 2)}\n`);
 }
 
 main().catch((err: unknown) => {

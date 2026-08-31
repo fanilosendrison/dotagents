@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { collectFindings } from "./findings/collect-findings.ts";
 import {
 	captureGitInvariants,

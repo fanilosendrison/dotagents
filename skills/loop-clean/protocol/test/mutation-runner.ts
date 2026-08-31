@@ -1,17 +1,15 @@
-#!/usr/bin/env bun
-import {
-	cp,
-	mkdir,
-	mkdtemp,
-	readFile,
-	rm,
-	writeFile,
-} from "node:fs/promises";
+#!/usr/bin/env node
 import { existsSync } from "node:fs";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import {
+	decodeProcessOutput,
+	executeProcess,
+} from "../src/shared/execute-process.ts";
 
-const repositoryRoot = resolve(import.meta.dir, "../../../..");
+const repositoryRoot = resolve(import.meta.dirname, "../../../..");
 
 interface MutationDefinition {
 	readonly name: string;
@@ -34,55 +32,66 @@ async function replaceExactly(
 	await writeFile(path, contents.replace(oldText, newText));
 }
 
+function testInvocation(testPath: string): {
+	readonly command: string;
+	readonly args: readonly string[];
+} {
+	return {
+		command: process.execPath,
+		args: ["--test", "--test-concurrency=1", "--test-timeout=420000", testPath],
+	};
+}
+
+async function runTest(
+	mutantRoot: string,
+	testFile: string,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+	const invocation = testInvocation(
+		join(mutantRoot, "skills/loop-clean/protocol/test", testFile),
+	);
+	const result = await executeProcess(invocation.command, invocation.args, {
+		cwd: join(mutantRoot, "skills/loop-clean/protocol"),
+	});
+	return {
+		stdout: decodeProcessOutput(result.stdout),
+		stderr: result.stderr,
+		exitCode: result.exitCode,
+	};
+}
+
 async function requireTestPasses(
 	mutantRoot: string,
 	testFile: string,
 	label: string,
 ): Promise<void> {
-	const processHandle = Bun.spawn(
-		["bun", "test", "--timeout", "60000", join(mutantRoot, "skills/loop-clean/protocol/test", testFile)],
-		{
-			cwd: join(mutantRoot, "skills/loop-clean/protocol"),
-			stdout: "pipe",
-			stderr: "pipe",
-		},
-	);
-	const [stdout, stderr, exitCode] = await Promise.all([
-		new Response(processHandle.stdout).text(),
-		new Response(processHandle.stderr).text(),
-		processHandle.exited,
-	]);
-	if (exitCode !== 0) {
+	const result = await runTest(mutantRoot, testFile);
+	if (result.exitCode !== 0) {
 		throw new Error(
-			`${label} baseline failed before mutation was applied:\n${stdout}\n${stderr}`,
+			`${label} baseline failed before mutation was applied:\n${result.stdout}\n${result.stderr}`,
 		);
 	}
 }
 
-async function runMutatedTest(
-	mutantRoot: string,
-	testFile: string,
-): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-	const processHandle = Bun.spawn(
-		["bun", "test", "--timeout", "60000", join(mutantRoot, "skills/loop-clean/protocol/test", testFile)],
-		{
-			cwd: join(mutantRoot, "skills/loop-clean/protocol"),
-			stdout: "pipe",
-			stderr: "pipe",
-		},
-	);
-	const [stdout, stderr, exitCode] = await Promise.all([
-		new Response(processHandle.stdout).text(),
-		new Response(processHandle.stderr).text(),
-		processHandle.exited,
-	]);
-	return { stdout, stderr, exitCode };
-}
-
 // ── Portable mutations: copy only skills/loop-clean/ ──
 
+async function installMutantDependencies(
+	protocolDirectory: string,
+	label: string,
+): Promise<void> {
+	const result = await executeProcess(
+		"pnpm",
+		["install", "--ignore-scripts", "--no-frozen-lockfile"],
+		{ cwd: protocolDirectory },
+	);
+	if (result.exitCode !== 0) {
+		throw new Error(`${label} dependency install failed: ${result.stderr}`);
+	}
+}
+
 async function copyPortableMutant(): Promise<string> {
-	const mutantRoot = await mkdtemp(join(tmpdir(), "loop-clean-mutant-portable-"));
+	const mutantRoot = await mkdtemp(
+		join(tmpdir(), "loop-clean-mutant-portable-"),
+	);
 	await mkdir(join(mutantRoot, "skills"), { recursive: true });
 	await cp(
 		join(repositoryRoot, "skills/loop-clean"),
@@ -93,25 +102,14 @@ async function copyPortableMutant(): Promise<string> {
 		},
 	);
 	const protocolDir = join(mutantRoot, "skills/loop-clean/protocol");
-	const installResult = Bun.spawnSync(["bun", "install", "--frozen-lockfile"], {
-		cwd: protocolDir,
-		stdout: "pipe",
-		stderr: "pipe",
-	});
-	if (installResult.exitCode !== 0) {
-		throw new Error(
-			`portable mutant dependency install failed: ${installResult.stderr.toString()}`,
-		);
-	}
+	await installMutantDependencies(protocolDir, "portable mutant");
 	return mutantRoot;
 }
 
 // ── Repository mutations: copy minimal dotagents fixture ──
 
 async function copyRepositoryMutant(): Promise<string> {
-	const mutantRoot = await mkdtemp(
-		join(tmpdir(), "loop-clean-mutant-repo-"),
-	);
+	const mutantRoot = await mkdtemp(join(tmpdir(), "loop-clean-mutant-repo-"));
 	await mkdir(join(mutantRoot, "skills"), { recursive: true });
 	await mkdir(join(mutantRoot, "scripts"), { recursive: true });
 
@@ -159,26 +157,21 @@ async function copyRepositoryMutant(): Promise<string> {
 		await cp(src, join(mutantRoot, "scripts", scriptDir), { recursive: true });
 	}
 
-	for (const packageJsonPath of ["package.json", "scripts/package.json"]) {
-		const packageJsonSource = join(repositoryRoot, packageJsonPath);
-		if (!existsSync(packageJsonSource)) {
-			throw new Error(`required fixture missing: ${packageJsonPath}`);
+	for (const fixturePath of [
+		"package.json",
+		"pnpm-lock.yaml",
+		"scripts/package.json",
+	]) {
+		const fixtureSource = join(repositoryRoot, fixturePath);
+		if (!existsSync(fixtureSource)) {
+			throw new Error(`required fixture missing: ${fixturePath}`);
 		}
-		await cp(packageJsonSource, join(mutantRoot, packageJsonPath));
+		await cp(fixtureSource, join(mutantRoot, fixturePath));
 	}
 
-	// Install protocol dependencies
+	// Install protocol dependencies.
 	const protocolDir = join(mutantRoot, "skills/loop-clean/protocol");
-	const installResult = Bun.spawnSync(["bun", "install", "--frozen-lockfile"], {
-		cwd: protocolDir,
-		stdout: "pipe",
-		stderr: "pipe",
-	});
-	if (installResult.exitCode !== 0) {
-		throw new Error(
-			`repository mutant dependency install failed: ${installResult.stderr.toString()}`,
-		);
-	}
+	await installMutantDependencies(protocolDir, "repository mutant");
 
 	return mutantRoot;
 }
@@ -295,14 +288,16 @@ const repositoryMutations: readonly MutationDefinition[] = [
 		apply: async (root) => {
 			const path = join(root, "scripts/package.json");
 			const packageJson = JSON.parse(await readFile(path, "utf8"));
-			packageJson.scripts["spec-drift:test"] = "bun test spec-drift";
+			packageJson.scripts["spec-drift:test"] = "node --test spec-drift";
 			await writeFile(path, `${JSON.stringify(packageJson, null, 2)}\n`);
 		},
 	},
 ];
 
 const allMutations = [...portableMutations, ...repositoryMutations];
-export const mutationNames = allMutations.map((m) => m.name) as readonly string[];
+export const mutationNames = allMutations.map(
+	(m) => m.name,
+) as readonly string[];
 
 async function runMutationBatch(
 	mutations: readonly MutationDefinition[],
@@ -314,7 +309,11 @@ async function runMutationBatch(
 	for (const testFile of baselineTests) {
 		const baselineRoot = await copyFn();
 		try {
-			await requireTestPasses(baselineRoot, testFile, `${label} baseline ${testFile}`);
+			await requireTestPasses(
+				baselineRoot,
+				testFile,
+				`${label} baseline ${testFile}`,
+			);
 		} finally {
 			await rm(baselineRoot, { recursive: true, force: true });
 		}
@@ -325,7 +324,7 @@ async function runMutationBatch(
 		const mutantRoot = await copyFn();
 		try {
 			await mutation.apply(mutantRoot);
-			const { stdout, stderr, exitCode } = await runMutatedTest(
+			const { stdout, stderr, exitCode } = await runTest(
 				mutantRoot,
 				mutation.testFile,
 			);
@@ -356,7 +355,18 @@ export async function runMutationSuite(): Promise<readonly string[]> {
 	return [...portableDetected, ...repositoryDetected];
 }
 
-if (import.meta.main) {
+function isDirectEntrypoint(): boolean {
+	const entrypointPath = process.argv[1];
+	return (
+		entrypointPath !== undefined &&
+		pathToFileURL(resolve(entrypointPath)).href === import.meta.url
+	);
+}
+
+if (isDirectEntrypoint()) {
+	if (process.argv[2] !== undefined) {
+		throw new Error(`unknown mutation runner argument: ${process.argv[2]}`);
+	}
 	const detected = await runMutationSuite();
 	for (const name of detected) process.stdout.write(`DETECTED ${name}\n`);
 	process.stdout.write(

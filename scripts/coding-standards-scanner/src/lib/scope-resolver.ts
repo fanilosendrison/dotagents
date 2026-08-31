@@ -1,5 +1,5 @@
 import type { Dirent } from "node:fs";
-import { readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { parseScopeManifest } from "../../../../skills/loop-clean/protocol/src/scope/scope-schema.ts";
 import { sha256 } from "../../../../skills/loop-clean/protocol/src/shared/hash.ts";
@@ -44,7 +44,7 @@ async function resolveManifestScope(
 ): Promise<ResolvedScope> {
 	let raw: unknown;
 	try {
-		raw = JSON.parse(await Bun.file(scopeFile).text());
+		raw = JSON.parse(await readFile(scopeFile, "utf8"));
 	} catch (error) {
 		throw new Error(
 			`scope file contains invalid JSON: ${error instanceof Error ? error.message : String(error)}`,

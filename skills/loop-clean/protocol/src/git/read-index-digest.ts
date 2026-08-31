@@ -8,9 +8,7 @@ import { executeGitRead } from "./execute-git-read.ts";
  * Detects any change to the staging area: content, mode, additions,
  * removals, and multi-stage conflict entries.
  */
-export async function readIndexDigest(
-	repositoryRoot: string,
-): Promise<string> {
+export async function readIndexDigest(repositoryRoot: string): Promise<string> {
 	const result = await executeGitRead(repositoryRoot, [
 		"ls-files",
 		"--stage",

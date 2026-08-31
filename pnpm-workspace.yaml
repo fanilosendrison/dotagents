@@ -1,0 +1,17 @@
+packages:
+  - .
+  - packages/*
+  - scripts
+  - skills/create-symlink-for-dot-folders
+  - skills/git-commits-push
+  - skills/go
+  - skills/loop-clean/protocol
+  - skills/skill-creator
+
+shamefullyHoist: true
+engineStrict: true
+autoInstallPeers: false
+
+minimumReleaseAgeExclude:
+  - '@fanilosendrison/event-sink@0.1.0'
+  - turnlock@0.9.1

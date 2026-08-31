@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, describe, test } from "node:test";
 import { collectFindings } from "../../src/findings/collect-findings.ts";
 import { computeFindingId } from "../../src/findings/finding-id.ts";
 import type { FindingSource } from "../../src/findings/findings-schema.ts";
@@ -131,18 +132,23 @@ describe("collectFindings", () => {
 			},
 		});
 		const result = await collectFindings(inputs);
-		expect(result.sources).toEqual({
+		assert.deepStrictEqual(result.sources, {
 			"coding-standards": 1,
 			"senior-review": 1,
 			"dedup-codebase": 1,
 			"runtime-gate": 1,
 		});
-		expect(result.findings.map((entry) => entry.id).sort()).toEqual(
+		assert.deepStrictEqual(
+			result.findings.map((entry) => entry.id).sort(),
 			entries.map(idOf).sort(),
 		);
-		expect(result.actionable_findings).toHaveLength(4);
-		expect(result.summary).toEqual({ total: 4, actionable: 4, deferred: 0 });
-		expect(result.runtime_gate_status).toBe("fail");
+		assert.strictEqual(result.actionable_findings.length, 4);
+		assert.deepStrictEqual(result.summary, {
+			total: 4,
+			actionable: 4,
+			deferred: 0,
+		});
+		assert.strictEqual(result.runtime_gate_status, "fail");
 	});
 
 	test("keeps re-emitted deferred findings visible but non-actionable", async () => {
@@ -168,14 +174,20 @@ describe("collectFindings", () => {
 			],
 		});
 		const result = await collectFindings(inputs);
-		expect(result.findings).toHaveLength(2);
-		expect(
+		assert.strictEqual(result.findings.length, 2);
+		assert.deepStrictEqual(
 			result.previously_deferred_findings.map((entry) => entry.id),
-		).toEqual([idOf(deferredFinding)]);
-		expect(result.actionable_findings.map((entry) => entry.id)).toEqual([
-			idOf(newFinding),
-		]);
-		expect(result.summary).toEqual({ total: 2, actionable: 1, deferred: 1 });
+			[idOf(deferredFinding)],
+		);
+		assert.deepStrictEqual(
+			result.actionable_findings.map((entry) => entry.id),
+			[idOf(newFinding)],
+		);
+		assert.deepStrictEqual(result.summary, {
+			total: 2,
+			actionable: 1,
+			deferred: 1,
+		});
 	});
 
 	test("deduplicates identical IDs only when their complete content matches", async () => {
@@ -187,7 +199,7 @@ describe("collectFindings", () => {
 				findings: [repeated, repeated],
 			},
 		});
-		expect((await collectFindings(inputs)).findings).toHaveLength(1);
+		assert.strictEqual((await collectFindings(inputs)).findings.length, 1);
 		await writeJson(join(inputs.iterationDirectory, "senior-review.json"), {
 			skill: "senior-review",
 			scope_digest: scopeDigest,
@@ -201,13 +213,14 @@ describe("collectFindings", () => {
 				},
 			],
 		});
-		await expect(collectFindings(inputs)).rejects.toThrow(/not canonical/i);
+		await assert.rejects(collectFindings(inputs), /not canonical/i);
 	});
 
 	test("fails closed on a missing report", async () => {
 		const inputs = await createInputs();
 		await rm(join(inputs.iterationDirectory, "coding-standards.json"));
-		await expect(collectFindings(inputs)).rejects.toThrow(
+		await assert.rejects(
+			collectFindings(inputs),
 			/coding-standards\.json.*missing/i,
 		);
 	});
@@ -218,9 +231,7 @@ describe("collectFindings", () => {
 			join(inputs.iterationDirectory, "senior-review.json"),
 			"{broken",
 		);
-		await expect(collectFindings(inputs)).rejects.toThrow(
-			/senior-review\.json.*JSON/i,
-		);
+		await assert.rejects(collectFindings(inputs), /senior-review\.json.*JSON/i);
 	});
 
 	test("fails closed when any report has a divergent or absent scope digest", async () => {
@@ -230,12 +241,12 @@ describe("collectFindings", () => {
 			scope_digest: "b".repeat(64),
 			findings: [],
 		});
-		await expect(collectFindings(inputs)).rejects.toThrow(/scope_digest/i);
+		await assert.rejects(collectFindings(inputs), /scope_digest/i);
 		await writeJson(join(inputs.iterationDirectory, "dedup-codebase.json"), {
 			skill: "dedup-codebase",
 			findings: [],
 		});
-		await expect(collectFindings(inputs)).rejects.toThrow(/scope_digest/i);
+		await assert.rejects(collectFindings(inputs), /scope_digest/i);
 	});
 
 	test("rejects unknown sources, noncanonical IDs, and invalid severities", async () => {
@@ -250,7 +261,7 @@ describe("collectFindings", () => {
 				scope_digest: scopeDigest,
 				findings: [invalidFinding],
 			});
-			await expect(collectFindings(inputs)).rejects.toThrow();
+			await assert.rejects(collectFindings(inputs));
 		}
 	});
 
@@ -261,7 +272,7 @@ describe("collectFindings", () => {
 			scope_digest: scopeDigest,
 			findings: [{ ...finding("senior-review", "wrong"), id: "0".repeat(16) }],
 		});
-		await expect(collectFindings(inputs)).rejects.toThrow(/not canonical/i);
+		await assert.rejects(collectFindings(inputs), /not canonical/i);
 	});
 
 	test("rejects runtime failures already present in the deferred registry", async () => {
@@ -285,6 +296,6 @@ describe("collectFindings", () => {
 				},
 			],
 		});
-		await expect(collectFindings(inputs)).rejects.toThrow(/runtime.*defer/i);
+		await assert.rejects(collectFindings(inputs), /runtime.*defer/i);
 	});
 });

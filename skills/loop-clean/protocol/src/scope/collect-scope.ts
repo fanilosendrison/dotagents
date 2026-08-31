@@ -1,5 +1,6 @@
 import { lstat, realpath } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
+import { executeGitRead } from "../git/execute-git-read.ts";
 import { readIndexDigest } from "../git/read-index-digest.ts";
 import { sha256 } from "../shared/hash.ts";
 import { canonicalJson } from "../shared/json.ts";
@@ -11,31 +12,14 @@ import {
 	ScopeManifestSchema,
 } from "./scope-schema.ts";
 
-interface GitResult {
-	readonly stdout: Uint8Array;
-	readonly stderr: string;
-}
-
-async function runGitRead(
-	repositoryRoot: string,
-	args: readonly string[],
-): Promise<GitResult> {
-	const processHandle = Bun.spawn(["git", "-C", repositoryRoot, ...args], {
-		env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
-		stdout: "pipe",
-		stderr: "pipe",
-	});
-	const [stdoutBuffer, stderr, exitCode] = await Promise.all([
-		new Response(processHandle.stdout).arrayBuffer(),
-		new Response(processHandle.stderr).text(),
-		processHandle.exited,
-	]);
-	if (exitCode !== 0) {
+async function runGitRead(repositoryRoot: string, args: readonly string[]) {
+	const result = await executeGitRead(repositoryRoot, args);
+	if (result.exitCode !== 0) {
 		throw new Error(
-			`git -C <repo> ${args.join(" ")} failed (${exitCode}): ${stderr.trim()}`,
+			`git -C <repo> ${args.join(" ")} failed (${result.exitCode}): ${result.stderr.trim()}`,
 		);
 	}
-	return { stdout: new Uint8Array(stdoutBuffer), stderr };
+	return result;
 }
 
 async function normalizeRepositoryRoot(

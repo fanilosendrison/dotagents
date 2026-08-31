@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "status": "active",
+  "default": "deny",
+  "generatedAt": "2026-08-31T00:00:00Z",
+  "testParityManifest": "docs/migrations/node-pnpm/test-parity.json",
+  "expectedGreenSurfaces": 74,
+  "excludedPathRules": [
+    ".git/**",
+    "node_modules/**",
+    "docs/migrations/node-pnpm/archive/**",
+    "extensions/pi-subagents-4-turnlock/**"
+  ],
+  "permanentExceptions": [
+    {
+      "path": ".github/workflows/node-pnpm.yml",
+      "category": "policy-enforcement",
+      "owner": "node-pnpm-platform",
+      "removalCondition": "Replace only with an equivalent CI gate that proves the retired runtime is never invoked.",
+      "requiredLiterals": [
+        "bun-failure-sentinel",
+        "unexpected Bun invocation"
+      ],
+      "rationale": "The Node CI installs a failing sentinel executable and proves that no gate invokes the retired runtime."
+    },
+    {
+      "path": "agent-enforcers/command-validator/src/core/security-rules.ts",
+      "category": "external-project-interop",
+      "owner": "command-validator",
+      "removalCondition": "Remove when generic command validation no longer supports external projects using this package manager.",
+      "requiredLiterals": [
+        "\"bun\""
+      ],
+      "rationale": "The generic command validator recognizes package-manager commands requested for external repositories."
+    },
+    {
+      "path": "scripts/validate-bun-policy.mjs",
+      "category": "policy-enforcement",
+      "owner": "node-pnpm-platform",
+      "removalCondition": "Replace only when another fail-closed validator enforces the same repository policy.",
+      "requiredLiterals": [
+        "BUN_REFERENCE_PATTERN",
+        "FORBIDDEN_TEST_RUNTIME_PATTERNS",
+        "bun.lock"
+      ],
+      "rationale": "The fail-closed policy validator necessarily names every forbidden runtime surface it detects."
+    },
+    {
+      "path": "scripts/test/bun-policy.test.mjs",
+      "category": "policy-enforcement",
+      "owner": "node-pnpm-platform",
+      "removalCondition": "Remove together with the policy validator only after equivalent regression coverage exists.",
+      "requiredLiterals": [
+        "Bun.file",
+        "bun:test"
+      ],
+      "rationale": "The policy validator regression suite contains inert fixture strings proving that active runtime globals and imports are rejected."
+    },
+    {
+      "path": "skills/git-commits-push/src/modules/core/validators/pre-commit-validators.ts",
+      "category": "external-project-interop",
+      "owner": "git-commits-push",
+      "removalCondition": "Remove when publication validation no longer supports external repositories selecting this package manager.",
+      "requiredLiterals": [
+        "bun x vitest run",
+        "bun.lock",
+        "bun run test"
+      ],
+      "rationale": "Publication validation must run the package manager and test command declared by each external target repository."
+    },
+    {
+      "path": "skills/loop-clean/protocol/src/runtime/run-runtime-gate.ts",
+      "category": "external-project-interop",
+      "owner": "loop-clean-protocol",
+      "removalCondition": "Remove when runtime gates no longer inspect external repositories using this package manager.",
+      "requiredLiterals": [
+        "bun.lock",
+        "bun.lockb",
+        "\"bun\""
+      ],
+      "rationale": "The runtime gate detects package-manager metadata in external repositories and fails closed on ambiguous locks."
+    }
+  ]
+}

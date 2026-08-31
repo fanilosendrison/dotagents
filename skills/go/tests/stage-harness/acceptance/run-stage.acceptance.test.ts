@@ -1,6 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { describe, expect, test } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
 import {
   runStage,
   type Stage,
@@ -50,11 +51,11 @@ describe("runStage acceptance", () => {
   test("A1 passing stage writes canonical output", async () => {
     await withRunContext(async ({ input }) => {
       const output = await runStage(passingStageWithEvidence, input);
-      expect(output.status).toBe("passed");
-      expect(output.errors).toEqual([]);
-      expect(output.evidenceRefs).toEqual(["evidence/result.json"]);
+      assert.strictEqual(output.status, "passed");
+      assert.deepStrictEqual(output.errors, []);
+      assert.deepStrictEqual(output.evidenceRefs, ["evidence/result.json"]);
       assertCanonicalFieldsAvailable(output);
-      expect(output.worktreeClean).toBe(true);
+      assert.strictEqual(output.worktreeClean, true);
       await assertOutputJsonMatchesReturn(output);
     });
   });
@@ -62,9 +63,9 @@ describe("runStage acceptance", () => {
   test("A2 failing stage preserves stage errors", async () => {
     await withRunContext(async ({ input }) => {
       const output = await runStage(failingStageWithEvidence, input);
-      expect(output.status).toBe("failed");
-      expect(output.errors).toHaveLength(1);
-      expect(output.errors[0]).toMatchObject({
+      assert.strictEqual(output.status, "failed");
+      assert.strictEqual((output.errors).length, 1);
+      assert.partialDeepStrictEqual(output.errors[0], {
         severity: "minor",
         file: "src/a.txt",
         line: 1,
@@ -78,9 +79,9 @@ describe("runStage acceptance", () => {
   test("A3 skipped stage has no errors", async () => {
     await withRunContext(async ({ input }) => {
       const output = await runStage(skippedStage, input);
-      expect(output.status).toBe("skipped");
-      expect(output.errors).toEqual([]);
-      expect(output.evidenceRefs).toEqual([]);
+      assert.strictEqual(output.status, "skipped");
+      assert.deepStrictEqual(output.errors, []);
+      assert.deepStrictEqual(output.evidenceRefs, []);
       assertCanonicalFieldsAvailable(output);
       await assertOutputJsonMatchesReturn(output);
     });
@@ -90,7 +91,7 @@ describe("runStage acceptance", () => {
     await withRunContext(async ({ input }) => {
       const output = await runStage(throwingStage, input);
       assertErroredHasBlockingError(output);
-      expect(output.errors.some((error) => error.message.includes("stage exploded"))).toBe(true);
+      assert.strictEqual(output.errors.some((error) => error.message.includes("stage exploded")), true);
       assertCanonicalFieldsAvailable(output);
       await assertOutputJsonMatchesReturn(output);
     });
@@ -100,7 +101,7 @@ describe("runStage acceptance", () => {
     await withRunContext(async ({ input }) => {
       const output = await runStage(invalidDraftStage as Stage, input);
       assertErroredHasBlockingError(output);
-      expect(output.errors.some((error) => error.message.includes("draft"))).toBe(true);
+      assert.strictEqual(output.errors.some((error) => error.message.includes("draft")), true);
       assertCanonicalFieldsAvailable(output);
       await assertOutputJsonMatchesReturn(output);
     });
@@ -109,10 +110,10 @@ describe("runStage acceptance", () => {
   test("A6 dirty tracked mutation is observable", async () => {
     await withRunContext(async ({ input, repo }) => {
       const output = await runStage(dirtyTrackedFileStage, input);
-      expect(output.status).toBe("passed");
-      expect(output.worktreeClean).toBe(false);
-      expect(output.trackedWorktreeHash).not.toBeNull();
-      expect(await fs.readFile(path.join(repo.workDir, "src/a.txt"), "utf8")).toBe("beta\n");
+      assert.strictEqual(output.status, "passed");
+      assert.strictEqual(output.worktreeClean, false);
+      assert.notStrictEqual(output.trackedWorktreeHash, null);
+      assert.strictEqual(await fs.readFile(path.join(repo.workDir, "src/a.txt"), "utf8"), "beta\n");
       await assertOutputJsonMatchesReturn(output);
     });
   });
@@ -121,11 +122,9 @@ describe("runStage acceptance", () => {
     await withRunContext(async ({ input }) => {
       const output = await runStage(reservedOutputStage, input);
       assertErroredHasBlockingError(output);
-      expect(output.errors.some((error) => error.message.includes("reserved"))).toBe(true);
+      assert.strictEqual(output.errors.some((error) => error.message.includes("reserved")), true);
       await assertOutputJsonMatchesReturn(output);
-      expect(
-        await fs.readFile(path.join(output.artefactDir, "output.json"), "utf8"),
-      ).not.toBe("stage");
+      assert.notStrictEqual(await fs.readFile(path.join(output.artefactDir, "output.json"), "utf8"), "stage");
     });
   });
 
@@ -133,8 +132,8 @@ describe("runStage acceptance", () => {
     await withRunContext(async ({ input }) => {
       const output = await runStage(symlinkEscapeEvidenceStage, input);
       assertErroredHasBlockingError(output);
-      expect(output.evidenceRefs).not.toContain("evidence/escape");
-      expect(output.errors.some((error) => error.message.includes("containment"))).toBe(true);
+      assert.ok(!(output.evidenceRefs).includes("evidence/escape"));
+      assert.strictEqual(output.errors.some((error) => error.message.includes("containment")), true);
       await assertOutputJsonMatchesReturn(output);
     });
   });
@@ -148,8 +147,8 @@ describe("runStage acceptance", () => {
     };
     try {
       const input = buildInput(repo.workDir, path.join(repo.workDir, "artifacts", "lint"), repo.baseSha);
-      await expect(runStage(stage, input)).rejects.toThrow();
-      expect(calls).toBe(0);
+      await assert.rejects(runStage(stage, input));
+      assert.strictEqual(calls, 0);
       await assertNoOutputJson(input.artefactDir);
     } finally {
       await repo.cleanup();
@@ -167,8 +166,8 @@ describe("runStage acceptance", () => {
     try {
       await fs.mkdir(artifacts.artefactDir);
       const input = buildInput(repo.workDir, artifacts.artefactDir, repo.baseSha);
-      await expect(runStage(stage, input)).rejects.toThrow();
-      expect(calls).toBe(0);
+      await assert.rejects(runStage(stage, input));
+      assert.strictEqual(calls, 0);
       await assertNoOutputJson(input.artefactDir);
     } finally {
       await repo.cleanup();
@@ -184,11 +183,11 @@ describe("runStage acceptance", () => {
         passingStageWithEvidence,
         buildInput(repo.workDir, artifacts.artefactDir, repo.baseSha),
       );
-      expect(output.status).toBe("errored");
-      expect(output.trackedWorktreeHash).toBeNull();
-      expect(output.headShaAfter).not.toBeNull();
-      expect(output.worktreeClean).not.toBeNull();
-      expect(output.errors.some((error) => error.message.includes("unmerged"))).toBe(true);
+      assert.strictEqual(output.status, "errored");
+      assert.strictEqual(output.trackedWorktreeHash, null);
+      assert.notStrictEqual(output.headShaAfter, null);
+      assert.notStrictEqual(output.worktreeClean, null);
+      assert.strictEqual(output.errors.some((error) => error.message.includes("unmerged")), true);
       await assertOutputJsonMatchesReturn(output);
     } finally {
       await repo.cleanup();
@@ -207,7 +206,7 @@ describe("runStage acceptance", () => {
       await withRunContext(async ({ input }) => {
         const output = await runStage(stage as Stage, input);
         assertErroredHasBlockingError(output);
-        expect(output.errors.some((error) => error.message.includes("draft"))).toBe(true);
+        assert.strictEqual(output.errors.some((error) => error.message.includes("draft")), true);
         assertCanonicalFieldsAvailable(output);
         await assertOutputJsonMatchesReturn(output);
       });
@@ -224,7 +223,7 @@ describe("runStage acceptance", () => {
       await withRunContext(async ({ input }) => {
         const output = await runStage(stage, input);
         assertErroredHasBlockingError(output);
-        expect(output.errors.some((error) => error.message.includes(expectedMessage))).toBe(true);
+        assert.strictEqual(output.errors.some((error) => error.message.includes(expectedMessage)), true);
         await assertOutputJsonMatchesReturn(output);
       });
     }
@@ -234,8 +233,8 @@ describe("runStage acceptance", () => {
     await withRunContext(async ({ input }) => {
       const output = await runStage(invalidErrorEvidenceStage, input);
       assertErroredHasBlockingError(output);
-      expect(output.errors.some((error) => error.message === "Bad evidence")).toBe(true);
-      expect(output.errors.find((error) => error.message === "Bad evidence")?.evidenceRef).toBeUndefined();
+      assert.strictEqual(output.errors.some((error) => error.message === "Bad evidence"), true);
+      assert.strictEqual(output.errors.find((error) => error.message === "Bad evidence")?.evidenceRef, undefined);
       await assertOutputJsonMatchesReturn(output);
     });
   });
@@ -248,9 +247,9 @@ describe("runStage acceptance", () => {
       await withRunContext(async ({ input }) => {
         const output = await runStage(stage, input);
         assertErroredHasBlockingError(output);
-        expect(output.errors.some((error) => error.message.includes("metadata"))).toBe(true);
+        assert.strictEqual(output.errors.some((error) => error.message.includes("metadata")), true);
         const stageError = output.errors.find((error) => error.severity === "minor");
-        expect(stageError?.[key]).toBeUndefined();
+        assert.strictEqual(stageError?.[key], undefined);
         await assertOutputJsonMatchesReturn(output);
       });
     }
@@ -261,7 +260,7 @@ describe("runStage acceptance", () => {
       await withRunContext(async ({ input }) => {
         const output = await runStage(stage, input);
         assertErroredHasBlockingError(output);
-        expect(output.errors.some((error) => error.message.includes("reserved"))).toBe(true);
+        assert.strictEqual(output.errors.some((error) => error.message.includes("reserved")), true);
         await assertOutputJsonMatchesReturn(output);
       });
     }
@@ -276,10 +275,8 @@ describe("runStage acceptance", () => {
     };
     const missingArtefactDir = path.join(repo.workDir, "..", "missing-parent", "lint");
     try {
-      await expect(
-        runStage(stage, buildInput(repo.workDir, missingArtefactDir, repo.baseSha)),
-      ).rejects.toThrow();
-      expect(calls).toBe(0);
+      await assert.rejects(runStage(stage, buildInput(repo.workDir, missingArtefactDir, repo.baseSha)));
+      assert.strictEqual(calls, 0);
     } finally {
       await repo.cleanup();
     }
@@ -294,13 +291,11 @@ describe("runStage acceptance", () => {
       return { status: "passed", evidenceRefs: [], errors: [] };
     };
     try {
-      await expect(
-        runStage(
+      await assert.rejects(runStage(
           stage,
           buildInput(path.join(repo.workDir, "src"), artifacts.artefactDir, repo.baseSha),
-        ),
-      ).rejects.toThrow();
-      expect(calls).toBe(0);
+        ));
+      assert.strictEqual(calls, 0);
       await assertNoOutputJson(artifacts.artefactDir);
     } finally {
       await repo.cleanup();
@@ -325,10 +320,8 @@ describe("runStage acceptance", () => {
           return { status: "passed", evidenceRefs: [], errors: [] };
         };
         try {
-          await expect(
-            runStage(stage, buildInput(repo.workDir, artifacts.artefactDir, baseSha)),
-          ).rejects.toThrow();
-          expect(calls).toBe(0);
+          await assert.rejects(runStage(stage, buildInput(repo.workDir, artifacts.artefactDir, baseSha)));
+          assert.strictEqual(calls, 0);
           await assertNoOutputJson(artifacts.artefactDir);
         } finally {
           await artifacts.cleanup();
@@ -353,10 +346,8 @@ describe("runStage acceptance", () => {
       };
       try {
         await runGit(repo.workDir, markCommand);
-        await expect(
-          runStage(stage, buildInput(repo.workDir, artifacts.artefactDir, repo.baseSha)),
-        ).rejects.toThrow();
-        expect(calls).toBe(0);
+        await assert.rejects(runStage(stage, buildInput(repo.workDir, artifacts.artefactDir, repo.baseSha)));
+        assert.strictEqual(calls, 0);
       } finally {
         await repo.cleanup();
         await artifacts.cleanup();
@@ -381,10 +372,8 @@ describe("runStage acceptance", () => {
           calls += 1;
           return { status: "passed", evidenceRefs: [], errors: [] };
         };
-        await expect(
-          runStage(stage, { ...input, config } as unknown as StageInput),
-        ).rejects.toThrow();
-        expect(calls).toBe(0);
+        await assert.rejects(runStage(stage, { ...input, config } as unknown as StageInput));
+        assert.strictEqual(calls, 0);
       });
     }
   });
@@ -406,8 +395,8 @@ describe("runStage acceptance", () => {
         passingStageWithEvidence,
         buildInput(repo.workDir, artifacts.artefactDir, repo.baseSha),
       );
-      expect(output.status).toBe("passed");
-      expect(output.trackedWorktreeHash).toBe(computeExpectedTrackedHash(entries));
+      assert.strictEqual(output.status, "passed");
+      assert.strictEqual(output.trackedWorktreeHash, computeExpectedTrackedHash(entries));
       await assertOutputJsonMatchesReturn(output);
     } finally {
       await repo.cleanup();
@@ -435,8 +424,8 @@ describe("runStage acceptance", () => {
         passingStageWithEvidence,
         buildInput(repo.workDir, artifacts.artefactDir, repo.baseSha),
       );
-      expect(output.status).toBe("passed");
-      expect(output.trackedWorktreeHash).toBe(computeExpectedTrackedHash(entries));
+      assert.strictEqual(output.status, "passed");
+      assert.strictEqual(output.trackedWorktreeHash, computeExpectedTrackedHash(entries));
       await assertOutputJsonMatchesReturn(output);
     } finally {
       await repo.cleanup();
@@ -454,9 +443,9 @@ describe("runStage acceptance", () => {
         passingStageWithEvidence,
         buildInput(repo.workDir, artifacts.artefactDir, repo.baseSha),
       );
-      expect(output.status).toBe("errored");
-      expect(output.trackedWorktreeHash).toBeNull();
-      expect(output.errors.some((error) => error.message.includes("src/a.txt"))).toBe(true);
+      assert.strictEqual(output.status, "errored");
+      assert.strictEqual(output.trackedWorktreeHash, null);
+      assert.strictEqual(output.errors.some((error) => error.message.includes("src/a.txt")), true);
       await assertOutputJsonMatchesReturn(output);
     } finally {
       await repo.cleanup();
@@ -503,15 +492,15 @@ describe("runStage acceptance", () => {
         passingStageWithEvidence,
         buildInput(parent.workDir, secondArtifacts.artefactDir, baseSha),
       );
-      expect(secondOutput.trackedWorktreeHash).not.toBe(firstOutput.trackedWorktreeHash);
+      assert.notStrictEqual(secondOutput.trackedWorktreeHash, firstOutput.trackedWorktreeHash);
 
       await fs.writeFile(path.join(submoduleWorkDir, "lib.txt"), "dirty\n");
       const thirdOutput = await runStage(
         passingStageWithEvidence,
         buildInput(parent.workDir, thirdArtifacts.artefactDir, baseSha),
       );
-      expect(thirdOutput.trackedWorktreeHash).toBe(secondOutput.trackedWorktreeHash);
-      expect(thirdOutput.worktreeClean).toBe(false);
+      assert.strictEqual(thirdOutput.trackedWorktreeHash, secondOutput.trackedWorktreeHash);
+      assert.strictEqual(thirdOutput.worktreeClean, false);
     } finally {
       await child.cleanup();
       await parent.cleanup();
@@ -527,7 +516,7 @@ describe("runStage acceptance", () => {
         const previousFault = process.env.GO_PHASE_HARNESS_TEST_FAULT;
         process.env.GO_PHASE_HARNESS_TEST_FAULT = fault;
         try {
-          await expect(runStage(passingStageWithEvidence, input)).rejects.toThrow();
+          await assert.rejects(runStage(passingStageWithEvidence, input));
           await assertNoOutputJson(input.artefactDir);
         } finally {
           if (previousFault === undefined) {

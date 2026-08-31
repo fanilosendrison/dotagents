@@ -5,11 +5,11 @@
 
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { extractBashPaths, isGitOnlyCommand, unwrapCommand } from "./bash-parser";
-import { resolveReal } from "./helpers";
+import { extractBashPaths, isGitOnlyCommand, unwrapCommand } from "./bash-parser.ts";
+import { resolveReal } from "./helpers.ts";
 
-export * from "./helpers";
-export { extractBashPaths } from "./bash-parser";
+export * from "./helpers.ts";
+export { extractBashPaths } from "./bash-parser.ts";
 
 const PROJECTS = join(homedir(), "Developper", "Projects");
 

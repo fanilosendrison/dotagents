@@ -1,0 +1,2387 @@
+{
+  "schemaVersion": 1,
+  "repository": "dotagents",
+  "sourceCommit": "74d46e8948172bdb2f79d0c7d2ba813c235abb4b",
+  "expectedSurfaceCount": 74,
+  "migratedSurfaceCount": 74,
+  "surfaces": [
+    {
+      "sourceFile": "agent-enforcers/command-validator/src/core/__tests__/runtime-contract.test.ts",
+      "targetFile": "agent-enforcers/command-validator/src/core/__tests__/runtime-contract.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "detects bash and restricted tools as validation targets",
+        "builds normalized telemetry details",
+        "records normalized approval metadata",
+        "formats shared reasons and runtime messages"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "agent-enforcers/command-validator/src/core/__tests__/validator.test.ts",
+      "targetFile": "agent-enforcers/command-validator/src/core/__tests__/validator.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "allows safe commands",
+        "allows chmod +x (single command only, no chaining)",
+        "allows invalid/non-string input",
+        "denies rm -rf variants",
+        "catches rm --recursive --force (long and mixed flags)",
+        "rm --recursive alone is NOT caught (no force)",
+        "rm --force alone is NOT caught (no recursive)",
+        "denies command with rm -rf verified by validate",
+        "asks for dangerous commands",
+        "denies destructive patterns like mkfs to /dev",
+        "network commands ask for confirmation",
+        "detects dangerous command in pipeline",
+        "containsRmRf edge cases",
+        "containsDangerousCommand returns null for safe",
+        "containsDangerousCommand returns command name",
+        "blocks modifying tools when permission is false",
+        "allows modifying tools when permission is true, without applying bash rules",
+        "allows non-modifying tools even when permission is false",
+        "supports an injected permission checker for scoped runtimes",
+        "denies writeFileSync to protected path",
+        "denies write to protected path with tilde",
+        "denies write to protected path with $HOME",
+        "denies write to protected path with ${HOME}",
+        "denies P=~ tee variant",
+        "allows tilde to non-protected path",
+        "allows $HOME to non-protected path",
+        "allows writes to /dev/null (harmless data sink)",
+        "still denies writes to /dev/sda (not /dev/null)",
+        "allows read-only access to protected path (cat, ls)",
+        "allows chained commands: harmless write (2>/dev/null) in one segment, read-only protected path in another",
+        "allows chained commands: write to safe path, read-only protected path in another segment",
+        "denies chained commands: write AND protected path in the same segment",
+        "denies mixed /dev/sda + /dev/null in same segment (not all refs are /dev/null)",
+        "allows chained: tee to safe path, ls of protected path in separate segment",
+        "blocks new write patterns on protected path (touch, truncate, sed -i, install, rsync)",
+        "allows new write patterns on safe path",
+        "cp from protected source to safe destination is allowed (source not flagged)",
+        "cp to protected destination is denied",
+        "mv from protected source to safe destination is allowed",
+        "mv to protected destination is denied"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "agent-enforcers/git-commits-push-enforcer/src/core/__tests__/trust-store.test.ts",
+      "targetFile": "agent-enforcers/git-commits-push-enforcer/src/core/__tests__/trust-store.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "rejects missing, invalid, and path-like tokens",
+        "recognizes only the skill internal git helper call sites",
+        "rejects direct token minting outside the skill git helpers"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "agent-enforcers/git-commits-push-enforcer/src/core/__tests__/validator.test.ts",
+      "targetFile": "agent-enforcers/git-commits-push-enforcer/src/core/__tests__/validator.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "isGitCommit detects git commit",
+        "extractMessage from double quotes",
+        "extractMessage from single quotes",
+        "extractMessage from heredoc",
+        "extractMessage returns null when no -m",
+        "isValidCC accepts valid CC messages",
+        "isValidCC rejects invalid CC messages",
+        "hasPush detects git push",
+        "detects /git-commits-push prefix",
+        "detects /git-commits-push with args",
+        "detects skill launch path",
+        "rejects unrelated commands",
+        "detects git commit",
+        "detects git commit-tree",
+        "detects git push",
+        "detects git push --force",
+        "returns null for non-mutation commands",
+        "skips git -C before subcommand",
+        "skips git -c before subcommand",
+        "skips multiple git options",
+        "detects env-prefixed git commit",
+        "detects env-prefixed git push",
+        "detects multiple env vars before git",
+        "detects git commit through bash -c",
+        "detects git push through sh -c",
+        "detects git commit through zsh -c",
+        "detects git commit through sudo",
+        "detects git push through sudo",
+        "detects git commit through env -S",
+        "detects git commit in chained commands",
+        "detects git push after semicolon",
+        "detects git commit through env command",
+        "detects BYPASS_GIT_ENFORCER env-prefixed commit",
+        "detects git commit through nohup",
+        "detects git commit through command wrapper",
+        "detects git commit through exec wrapper",
+        "detects env-prefix + bash -c combo",
+        "returns null for git without subcommand",
+        "returns null for non-git command containing git word",
+        "returns null for empty string",
+        "detects git commit-tree with options",
+        "classifies raw git commit as git-commit",
+        "classifies raw git push as git-commit",
+        "classifies skill invocation as git-commits-push",
+        "returns null for unrelated commands",
+        "allows when trusted skill marker is set",
+        "blocks when trusted marker is set but no validateToken provided",
+        "blocks when trusted marker is set but token is invalid",
+        "allows skill invocations",
+        "skips non-commit commands",
+        "blocks direct git commit",
+        "blocks direct git push",
+        "skips with legacy bypass when allowed",
+        "blocks legacy bypass when not allowed (Gravity mode)",
+        "blocks env-prefix bypass attempt with legacy bypass",
+        "trusted marker overrides legacy bypass block",
+        "includes the command in the reason",
+        "truncates long commands"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "agent-enforcers/path-guard/src/core/__tests__/path-guard.test.ts",
+      "targetFile": "agent-enforcers/path-guard/src/core/__tests__/path-guard.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "allows writes through ~/.pi/agent/",
+        "blocks writes directly to dotpi/",
+        "extracts absolute paths from command arguments",
+        "extracts redirect targets",
+        "extracts quoted absolute paths from command arguments",
+        "extracts quoted redirect targets",
+        "returns unmodified safe bash commands",
+        "rewrites redirect to dotpi/",
+        "blocks quoted dot repo paths",
+        "rewrites quoted redirect targets",
+        "allows pure git operations on dotpi"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "agent-enforcers/permission-enforcer/src/core/__tests__/state.test.ts",
+      "targetFile": "agent-enforcers/permission-enforcer/src/core/__tests__/state.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "should return false if state file does not exist",
+        "should grant permission when /go is present at start",
+        "should grant permission when /go is present with whitespace",
+        "should grant permission when /go is alone",
+        "should grant permission when /go is formatted as a skill XML tag (Pi expanded)",
+        "should grant permission when /go is formatted as a skill XML tag with single quotes",
+        "should not grant permission if /go is part of a word like /google",
+        "should revoke permission if next prompt does not have /go",
+        "should isolate scoped permission by agent session",
+        "should preserve scoped permissions when legacy state is updated",
+        "should isolate scoped permission by agent even with the same session id",
+        "should report the matched grant source"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/claude-facade/test/facade.test.ts",
+      "targetFile": "scripts/claude-facade/test/facade.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "contains all expected entries",
+        "has no duplicates in destination",
+        "has no duplicates in source",
+        "contains no absolute paths",
+        "creates a symlink when source present and destination absent",
+        "running install twice succeeds with no changes",
+        "returns OK for correct facade entries",
+        "fails install and creates no link",
+        "check reports SOURCE_MISSING",
+        "fails install and preserves content",
+        "fails install and preserves content",
+        "fails install and preserves old target",
+        "repair mode fixes wrong symlink",
+        "preserves the old symlink and removes the temporary link when atomic publication fails",
+        "install fails with BROKEN_SYMLINK classification",
+        "repair mode fixes broken symlink",
+        "install does not produce paths containing /Users/",
+        "test roots do not contain /Users/famillesendrison",
+        "manifest contains no machine-specific paths",
+        "generates rules for every manifest destination",
+        "does not include broad ignore patterns like skills/ or agents/ alone",
+        "manifest source entries are relative",
+        "manifest destination entries are relative",
+        "facade.ts does not contain /Users/famillesendrison in code",
+        "cli.ts does not contain /Users/famillesendrison in code",
+        "installs all entries when sources exist",
+        "reports DESTINATION_MISSING when no link",
+        "reports DESTINATION_NOT_SYMLINK for real files"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/claude-facade/test/validation-chain.test.ts",
+      "targetFile": "scripts/claude-facade/test/validation-chain.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "owns each independently locked package from the root test command",
+        "keeps protocol validation out of the scripts package",
+        "disables implicit dependency installation in both nested packages"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/coding-standards-consolidate/src/__tests__/cli.test.ts",
+      "targetFile": "scripts/coding-standards-consolidate/src/__tests__/cli.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "parses all three required args",
+        "throws when scanner-json is missing",
+        "throws when files-json-dir is missing",
+        "throws when output is missing",
+        "merges scanner + one per-file report",
+        "produces CLEAN when everything is empty",
+        "deduplicates byte-equivalent findings by id",
+        "rejects one finding id with conflicting content",
+        "recomputes blocking based on merged findings",
+        "handles zero per-file reports (scanner only)",
+        "rejects a per-file report with a divergent scope digest",
+        "consolidate output matches the schema",
+        "reading an invalid per-file JSON throws during parseReport"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/coding-standards-scanner/src/__tests__/grep-rules/abbreviations-denylist.test.ts",
+      "targetFile": "scripts/coding-standards-scanner/src/__tests__/grep-rules/abbreviations-denylist.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "catches denied abbreviations",
+        "does not flag Manager (substring of mgr in word boundary terms)",
+        "flags xxx in Python",
+        "flags the canonical proc_dat example"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/coding-standards-scanner/src/__tests__/grep-rules/any-without-justif.test.ts",
+      "targetFile": "scripts/coding-standards-scanner/src/__tests__/grep-rules/any-without-justif.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "flags `any` used as a type",
+        "skips when the preceding line has a justification comment",
+        "skips when the line has a biome-ignore comment",
+        "skips when the line has an eslint-disable-next-line",
+        "applies only to .ts/.tsx",
+        "flags `as any` casts"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/coding-standards-scanner/src/__tests__/grep-rules/debug-statements.test.ts",
+      "targetFile": "scripts/coding-standards-scanner/src/__tests__/grep-rules/debug-statements.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "detects console.log in TypeScript",
+        "detects debugger statement",
+        "detects print() in Python",
+        "applies to supported extensions only",
+        "returns empty when no debug statement present"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/coding-standards-scanner/src/__tests__/linter-parsers/eslint.test.ts",
+      "targetFile": "scripts/coding-standards-scanner/src/__tests__/linter-parsers/eslint.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "parses the golden fixture",
+        "returns [] on empty input",
+        "returns [] on invalid JSON",
+        "returns [] on non-array JSON",
+        "drops messages with null ruleId (parser errors)"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/coding-standards-scanner/src/__tests__/linter-parsers/ruff.test.ts",
+      "targetFile": "scripts/coding-standards-scanner/src/__tests__/linter-parsers/ruff.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "parses the golden fixture",
+        "returns [] on empty output",
+        "returns [] on malformed JSON"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/coding-standards-scanner/src/__tests__/linter-parsers/shellcheck.test.ts",
+      "targetFile": "scripts/coding-standards-scanner/src/__tests__/linter-parsers/shellcheck.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "parses the golden fixture",
+        "prefixes numeric codes with SC",
+        "returns [] on empty output"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/coding-standards-scanner/src/__tests__/rule-mapping.test.ts",
+      "targetFile": "scripts/coding-standards-scanner/src/__tests__/rule-mapping.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "returns the declared axis for known rules",
+        "returns null for out-of-scope rules (dedup-codebase territory)",
+        "returns null for unknown rules",
+        "handles shellcheck SC codes",
+        "maps grep rule ids to their axes",
+        "mapping table is non-empty"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/coding-standards-scanner/src/__tests__/scope-resolver.test.ts",
+      "targetFile": "scripts/coding-standards-scanner/src/__tests__/scope-resolver.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "uses only existing eligible manifest entries and preserves the digest",
+        "rejects a digest that differs from the orchestrator value",
+        "rejects a manifest whose repo root differs from cwd",
+        "rejects an invalid manifest instead of silently returning an empty list",
+        "walks all or one target path without invoking Git"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "rejects",
+        "toBe",
+        "toEqual",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/lib/coding-standards-schema/src/__tests__/id-hash.test.ts",
+      "targetFile": "scripts/lib/coding-standards-schema/src/__tests__/id-hash.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "produces a 16-character lowercase hex string",
+        "is stable: same inputs produce the same output",
+        "matches the canonical formula exactly (regression guard)",
+        "changes when source changes",
+        "changes when file changes",
+        "changes when line_start changes",
+        "changes when axis changes",
+        "changes when problem changes (within first 80 chars)",
+        "does NOT change when problem differs only after the first 80 chars",
+        "distinguishes null line_start from 0 line_start",
+        "null line_start serialises as '' in the hash key"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/lib/coding-standards-schema/src/__tests__/validator.test.ts",
+      "targetFile": "scripts/lib/coding-standards-schema/src/__tests__/validator.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "accepts a valid finding",
+        "rejects a bad id (not hex)",
+        "rejects an id of wrong length",
+        "rejects an unknown axis",
+        "rejects an unknown severity",
+        "rejects empty observable_change when severity != design",
+        "allows empty observable_change when severity = design",
+        "accepts null line_start / line_end",
+        "rejects non-'coding-standards' source",
+        "accepts a valid report",
+        "accepts a CLEAN empty report",
+        "rejects report with wrong skill label",
+        "rejects a missing scope digest",
+        "rejects report with invalid verdict",
+        "rejects report missing summary",
+        "parseReport round-trips",
+        "parseReport throws on invalid JSON"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/lib/stack-tools/src/__tests__/extensions.test.ts",
+      "targetFile": "scripts/lib/stack-tools/src/__tests__/extensions.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "contains all expected extensions",
+        "does not contain non-code extensions",
+        "biome supports JS/TS extensions",
+        "ruff supports .py only",
+        "shellcheck supports .sh and .bash",
+        "returns true for code files",
+        "returns false for non-code files",
+        "handles case insensitivity",
+        "biome is compatible with TS/JS files",
+        "biome is not compatible with Python files",
+        "ruff is compatible with Python files",
+        "ruff is not compatible with TS files",
+        "unknown linter returns true (try anyway)"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/lib/stack-tools/src/__tests__/runner.test.ts",
+      "targetFile": "scripts/lib/stack-tools/src/__tests__/runner.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "returns true for a universally available binary (sh)",
+        "returns false for an obviously missing binary",
+        "returns empty results when linter and typeChecker are null",
+        "skips tsc typecheck (cannot check single file)",
+        "skips pyright for non-Python files",
+        "unknown linter produces no lint results"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "scripts/lib/stack-tools/src/__tests__/stack-config.test.ts",
+      "targetFile": "scripts/lib/stack-tools/src/__tests__/stack-config.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "finds STACK_EVAL.yaml in the same directory",
+        "finds STACK_EVAL.yaml in parent directory",
+        "returns null when no STACK_EVAL.yaml found",
+        "parses linter and type_checker",
+        "normalizes 'none' to null",
+        "handles missing decisions gracefully",
+        "handles missing type_checker",
+        "lowercases values"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/create-symlink-for-dot-folders/scripts/create_symlink.test.ts",
+      "targetFile": "skills/create-symlink-for-dot-folders/scripts/create-symlink.test.mjs",
+      "role": "test",
+      "testCaseNames": [
+        "creates a symlink when nothing exists",
+        "backs up an existing file",
+        "backs up an existing directory",
+        "does nothing if symlink is already correct",
+        "replaces a wrong symlink"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/document-agent-enforcement/scripts/__tests__/bootstrap-enforcer-docs.test.ts",
+      "targetFile": "skills/document-agent-enforcement/scripts/__tests__/bootstrap-enforcer-docs.test.mjs",
+      "role": "test",
+      "testCaseNames": [
+        "rejects malformed JSON",
+        "rejects empty topic",
+        "writes <topic>.md directly in docs/",
+        "appends entry with correct number",
+        "includes wiring and trigger when provided",
+        "inserts alphabetically with correct box-drawing chars",
+        "simulates a real new extension documentation"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/document-agent-enforcement/scripts/__tests__/lib.test.ts",
+      "targetFile": "skills/document-agent-enforcement/scripts/__tests__/lib.test.mjs",
+      "role": "test",
+      "testCaseNames": [
+        "returns null for valid input with all fields",
+        "returns null for valid input without optional fields",
+        "returns error if missing required field",
+        "returns error if field is empty string",
+        "returns 1 for empty index",
+        "returns max + 1",
+        "formats minimal entry without wiring/trigger",
+        "includes wiring and trigger when provided",
+        "findDocsSection finds boundaries",
+        "parseDocEntries extracts entries, CONTEXT.md is treated as entry",
+        "buildDocTree reconstructs block with padding and descriptions",
+        "insertFolderEntry adds entry alphabetically"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/document-self-modif/scripts/__tests__/bootstrap-docs.test.ts",
+      "targetFile": "skills/document-self-modif/scripts/__tests__/bootstrap-docs.test.mjs",
+      "role": "test",
+      "testCaseNames": [
+        "rejects malformed JSON",
+        "rejects empty topic",
+        "creates file and writes content",
+        "appends entry with correct number",
+        "inserts row before ## Skills",
+        "inserts alphabetically with correct box-drawing chars",
+        "simulates a real new extension documentation"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/document-self-modif/scripts/__tests__/lib.test.ts",
+      "targetFile": "skills/document-self-modif/scripts/__tests__/lib.test.mjs",
+      "role": "test",
+      "testCaseNames": [
+        "returns null for valid input",
+        "rejects missing field",
+        "rejects empty string",
+        "rejects whitespace-only string",
+        "returns 1 for empty index",
+        "returns N+1 when entries exist",
+        "ignores numbers inside code blocks",
+        "returns 1 when no numbered entries exist",
+        "formats a complete entry",
+        "uses backtick-escaped path",
+        "includes action, escaped path, and description",
+        "handles special characters in description",
+        "inserts row right before ## Skills",
+        "appends at end when ## Skills is missing",
+        "does not insert inside a heading that contains Skills",
+        "finds docs/ block with following sibling",
+        "returns null when docs/ is missing",
+        "handles docs/ as last top-level entry (end = EOF)",
+        "matches docs/ only as a top-level tree entry",
+        "parses header and entries",
+        "handles entries without descriptions",
+        "returns empty arrays for empty section",
+        "skips non-entry lines between entries",
+        "single entry uses └──",
+        "multiple entries: all but last use ├──",
+        "empty entries produces only docLine + header",
+        "inserts at beginning alphabetically",
+        "inserts in the middle",
+        "inserts at end (old last becomes ├──)",
+        "is case-insensitive",
+        "throws when docs/ section is missing"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/acceptance/a1-initial-run.test.ts",
+      "targetFile": "skills/git-commits-push/tests/acceptance/a1-initial-run.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "A1-01 | skill process exits with code 0",
+        "A1-02 | stdout contains exactly one @@TURNLOCK@@ block",
+        "A1-03 | delegation uses the Turnlock v2 batch protocol",
+        "A1-05 | repo-clean is NOT included in the delegation",
+        "A1-06 | state.json is written to runDir",
+        "A1-07 | delegation manifest contains prompt with diff payload"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/acceptance/a2-resume-run.test.ts",
+      "targetFile": "skills/git-commits-push/tests/acceptance/a2-resume-run.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "A2-01 | skill process exits with code 0 on --resume",
+        "A2-02 | stdout contains Turnlock DONE block",
+        "A2-03 | Phase 5 report is emitted to stderr",
+        "A2-04 | Phase 5 report lists repo-dirty as success",
+        "A2-05 | git commit was created in repo-dirty",
+        "A2-06 | only one commit was created (single plan)"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/acceptance/a3-fallback-escalation.test.ts",
+      "targetFile": "skills/git-commits-push/tests/acceptance/a3-fallback-escalation.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "exhausted validation retries delegate the next attempt to the fallback model"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/acceptance/a4-queued-order-observability.test.ts",
+      "targetFile": "skills/git-commits-push/tests/acceptance/a4-queued-order-observability.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "second session registers an order that parent release can identify"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/acceptance/a5-v2-full-pipeline.test.ts",
+      "targetFile": "skills/git-commits-push/tests/acceptance/a5-v2-full-pipeline.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "A5-01 | completes the production orchestrator-to-bridge-to-resume flow",
+        "A5-02 | persists and consumes real v2 initial and retry delegations",
+        "A5-03 | publishes the mocked LLM plan through the real Git publisher"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/invariants/i1-secret-scanner.test.ts",
+      "targetFile": "skills/git-commits-push/tests/invariants/i1-secret-scanner.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "I1-01 | process exits with code 0 (partial success is still a valid run)",
+        "I1-02 | stdout contains a delegation block (because repo-clean succeeded)",
+        "I1-03 | the delegation manifest contains repo-clean but not repo-with-secret",
+        "I1-04 | no runtime exception is thrown for the clean repo due to the secret repo failure"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/invariants/i1b-secret-scanner-warning-path.test.ts",
+      "targetFile": "skills/git-commits-push/tests/invariants/i1b-secret-scanner-warning-path.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "I1b-01 | process exits with code 0",
+        "I1b-02 | delegation manifest contains repo-warning (not blocked)",
+        "I1b-03 | a warning event is logged to secret-scanner stats",
+        "I1b-04 | no block event is logged for this repo"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/invariants/i2-non-interactive-shell.test.ts",
+      "targetFile": "skills/git-commits-push/tests/invariants/i2-non-interactive-shell.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "I2-01 | process completes within 10 seconds (no hang)",
+        "I2-02 | orchestrator delegates retry (transient push → retryable)",
+        "I2-03 | git commit WAS executed (commit succeeds, only push fails)"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/invariants/i3-parallel-isolation.test.ts",
+      "targetFile": "skills/git-commits-push/tests/invariants/i3-parallel-isolation.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "I3-01 | process exits with code 0 (partial failure is graceful)",
+        "I3-02 | a delegation is emitted (repo-A and repo-C succeeded)",
+        "I3-03 | manifest contains repo-A and repo-C but not repo-B",
+        "I3-04 | all three Phase 2 workers start within 500ms of each other (concurrent execution)"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/invariants/i4-stdout-compliance.test.ts",
+      "targetFile": "skills/git-commits-push/tests/invariants/i4-stdout-compliance.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "I4-01 | initial run: stdout contains zero bytes outside protocol blocks",
+        "I4-02 | initial run: Phase 5 report is on stderr, not stdout",
+        "I4-03 | initial run: no console.log / debug traces in stdout"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/invariants/i5-test-environment-safety.test.ts",
+      "targetFile": "skills/git-commits-push/tests/invariants/i5-test-environment-safety.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "I5-01 | all tests spawning the orchestrator must use MockTurnlockEnvironment (env.env)"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/property/p1-diffhash-race.test.ts",
+      "targetFile": "skills/git-commits-push/tests/property/p1-diffhash-race.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "P1-01 | process exits with code 0 (partial success path)",
+        "P1-02 | orchestrator delegates retry (race → retryable)",
+        "P1-03 | retry label starts with 'commit-jobs-retry'",
+        "P1-04 | git commit was NOT executed in repo-dirty"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/property/p2-detached-head.test.ts",
+      "targetFile": "skills/git-commits-push/tests/property/p2-detached-head.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "P2-01 | skill process exits with code 0",
+        "P2-02 | no @@TURNLOCK@@ DELEGATE block is emitted (nothing to delegate)",
+        "P2-03 | detached repo path is not present in any delegation job"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/property/p3-push-fallback.test.ts",
+      "targetFile": "skills/git-commits-push/tests/property/p3-push-fallback.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "P3-01 | process exits with code 0",
+        "P3-02 | repo is reported as SUCCESS",
+        "P3-03 | commit was pushed to the bare remote"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/property/p4-push-no-remote.test.ts",
+      "targetFile": "skills/git-commits-push/tests/property/p4-push-no-remote.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "P4-01 | process exits with code 0",
+        "P4-02 | repo is reported as SUCCESS despite no remote",
+        "P4-03 | git commit was still created in the repo"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/auth-resolver.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/auth-resolver.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "U-AR-01 | Returns token from ENV if defined",
+        "U-AR-02 | Returns token from agent-credentials.json via command execution",
+        "U-AR-03 | Returns token from dynamic execution (command)",
+        "U-AR-04 | Throws if provider absent from ENV and agent-credentials.json",
+        "U-AR-05 | Throws an error if dynamic command fails (enforces command strictness)",
+        "U-AR-06 | Dynamic command ignores stderr, returns only stdout",
+        "U-AR-07 | Token is trimmed of whitespace",
+        "U-AR-08 | Nested lookup: resolves token via agent in nested provider map",
+        "U-AR-09 | Nested lookup: second agent returns its own token",
+        "U-AR-10 | Nested lookup: absent agent throws descriptive error",
+        "U-AR-11 | Flat provider (has 'key') ignores agent and resolves normally (backward compat)",
+        "U-AR-12 | Nested lookup without agent: falls back to flat behavior if provider is nested"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "rejects",
+        "toBe",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/commit-message-validator.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/commit-message-validator.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "accepts basic type: description",
+        "accepts type(scope): description",
+        "accepts breaking change with !",
+        "accepts type(scope)!: description",
+        "accepts all VALID_TYPES",
+        "accepts subject + body separated by blank line",
+        "accepts subject + body + trailing newlines",
+        "rejects invalid subject even with valid body",
+        "rejects message without colon separator",
+        "rejects empty message",
+        "rejects whitespace-only message",
+        "rejects message without type",
+        "rejects unknown type",
+        "rejects wip type",
+        "rejects capital first letter after colon",
+        "rejects description ending with dot",
+        "rejects subject exceeding 72 chars",
+        "accepts subject of exactly 72 chars",
+        "checks subject line only, not body length",
+        "rejects added",
+        "rejects fixed",
+        "rejects removed, updated, changed, deleted",
+        "accepts imperative present",
+        "rejects adding",
+        "rejects fixing, removing, updating",
+        "rejects \"stuff\"",
+        "rejects \"wip\", \"temp\", \"changes\", \"misc\"",
+        "rejects \"fix bug\"",
+        "accumulates multiple errors"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/discovery.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/discovery.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "returns true for a repo in detached HEAD state",
+        "returns false for a repo on a named branch",
+        "returns true when there are staged changes",
+        "returns false for a clean repo",
+        "returns true for a local commit with no upstream",
+        "does not return repos inside node_modules",
+        "returns only the top-level repo, not the nested one",
+        "resolves with empty array for a non-existent search path",
+        "detached HEAD repo is not returned even if it has staged changes",
+        "same path always produces the same ID"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/error-classifier.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/error-classifier.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "CommitPlanError(empty-plans) + committedShasExist=true → success",
+        "CommitPlanError(empty-plans) + committedShasExist=false → structural retry",
+        "DiffHashMismatchError → race retry",
+        "PartialCommitError → git retry",
+        "GitExecError → git fail (non-retryable)",
+        "PushError(transient=true) → network retry",
+        "PushError(transient=false) → network fail",
+        "unknown Error → git fail (fail-closed)",
+        "non-Error value → git fail with string message",
+        "duplicate-file returns a non-empty hint",
+        "missing-file returns a non-empty hint",
+        "nonexistent-file returns a non-empty hint",
+        "empty-plans returns a non-empty hint",
+        "U-GE-34 | 'validation rejected' → returns 'validation'",
+        "U-GE-35 | 'LLM Fatal Error: ...' → returns null",
+        "U-GE-35b | 'LLM Fatal Error: Unexpected token' → returns null",
+        "U-GE-36 | 'LLM Fatal Error: network timeout' → returns null",
+        "U-GE-37 | unknown error string → returns null",
+        "empty string → returns null"
+      ],
+      "tableDrivenDeclarations": 1,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/errors.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/errors.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "constructor stores message and kind",
+        "stores optional files array",
+        "files defaults to undefined when omitted",
+        "stores optional context",
+        "context defaults to undefined when omitted",
+        "name property matches class name",
+        "instanceof Error",
+        "instanceof CommitPlanError",
+        "has a default message",
+        "name property matches class name",
+        "instanceof Error",
+        "instanceof DiffHashMismatchError",
+        "stores message, command and exitCode",
+        "name property matches class name",
+        "instanceof Error",
+        "instanceof GitExecError",
+        "stores message and context",
+        "context contains all required fields",
+        "name property matches class name",
+        "instanceof Error",
+        "instanceof PartialCommitError",
+        "stores transient=true for retryable failures",
+        "stores transient=false for permanent failures",
+        "name property matches class name",
+        "instanceof Error",
+        "instanceof PushError"
+      ],
+      "tableDrivenDeclarations": 1,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/fallback-model.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/fallback-model.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "returns false when no fallback configured",
+        "returns false when attempt count < max",
+        "returns false when fallback already attempted",
+        "returns true when max reached and fallback available and not yet attempted",
+        "only applies to validation kind (not structural/race/etc)",
+        "returns settings with fallback provider/model",
+        "preserves other settings fields"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/feedback-formatter.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/feedback-formatter.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "undefined feedback → empty string",
+        "contains [STRUCTURAL] prefix",
+        "contains → Resolution:",
+        "contains → Affected files:",
+        "contains the error message",
+        "contains [VALIDATION] prefix",
+        "contains → Resolution:",
+        "contains [RACE] prefix",
+        "contains [GIT] prefix",
+        "contains [NETWORK] prefix",
+        "contains 'Already committed' section",
+        "contains short SHA (7 chars)",
+        "contains committed files list",
+        "contains 'Pending files' section",
+        "contains pending files",
+        "contains <remaining-diff> block when payloadDiff provided",
+        "no <remaining-diff> when payloadDiff omitted",
+        "contains previous_commit history",
+        "contains instruction to return [] when done",
+        "instruction to return [] when everything committed",
+        "contains both [STRUCTURAL] and [VALIDATION]",
+        "empty errors array, no shas → still renders",
+        "error with resolution_hint but no files"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/git-publisher-v2.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/git-publisher-v2.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "returns committedShas with 2 entries and originalHead",
+        "each commit contains ONLY its own files (C1 isolation)",
+        "throws DiffHashMismatchError and makes no commits",
+        "plan referencing only an already-committed file throws missing-file",
+        "plan referencing a non-existent file throws nonexistent-file",
+        "throws CommitPlanError with kind duplicate-file",
+        "src/./foo.ts and src/foo.ts are detected as duplicate",
+        "src/foo.ts/ normalizes to src/foo.ts → duplicate detected",
+        "CamelCase.ts and camelcase.ts are NOT flagged as duplicates",
+        "auth error → transient=false",
+        "network error → transient=true",
+        "repository not found → transient=false",
+        "empty message → transient=true",
+        "plan 1 commits, plan 2 ghost file → context carries landed SHA",
+        "throws CommitPlanError with kind empty-plans"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "rejects",
+        "toBe",
+        "toEqual",
+        "toMatchObject",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/git-publisher.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/git-publisher.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "produces 'feat: description'",
+        "produces 'feat(scope): description'",
+        "produces 'feat!: description'",
+        "produces 'feat(scope)!: description'",
+        "body is separated by double newline",
+        "does not invoke git push and does not set upstream tracking",
+        "does not throw and does not attempt any push variant when no remote is configured",
+        "push -u custom-remote succeeds and commit appears in bare repo",
+        "GIT_TERMINAL_PROMPT env var is exported in GIT_ENV constant (structural check)",
+        "git log shows 2 commits in the right order",
+        "throws when a listed file is not present in staging",
+        "throws DiffHash mismatch and makes no commits",
+        "throws with clear Fat Commit message before any git operation"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "rejects",
+        "toBe",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/lock-manager.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/lock-manager.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "checkAndAcquireLock acquires lock if empty",
+        "checkAndAcquireLock queues if lock exists and is fresh",
+        "checkAndAcquireLock resumes if same runId",
+        "checkAndAcquireLock overwrites lock if stale (> 40 seconds)",
+        "heartbeat updates running.lock mtime",
+        "releaseLockAndTriggerNext deletes lock and triggers next if queue exists"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/orchestrator-schema.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/orchestrator-schema.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "minimal valid state",
+        "full state with all new fields",
+        "rejects invalid status",
+        "accepts per-kind attempts object",
+        "R37: legacy attempts:number → zeroed to {}",
+        "R48: rejects invalid attempt kind key",
+        "R30: rejects negative attempts value",
+        "R30: rejects non-integer attempts value",
+        "accepts empty object",
+        "accepts undefined (optional)",
+        "accepts valid committedShas array",
+        "rejects committedShas with missing sha",
+        "accepts valid loopDetected",
+        "accepts string array"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/order-store.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/order-store.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "writes queued orders as inspectable JSON",
+        "lists queued orders in FIFO order",
+        "deletes individual and bulk queued order files"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/pre-commit-validators.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/pre-commit-validators.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "returns diff string and hex SHA-256 diffHash",
+        "throws 'No changes found after staging'",
+        "throws 'Security Exception' and logs a block event",
+        "logs a passed event",
+        "resolves and logs a warning event",
+        "propagates scanner exception (fail-closed per DC-SECRET-SCANNER §3)",
+        "resolves successfully even with a failing test file when skipTests: true",
+        "resolves without error when STACK_EVAL.yaml declares test_runner: none",
+        "STACK_EVAL.yaml's pytest runner is dispatched (cascades rejects)",
+        "resolves when auto-discovered bun test passes",
+        "auto-discovered bun test runs and rejects on a failing test",
+        "resolves without error when no test runner is found",
+        "two calls on the same staged diff produce the same diffHash"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "rejects",
+        "toBe",
+        "toMatchObject",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/queue-retry.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/queue-retry.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "returns { kind: 'queued' } with updated repoState and a job",
+        "retryJobs contains the job after queueRetry",
+        "retry payload includes agent when settings.agent is set",
+        "retry payload omits agent when settings.agent is not set",
+        "second call with identical plan returns { kind: 'loop-detected' }",
+        "no job pushed on loop detection",
+        "committed files removed from pendingFiles",
+        "R75: path normalization catches src/./foo.ts vs src/foo.ts",
+        "no committedShas → pending_files unchanged",
+        "after 15 calls with distinct plans, history respects the cap",
+        "identical plans → loop detected",
+        "files sorted differently → loop detected (canonical sort)",
+        "different files → different hash → queued (not loop)",
+        "missing diffHash throws",
+        "feedbackHistory entry truncated at MAX_FEEDBACK_ENTRY_BYTES",
+        "retryJobs cleared between tests (afterEach works)"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/reporter-v2.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/reporter-v2.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "empty repos → empty array",
+        "SUCCESS repo with committedShas and attempts",
+        "totalRetries sums all attempt kinds",
+        "FAILED repo with loopDetected",
+        "repo without attempts → totalRetries = 0",
+        "SUCCESS with committedShas shows count",
+        "FAILED with attempts shows retry breakdown",
+        "loopDetected appears in report",
+        "committed SHA list renders short SHAs"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/reporter.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/reporter.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "contains === TURNLOCK EXECUTION REPORT ===",
+        "shows ✅ for a SUCCESS repo",
+        "shows ❌ for a FAILED repo",
+        "includes the error string in the report line",
+        "process.stderr.write is called, process.stdout.write is not",
+        "contains ================================= footer",
+        "produces valid report with header and footer even when empty"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/secret-scanner.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/secret-scanner.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "empty diff is clean",
+        "diff without additions is clean",
+        "normal code additions are clean",
+        "detects AWS access key",
+        "detects GitHub token",
+        "detects private key block",
+        "detects connection strings with credentials",
+        "detects generic API key",
+        "ignores additions with env var references",
+        "ignores placeholder passwords",
+        "ignores short password-like values",
+        "detects real-looking password assignments",
+        "detects Slack tokens",
+        "tracks line numbers",
+        "warns without blocking for secrets in non-production paths",
+        "keeps file context scoped across multi-file diffs",
+        "skips secrets in environment example files",
+        "skips secrets with an inline allow annotation",
+        "skips obvious same-line mock, dummy, test, example, and fake values"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/settings.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/settings.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "preserves fallback and thinking settings",
+        "rejects incomplete fallback configuration"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/skill-stats-log.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/skill-stats-log.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "detects Codex agent and session from CODEX_THREAD_ID",
+        "keeps Antigravity and Pi telemetry detection intact",
+        "throws outside known agent environments",
+        "logSecretPass writes passed event",
+        "logSecretBlock writes block event with structured findings",
+        "logSecretWarning writes warning event with structured findings",
+        "git-commits-push events include order context from environment",
+        "writes git-commits-push events as codex with CODEX_THREAD_ID",
+        "subprocess writes git-commits-push events as codex in production env",
+        "logs order lifecycle events with explicit queue metadata"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/git-commits-push/tests/unit/turnlock-to-llm-bridge.test.ts",
+      "targetFile": "skills/git-commits-push/tests/unit/turnlock-to-llm-bridge.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "removes surrounding double quotes",
+        "leaves unquoted string unchanged",
+        "handles empty string",
+        "calls openai adapter correctly",
+        "calls anthropic adapter correctly",
+        "calls google adapter correctly",
+        "calls custom adapter correctly",
+        "processes jobs successfully and resumes turnlock",
+        "writes failure results on execution errors",
+        "rejects a legacy manifest before processing jobs",
+        "injects feedback into prompt if present",
+        "passes agent to resolveAuthToken when present in payload",
+        "does not pass agent when absent from payload"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "rejects",
+        "toBe",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/go/tests/stage-harness/acceptance/run-stage.acceptance.test.ts",
+      "targetFile": "skills/go/tests/stage-harness/acceptance/run-stage.acceptance.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "A1 passing stage writes canonical output",
+        "A2 failing stage preserves stage errors",
+        "A3 skipped stage has no errors",
+        "A4 throwing stage becomes errored output",
+        "A5 invalid draft becomes errored output",
+        "A6 dirty tracked mutation is observable",
+        "A7 reserved root output file is rejected and replaced",
+        "A8 evidence symlink escape is rejected",
+        "A9 artefact directory inside worktree fails preflight",
+        "A10 existing artefact directory fails before stage invocation",
+        "A11 unmerged index makes tracked hash unavailable",
+        "A12 draft status and error coupling violations become errored",
+        "A13 non-Error thrown values become blocking harness errors",
+        "A14 invalid error evidence references are sanitized",
+        "A15 invalid error file and line metadata are sanitized",
+        "A16 reserved stdout and stderr root files are rejected",
+        "A17 missing artefact parent fails before stage invocation",
+        "A18 non-root workDir fails preflight",
+        "A19 invalid baseSha variants fail preflight",
+        "A20 unsupported checkout modes fail preflight",
+        "A21 non-JSON config fails preflight",
+        "A22 tracked hash covers regular file bytes and executable mode",
+        "A23 tracked hash covers symlink targets and deleted tracked files",
+        "A24 tracked type mismatch makes tracked hash unavailable",
+        "A25 submodule pointer affects hash and dirty submodule affects clean flag",
+        "A26 persistence write and rename failures produce no canonical output"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "rejects",
+        "toBe",
+        "toEqual",
+        "toMatchObject",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/go/tests/stage-harness/helpers/assert-stage-output.ts",
+      "targetFile": "skills/go/tests/stage-harness/helpers/assert-stage-output.ts",
+      "role": "assertion-helper",
+      "testCaseNames": [],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/go/tests/stage-harness/properties/run-stage.properties.test.ts",
+      "targetFile": "skills/go/tests/stage-harness/properties/run-stage.properties.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "P1 identical tracked contents produce identical tracked hashes",
+        "P2 untracked and ignored files do not affect tracked hash",
+        "P3 evidence path escapes are always errored",
+        "P4 preflight failures never invoke stage",
+        "P5 output JSON is the canonical return value",
+        "P6 tracked hash changes for tracked content dimensions",
+        "P7 harness errors dominate stage status",
+        "P8 canonical fields are collected independently"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "rejects",
+        "toBe",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/loop-clean/protocol/test/portable/autonomy.test.ts",
+      "targetFile": "skills/loop-clean/protocol/test/portable/autonomy.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "a copy containing only skills/loop-clean can initialise the protocol in a separate Git repository",
+        "LOOP_CLEAN_PROTOCOL_CLI override allows an external CLI without adjacent dependencies",
+        "init fails when override CLI returns 0 but produces no valid baseline"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/loop-clean/protocol/test/portable/controller-e2e.test.ts",
+      "targetFile": "skills/loop-clean/protocol/test/portable/controller-e2e.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "resolves the nearest Git root from a subdirectory and reports no changes",
+        "returns EXIT_CLEAN only after all four reports and a passing or skipped runtime gate",
+        "runtime failure is actionable before decision and prevents false CLEAN",
+        "returns EXIT_HANDLED when every re-emitted finding was deferred",
+        "detects actionable oscillation and treats a changed ID as new",
+        "recalculates scope so a file created by a fix appears next iteration",
+        "fails closed when a source report is missing",
+        "preserves HEAD and index and only invokes read-only Git through the wrapper",
+        "finalize reports an external index mutation as a protocol error without restoring it",
+        "runtime-gate rejects scope when index changed after capture",
+        "treats a deferred finding with a new ID as actionable",
+        "returns EXIT_CEILING at iteration nine with changing actionable IDs",
+        "finalize reports an external HEAD mutation without restoring it",
+        "the dynamic Git wrapper blocks add, commit, and push",
+        "rejects audit as an unknown argument",
+        "init rejects a malformed baseline and leaves no final file behind",
+        "same session ID can be re-initialized after a failed init",
+        "a successful init publishes every artifact before the commit marker",
+        "CLI crash does not leave a partial baseline file",
+        "concurrent init with same session ID: exactly one claims the marker",
+        "ln infrastructure failure returns exit 4, not exit 2"
+      ],
+      "tableDrivenDeclarations": 1,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/loop-clean/protocol/test/portable/findings.test.ts",
+      "targetFile": "skills/loop-clean/protocol/test/portable/findings.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "aggregates exactly the four canonical sources",
+        "keeps re-emitted deferred findings visible but non-actionable",
+        "deduplicates identical IDs only when their complete content matches",
+        "fails closed on a missing report",
+        "fails closed on malformed JSON",
+        "fails closed when any report has a divergent or absent scope digest",
+        "rejects unknown sources, noncanonical IDs, and invalid severities",
+        "rejects a well-shaped but incorrectly computed ID",
+        "rejects runtime failures already present in the deferred registry"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "rejects",
+        "toBe",
+        "toEqual",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/loop-clean/protocol/test/portable/git-invariants.test.ts",
+      "targetFile": "skills/loop-clean/protocol/test/portable/git-invariants.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "captures and verifies unchanged HEAD and raw index bytes",
+        "reports HEAD changes without restoring them",
+        "reports index changes without restoring them",
+        "uses UNBORN for a repository without an initial commit"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "rejects",
+        "toBe",
+        "toEqual",
+        "toMatchObject",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/loop-clean/protocol/test/portable/lockfile-contract.test.ts",
+      "targetFile": "skills/loop-clean/protocol/test/portable/lockfile-contract.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "lockfile matches canonical package identity"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/loop-clean/protocol/test/portable/routing.test.ts",
+      "targetFile": "skills/loop-clean/protocol/test/portable/routing.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "accepts exact partitions across every terminal category",
+        "accepts all-fix, all-backlog, and mixed partitions",
+        "rejects a forgotten finding",
+        "rejects one finding routed into two categories",
+        "rejects invented IDs",
+        "requires runtime failures to be fixed now",
+        "rejects a routing report with a divergent scope digest",
+        "rejects routed findings without category-specific evidence"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "rejects",
+        "toBe",
+        "toEqual",
+        "toMatchObject",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/loop-clean/protocol/test/portable/runtime-gate.test.ts",
+      "targetFile": "skills/loop-clean/protocol/test/portable/runtime-gate.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "prefers an explicit STACK_EVAL declaration over package.json and lockfiles",
+        "prefers the standard packageManager field over conflicting lockfiles",
+        "recognizes every supported unique lockfile",
+        "fails closed when multiple lockfiles exist without a declaration",
+        "fails closed on an unsupported packageManager declaration",
+        "preserves the npm fallback when no declaration or lockfile exists",
+        "runs configured test, lint, and typecheck commands in protocol order",
+        "marks absent checks as skipped",
+        "fails closed before checks when package-manager lockfiles are ambiguous",
+        "emits stable critical findings for every failed check",
+        "copies the current iteration scope digest",
+        "fails closed when same-status content changed after scope capture",
+        "fails closed when a passing check mutates the worktree"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "rejects",
+        "toBe",
+        "toEqual",
+        "toMatchObject",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/loop-clean/protocol/test/portable/scope.test.ts",
+      "targetFile": "skills/loop-clean/protocol/test/portable/scope.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "collects every non-committed Git state once and excludes ignored files",
+        "supports an unborn repository",
+        "uses the explicitly resolved nested repository only",
+        "digest ignores record order, timestamp, and absolute repository path",
+        "index_digest changes when only the staged blob changes (MM→M. scenario)",
+        "index_digest changes for executable mode change in the index",
+        "index unchanged but worktree modified: index_digest stable, content_digest changes",
+        "digest changes for same-status content changes",
+        "parses ordinary, renamed, copied, deleted, unmerged, and untracked records",
+        "rejects non-UTF-8 Git paths instead of decoding them lossily"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual",
+        "toMatchObject",
+        "toThrow"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "skills/loop-clean/protocol/test/repository/static-contract.test.ts",
+      "targetFile": "skills/loop-clean/protocol/test/repository/static-contract.test.ts",
+      "role": "test",
+      "testCaseNames": [
+        "contains no executable mutating Git command in loop-clean production",
+        "allows only read-only Git subcommands in the technical package",
+        "removes every legacy production feature from the production perimeter",
+        "registers the protocol suite once and no removed package scripts",
+        "loop-clean.sh passes bash syntax validation",
+        "documents and enforces the exact orchestration order",
+        "makes findings.json the sole orchestrated routing input",
+        "requires every producer to consume and echo the manifest digest",
+        "contains no residual references to the old protocol location and no ~/.claude in canonical sources",
+        "old protocol directory no longer exists",
+        "script libraries and runtime paths are canonical",
+        "protocol package is self-contained with package.json, bun.lock, and tsconfig.json",
+        "loop-clean.sh points to the adjacent protocol CLI",
+        "all protocol CLI calls go through _run_protocol with --no-install",
+        "bunfig.toml disables runtime auto-install"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    }
+  ]
+}

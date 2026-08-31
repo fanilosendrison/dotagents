@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { parseShellcheckJson } from "../../lib/linter-parsers/shellcheck.ts";
 
 const GOLDEN = JSON.stringify([
@@ -27,19 +28,22 @@ const GOLDEN = JSON.stringify([
 describe("parseShellcheckJson", () => {
 	it("parses the golden fixture", () => {
 		const findings = parseShellcheckJson(GOLDEN);
-		expect(findings).toHaveLength(2);
-		expect(findings[0]?.ruleId).toBe("SC2164");
-		expect(findings[0]?.line_start).toBe(23);
-		expect(findings[1]?.ruleId).toBe("SC2034");
+		assert.strictEqual(findings.length, 2);
+		assert.strictEqual(findings[0]?.ruleId, "SC2164");
+		assert.strictEqual(findings[0]?.line_start, 23);
+		assert.strictEqual(findings[1]?.ruleId, "SC2034");
 	});
 
 	it("prefixes numeric codes with SC", () => {
 		const findings = parseShellcheckJson(GOLDEN);
-		expect(findings.every((f) => f.ruleId.startsWith("SC"))).toBe(true);
+		assert.strictEqual(
+			findings.every((f) => f.ruleId.startsWith("SC")),
+			true,
+		);
 	});
 
 	it("returns [] on empty output", () => {
-		expect(parseShellcheckJson("")).toEqual([]);
-		expect(parseShellcheckJson("[]")).toEqual([]);
+		assert.deepStrictEqual(parseShellcheckJson(""), []);
+		assert.deepStrictEqual(parseShellcheckJson("[]"), []);
 	});
 });

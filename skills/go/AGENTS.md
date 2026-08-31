@@ -5,7 +5,7 @@ This document contains essential context and rules for agents working on the `/g
 ## 1. Local Testing and Git Hooks
 
 ### Problem
-The local testing suite (`bun test`) creates temporary Git repositories on the fly. By default, Git inherits the global configuration from the host machine, including global hooks (e.g., `core.hooksPath` set to `~/.gravity/git-hooks`). This causes local test commits to be blocked or rejected by host enforcers.
+The local testing suite (`pnpm run test`) creates temporary Git repositories on the fly. By default, Git inherits the global configuration from the host machine, including global hooks (e.g., `core.hooksPath` set to `~/.gravity/git-hooks`). This causes local test commits to be blocked or rejected by host enforcers.
 
 ### Solution
 All test repository commit helper functions inside [git-fixture.ts](file:///Users/famillesendrison/.agents/skills/go/tests/stage-harness/helpers/git-fixture.ts) must bypass host hooks by passing the `--no-verify` flag to `git commit`.
@@ -22,10 +22,9 @@ skills/go/
 ├── .gitignore                     # Ignores node_modules/, test-temp/, tmp/
 ├── AGENTS.md                      # You are here — agent development guidelines
 ├── SKILL.md                       # Skill declaration + instruction loader
-├── bun.lock
 ├── package.json
 ├── tsconfig.json
-├── node_modules/                  # Dependencies (zod)
+├── node_modules/                  # pnpm-managed dependencies (zod, fast-check)
 ├── src/
 │   └── stage-harness/             # Standalone stage execution harness
 │       ├── index.ts               # Public entry point (StageInput → StageOutput)

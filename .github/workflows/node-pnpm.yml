@@ -1,0 +1,190 @@
+name: Node and pnpm migration gates
+
+on:
+  push:
+    branches:
+      - main
+      - migration/node-pnpm
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: node-pnpm-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node-runtime-bootstraps-and-stats-logger:
+    name: Node runtime, bootstraps, and stats logger on ${{ matrix.os }} / Node ${{ matrix.node-version }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+        node-version:
+          - 22.19.0
+          - 24.x
+
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install exact pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+          run_install: false
+
+      - name: Verify exact package-manager policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p "require('./package.json').packageManager")" = "pnpm@11.24.0"
+          test "$(node -p "require('./package.json').engines.node")" = ">=22.19.0"
+          test "$(node -p "require('./package.json').engines.pnpm")" = "11.24.0"
+          test "$(npm config get engine-strict)" = "true"
+          test "$(npm config get auto-install-peers)" = "false"
+          test "$(pnpm config get engineStrict)" = "true"
+          test "$(pnpm config get autoInstallPeers)" = "false"
+
+      - name: Install locked dependencies without lifecycle scripts
+        shell: bash
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Install Bun failure sentinel
+        shell: bash
+        run: |
+          set -euo pipefail
+          sentinel_dir="$RUNNER_TEMP/bun-failure-sentinel"
+          mkdir -p "$sentinel_dir"
+          cat > "$sentinel_dir/bun" <<'EOF'
+          #!/usr/bin/env bash
+          printf 'unexpected Bun invocation: %s\n' "$*" >> "${BUN_SENTINEL_LOG:?}"
+          exit 97
+          EOF
+          chmod +x "$sentinel_dir/bun"
+          printf '%s\n' "$sentinel_dir" >> "$GITHUB_PATH"
+          printf 'BUN_SENTINEL_LOG=%s\n' "$RUNNER_TEMP/bun-invocations.log" >> "$GITHUB_ENV"
+
+      - name: Validate final Bun allowlist and test parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run test:bun-policy
+          pnpm run validate:bun-policy
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Test shared git-commits-push launch recognition
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run test:git-commits-push-launch-recognition
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Typecheck, build, and test the shared Node runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(pnpm --version)" = "11.24.0"
+          pnpm run typecheck:node-runtime
+          pnpm run build:node-runtime
+          pnpm run test:node-runtime
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Typecheck and test the scripts package
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run typecheck:scripts
+          pnpm run test:scripts-node
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Typecheck and test agent enforcers
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run typecheck:agent-enforcers
+          pnpm run test:agent-enforcers-node
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Typecheck and test the go stage harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run test:go-node
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Typecheck and test the loop-clean protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run test:protocol
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Typecheck git-commits-push
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run typecheck:git-commits-push
+
+      - name: Test git-commits-push source suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run test:git-commits-push-node-full
+
+      - name: Compile and test git-commits-push artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run test:git-commits-push-node-build
+
+      - name: Verify git-commits-push did not invoke Bun
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Run the dependency-free symlink bootstrap tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run test:create-symlink
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Run the dependency-free documentation bootstrap tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run test:documentation-bootstraps
+          pnpm run test:document-wrapper
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Typecheck, compile, and test the skill validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run typecheck:skill-validator
+          pnpm run test:skill-validator
+          pnpm run validate:skill skills/skill-creator
+          test ! -s "$BUN_SENTINEL_LOG"
+
+      - name: Typecheck and run the direct TypeScript stats smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --filter git-commits-push-tl run typecheck:node:stats
+          pnpm --filter git-commits-push-tl run test:node:stats
+          test ! -s "$BUN_SENTINEL_LOG"

@@ -10,14 +10,14 @@ description: Safely initializes physical folders in dot-projects and symlinks th
 The `path-guard` system intentionally blocks you from creating new directories directly inside `~/Developper/Projects/dot<name>/` (it rewrites paths to `~/.<name>/`). This creates a bootstrap problem when you need to initialize a brand new folder and its symlink.
 
 **Do NOT attempt to use `mkdir` or `git init` or `ln -s` manually** to solve this. You will get trapped by `path-guard` and you risk deleting user data. 
-Use the bundled TypeScript script instead.
+Use the bundled dependency-free Node bootstrap instead.
 
 ## How to use
 
-Run the bundled TypeScript script using `bun run`. **CRITICAL: You MUST wrap both paths in double quotes** (`"..."`) when calling the command. This is what hides the paths from `path-guard`'s bash extraction logic.
+Run the bundled Node bootstrap. **CRITICAL: You MUST wrap both paths in double quotes** (`"..."`) when calling the command. This is what hides the paths from `path-guard`'s bash extraction logic.
 
 ```bash
-bun run ~/.agents/skills/create-symlink-for-dot-folders/scripts/create_symlink.ts "<physical_target_dir>" "<symlink_path>"
+node ~/.agents/skills/create-symlink-for-dot-folders/scripts/create-symlink.mjs "<physical_target_dir>" "<symlink_path>"
 ```
 
 ### Example Usage
@@ -25,7 +25,7 @@ bun run ~/.agents/skills/create-symlink-for-dot-folders/scripts/create_symlink.t
 If the user wants `~/.agents/specs` to be a symlink to `~/Developper/Projects/dotagents/specs`:
 
 ```bash
-bun run ~/.agents/skills/create-symlink-for-dot-folders/scripts/create_symlink.ts "~/Developper/Projects/dotagents/specs" "~/.agents/specs"
+node ~/.agents/skills/create-symlink-for-dot-folders/scripts/create-symlink.mjs "~/Developper/Projects/dotagents/specs" "~/.agents/specs"
 ```
 
 ### What the script does mechanically:
