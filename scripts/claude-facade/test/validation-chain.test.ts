@@ -107,8 +107,10 @@ describe("repository validation chain", () => {
 				"create-symlink-for-dot-folders",
 				"bun.lock",
 			),
+			join(repositoryRoot, "skills", "git-commits-push", "bun.lock"),
+			join(repositoryRoot, "skills", "go", "bun.lock"),
 		]) {
-			assert.strictEqual(existsSync(lockfilePath), true);
+			assert.strictEqual(existsSync(lockfilePath), false);
 		}
 	});
 
@@ -155,6 +157,25 @@ describe("repository validation chain", () => {
 			protocolManifest.includes('"packageManager": "pnpm@11.24.0"'),
 			true,
 		);
+	});
+
+	it("removes final root and bootstrap Bun dependency state after full parity", () => {
+		const rootManifest = readFileSync(
+			join(repositoryRoot, "package.json"),
+			"utf8",
+		);
+		const bootstrapManifest = readFileSync(
+			join(
+				repositoryRoot,
+				"skills",
+				"create-symlink-for-dot-folders",
+				"package.json",
+			),
+			"utf8",
+		);
+
+		assert.strictEqual(rootManifest.includes('"@types/bun"'), false);
+		assert.strictEqual(bootstrapManifest.includes('"@types/bun"'), false);
 	});
 
 	it("removes package-local Bun state after git-commits-push parity passes", () => {
