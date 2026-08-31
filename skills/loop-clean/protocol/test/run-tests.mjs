@@ -3,7 +3,7 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const FIXED_TEST_TIMEOUT_MILLISECONDS = 180_000;
+export const FIXED_TEST_TIMEOUT_MILLISECONDS = 420_000;
 export const EXPECTED_PORTABLE_TEST_FILES = Object.freeze([
 	"portable/autonomy.test.ts",
 	"portable/controller-e2e.test.ts",

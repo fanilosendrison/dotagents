@@ -7,7 +7,7 @@ import {
 	recognizeGitCommitsPushCommand,
 } from "../validator.ts";
 
-const HISTORICAL_BUN_LAUNCH =
+const RETIRED_BUN_LAUNCH =
 	"cd /Users/example/.agents/skills/git-commits-push && bun run start";
 const CANONICAL_PNPM_LAUNCH =
 	'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
@@ -24,10 +24,10 @@ describe("recognizeGitCommitsPushCommand", () => {
 		);
 	});
 
-	test("distinguishes historical Bun and canonical pnpm launches", () => {
+	test("accepts only the canonical pnpm shell launch", () => {
 		assert.strictEqual(
-			recognizeGitCommitsPushCommand(HISTORICAL_BUN_LAUNCH),
-			"bun-launch",
+			recognizeGitCommitsPushCommand(RETIRED_BUN_LAUNCH),
+			null,
 		);
 		assert.strictEqual(
 			recognizeGitCommitsPushCommand(CANONICAL_PNPM_LAUNCH),
@@ -37,7 +37,6 @@ describe("recognizeGitCommitsPushCommand", () => {
 
 	test("accepts absolute, home-variable, and tilde gateway paths", () => {
 		for (const command of [
-			HISTORICAL_BUN_LAUNCH,
 			CANONICAL_PNPM_LAUNCH,
 			"cd ~/.agents/skills/git-commits-push && pnpm --silent run start",
 		]) {
@@ -77,11 +76,7 @@ describe("recognizeGitCommitsPushCommand", () => {
 
 describe("shared launch recognition consumers", () => {
 	test("keeps boolean and intent wrappers aligned", () => {
-		for (const command of [
-			"/git-commits-push",
-			HISTORICAL_BUN_LAUNCH,
-			CANONICAL_PNPM_LAUNCH,
-		]) {
+		for (const command of ["/git-commits-push", CANONICAL_PNPM_LAUNCH]) {
 			assert.strictEqual(isGitCommitsPushSkillCommand(command), true);
 			assert.strictEqual(detectCommitIntent(command), "git-commits-push");
 		}

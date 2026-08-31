@@ -72,13 +72,13 @@ describe("isGitCommitsPushSkillCommand", () => {
 		assert.strictEqual(isGitCommitsPushSkillCommand("/git-commits-push --force"), true);
 	});
 
-	test("detects skill launch path", () => {
-		const historicalLaunch =
+	test("accepts the canonical skill launch and rejects the retired launch", () => {
+		const retiredLaunch =
 			"cd /Users/me/.agents/skills/git-commits-push && bun run start";
 		const canonicalLaunch =
 			'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
-		assert.strictEqual(isGitCommitsPushSkillCommand(historicalLaunch), true);
-		assert.strictEqual(recognizeGitCommitsPushCommand(historicalLaunch), "bun-launch");
+		assert.strictEqual(isGitCommitsPushSkillCommand(retiredLaunch), false);
+		assert.strictEqual(recognizeGitCommitsPushCommand(retiredLaunch), null);
 		assert.strictEqual(isGitCommitsPushSkillCommand(canonicalLaunch), true);
 		assert.strictEqual(recognizeGitCommitsPushCommand(canonicalLaunch), "pnpm-launch");
 	});

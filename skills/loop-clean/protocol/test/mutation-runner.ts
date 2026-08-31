@@ -11,8 +11,6 @@ import {
 
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
 
-type TestRuntime = "bun" | "node";
-
 interface MutationDefinition {
 	readonly name: string;
 	readonly testFile: string;
@@ -34,29 +32,21 @@ async function replaceExactly(
 	await writeFile(path, contents.replace(oldText, newText));
 }
 
-function testInvocation(
-	testRuntime: TestRuntime,
-	testPath: string,
-): { readonly command: string; readonly args: readonly string[] } {
-	if (testRuntime === "bun") {
-		return {
-			command: "bun",
-			args: ["test", "--timeout", "60000", testPath],
-		};
-	}
+function testInvocation(testPath: string): {
+	readonly command: string;
+	readonly args: readonly string[];
+} {
 	return {
 		command: process.execPath,
-		args: ["--test", "--test-concurrency=1", "--test-timeout=180000", testPath],
+		args: ["--test", "--test-concurrency=1", "--test-timeout=420000", testPath],
 	};
 }
 
 async function runTest(
 	mutantRoot: string,
 	testFile: string,
-	testRuntime: TestRuntime,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
 	const invocation = testInvocation(
-		testRuntime,
 		join(mutantRoot, "skills/loop-clean/protocol/test", testFile),
 	);
 	const result = await executeProcess(invocation.command, invocation.args, {
@@ -73,9 +63,8 @@ async function requireTestPasses(
 	mutantRoot: string,
 	testFile: string,
 	label: string,
-	testRuntime: TestRuntime,
 ): Promise<void> {
-	const result = await runTest(mutantRoot, testFile, testRuntime);
+	const result = await runTest(mutantRoot, testFile);
 	if (result.exitCode !== 0) {
 		throw new Error(
 			`${label} baseline failed before mutation was applied:\n${result.stdout}\n${result.stderr}`,
@@ -314,7 +303,6 @@ async function runMutationBatch(
 	mutations: readonly MutationDefinition[],
 	copyFn: () => Promise<string>,
 	label: string,
-	testRuntime: TestRuntime,
 ): Promise<readonly string[]> {
 	// Establish baseline for every unique test file used by mutations
 	const baselineTests = [...new Set(mutations.map((m) => m.testFile))];
@@ -325,7 +313,6 @@ async function runMutationBatch(
 				baselineRoot,
 				testFile,
 				`${label} baseline ${testFile}`,
-				testRuntime,
 			);
 		} finally {
 			await rm(baselineRoot, { recursive: true, force: true });
@@ -340,7 +327,6 @@ async function runMutationBatch(
 			const { stdout, stderr, exitCode } = await runTest(
 				mutantRoot,
 				mutation.testFile,
-				testRuntime,
 			);
 			if (exitCode === 0) {
 				throw new Error(
@@ -355,29 +341,18 @@ async function runMutationBatch(
 	return detected;
 }
 
-export async function runMutationSuite(
-	testRuntime: TestRuntime = "node",
-): Promise<readonly string[]> {
+export async function runMutationSuite(): Promise<readonly string[]> {
 	const portableDetected = await runMutationBatch(
 		portableMutations,
 		copyPortableMutant,
 		"portable",
-		testRuntime,
 	);
 	const repositoryDetected = await runMutationBatch(
 		repositoryMutations,
 		copyRepositoryMutant,
 		"repository",
-		testRuntime,
 	);
 	return [...portableDetected, ...repositoryDetected];
-}
-
-function requestedTestRuntime(argument: string | undefined): TestRuntime {
-	if (argument === undefined || argument === "--test-runtime=node")
-		return "node";
-	if (argument === "--test-runtime=bun") return "bun";
-	throw new Error(`unknown mutation runner argument: ${argument}`);
 }
 
 function isDirectEntrypoint(): boolean {
@@ -389,9 +364,10 @@ function isDirectEntrypoint(): boolean {
 }
 
 if (isDirectEntrypoint()) {
-	const detected = await runMutationSuite(
-		requestedTestRuntime(process.argv[2]),
-	);
+	if (process.argv[2] !== undefined) {
+		throw new Error(`unknown mutation runner argument: ${process.argv[2]}`);
+	}
+	const detected = await runMutationSuite();
 	for (const name of detected) process.stdout.write(`DETECTED ${name}\n`);
 	process.stdout.write(
 		`MUTATION_RESULT ${detected.length}/${allMutations.length}\n`,

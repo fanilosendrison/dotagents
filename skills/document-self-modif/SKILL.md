@@ -83,4 +83,3 @@ tree — all in one shot. **Zero LLM calls after STEP 1.**
 - **[lib.mjs](scripts/lib.mjs)** — active pure functions for index, QuickNav, tree ops
 - **[bootstrap-docs.test.mjs](scripts/__tests__/bootstrap-docs.test.mjs)** — Node integration tests (7)
 - **[lib.test.mjs](scripts/__tests__/lib.test.mjs)** — Node unit tests (31)
-- Historical TypeScript sources and Bun tests remain temporarily for migration parity.

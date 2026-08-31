@@ -18,11 +18,6 @@ const defaultCliPath = fileURLToPath(
 	new URL("../src/quick-validate.mts", import.meta.url),
 );
 const validatorCliPath = process.env.SKILL_VALIDATOR_CLI ?? defaultCliPath;
-const historicalCliPath = fileURLToPath(
-	new URL("../scripts/quick_validate.ts", import.meta.url),
-);
-const isBun = typeof globalThis.Bun !== "undefined";
-
 const VALID_BODY = `# Instructions
 
 Validate the complete skill structure and report every actionable issue before delivery.
@@ -268,27 +263,5 @@ describe("quick-validate CLI", () => {
 		assert.equal(result.status, 0);
 		assert.equal(result.stdout, "\nPASS — all checks OK\n");
 		assert.equal(result.stderr, "");
-	});
-
-	test("matches the historical Bun diagnostics and exit codes", {
-		skip: !isBun,
-	}, (t) => {
-		const validDirectory = writeSkill(t);
-		const warningDirectory = writeSkill(t, {
-			body: `${VALID_BODY}\nUse [missing](scripts/missing.mjs).\n`,
-		});
-		const missingDirectory = createTemporaryDirectory(t);
-
-		for (const directory of [
-			validDirectory,
-			warningDirectory,
-			missingDirectory,
-		]) {
-			const historicalResult = runCliAt(historicalCliPath, [directory]);
-			const successorResult = runCli([directory]);
-			assert.equal(successorResult.status, historicalResult.status);
-			assert.equal(successorResult.stdout, historicalResult.stdout);
-			assert.equal(successorResult.stderr, historicalResult.stderr);
-		}
 	});
 });

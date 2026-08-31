@@ -9,7 +9,7 @@
  *
  * Exports:
  *   - detectRawGitMutation(command)      — does the command mutate via raw git?
- *   - recognizeGitCommitsPushCommand(cmd) — classify slash, Bun, or pnpm invocation
+ *   - recognizeGitCommitsPushCommand(cmd) — classify slash or pnpm invocation
  *   - isGitCommitsPushSkillCommand(cmd)   — is it a recognized skill invocation?
  *   - detectCommitIntent(command)         — combined detection with classification
  *   - evaluateEnforcement(input)         — full enforcement decision (action + telemetry hint)
@@ -33,7 +33,6 @@ import {
 export type CommitIntentDetection = "git-commit" | "git-commits-push";
 export type GitCommitsPushCommandRecognition =
 	| "skill-invocation"
-	| "bun-launch"
 	| "pnpm-launch";
 export type { RawGitMutation };
 
@@ -126,9 +125,6 @@ export function recognizeGitCommitsPushCommand(
 		return null;
 	}
 
-	if (tokensEqual(launchTokens, ["bun", "run", "start"])) {
-		return "bun-launch";
-	}
 	if (tokensEqual(launchTokens, ["pnpm", "--silent", "run", "start"])) {
 		return "pnpm-launch";
 	}

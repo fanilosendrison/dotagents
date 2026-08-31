@@ -224,9 +224,7 @@ pnpm --dir ~/.agents run validate:skill <path/to/skill-folder>
 ```
 
 It uses the locked root toolchain and checks frontmatter, naming, description quality,
-TODO markers, cross-references, and orphan files. Fix all errors before delivery. The
-historical Bun source remains at [quick_validate.ts](scripts/quick_validate.ts) until
-final cutover.
+TODO markers, cross-references, and orphan files. Fix all errors before delivery.
 
 ### Step 6: Iterate
 
