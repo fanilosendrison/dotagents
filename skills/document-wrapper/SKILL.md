@@ -58,7 +58,7 @@ field. Everything below feeds the mechanical step.
 Pipe the JSON from STEP 1 into the script bundled with this skill:
 
 ```bash
-echo '<json>' | ./scripts/bootstrap-wrapper-docs
+echo '<json>' | node ./scripts/bootstrap-wrapper-docs.mjs
 ```
 
 It writes the markdown file, updates the docs index,
@@ -67,5 +67,7 @@ tree — all in one shot. **Zero LLM calls after STEP 1.**
 
 ## Bundled Resources
 
-- **[bootstrap-wrapper-docs](scripts/bootstrap-wrapper-docs)** — main script, does everything
-- **[lib.ts](scripts/lib.ts)** — pure functions for index, QuickNav, tree ops
+- **[bootstrap-wrapper-docs.mjs](scripts/bootstrap-wrapper-docs.mjs)** — active Node script, does everything
+- **[lib.mjs](scripts/lib.mjs)** — active pure functions for index, QuickNav, tree ops
+- **[bootstrap-wrapper-docs.test.mjs](scripts/__tests__/bootstrap-wrapper-docs.test.mjs)** — Node integration tests
+- **[lib.test.mjs](scripts/__tests__/lib.test.mjs)** — Node unit tests
