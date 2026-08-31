@@ -77,11 +77,12 @@ jobs:
           printf '%s\n' "$sentinel_dir" >> "$GITHUB_PATH"
           printf 'BUN_SENTINEL_LOG=%s\n' "$RUNNER_TEMP/bun-invocations.log" >> "$GITHUB_ENV"
 
-      - name: Validate test parity attribution
+      - name: Validate final Bun allowlist and test parity
         shell: bash
         run: |
           set -euo pipefail
-          pnpm run validate:test-parity
+          pnpm run test:bun-policy
+          pnpm run validate:bun-policy
           test ! -s "$BUN_SENTINEL_LOG"
 
       - name: Test shared git-commits-push launch recognition
@@ -167,6 +168,7 @@ jobs:
         run: |
           set -euo pipefail
           pnpm run test:documentation-bootstraps
+          pnpm run test:document-wrapper
           test ! -s "$BUN_SENTINEL_LOG"
 
       - name: Typecheck, compile, and test the skill validator
