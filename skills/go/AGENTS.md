@@ -136,4 +136,4 @@ Phase 1.b (OCI Sandbox strategy) implementation is **blocked** until macOS is up
 ### References
 - [`specs/roadmap.md`](./specs/roadmap.md) Phase 1.b — blocked notice with cross-reference
 - [`specs/working/run-init/workspace-setup.sandbox.md` §2](./specs/working/run-init/workspace-setup.sandbox.md#2-prérequis-techniques) — macOS constraint callout
-- [`operational-rules/implementation.md` §5](../../operational-rules/implementation.md) — environmental constraints (No Docker on this system)
+- [`operational-rules/code-implementation.md` §7](../../operational-rules/code-implementation.md) — environmental constraints (No Docker on this system)
