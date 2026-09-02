@@ -4,7 +4,7 @@ description: Grants the agent temporary clearance to use file-modifying tools. N
 ---
 
 Immediately read the following file:
-[implementation.md](../../operational-rules/implementation.md)
+[code-implementation.md](../../operational-rules/code-implementation.md)
 
 This skill is an authorization marker and an instruction loader. It does not
 choose the task by itself: after reading `implementation.md`, continue with the
