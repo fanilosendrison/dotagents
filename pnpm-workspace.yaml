@@ -15,3 +15,4 @@ autoInstallPeers: false
 minimumReleaseAgeExclude:
   - '@fanilosendrison/event-sink@0.1.0'
   - turnlock@0.9.1
+  - '@fanilosendrison/llm-runtime@0.1.3'

@@ -59,8 +59,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0
       '@fanilosendrison/llm-runtime':
-        specifier: ^0.1.2
-        version: 0.1.2
+        specifier: ^0.1.3
+        version: 0.1.3
       turnlock:
         specifier: 0.9.1
         version: 0.9.1
@@ -195,8 +195,8 @@ packages:
     resolution: {integrity: sha512-9PmG9HcLA8A25QCotLKJvkUQQbtEgUauWRL82mAIT7ujUWPMX2C2eA/j4jzt52cMCWsnar3tFY8rRKNDrTCNmQ==}
     engines: {node: '>=22.19.0'}
 
-  '@fanilosendrison/llm-runtime@0.1.2':
-    resolution: {integrity: sha512-yoej2g21eF693bOTdB4ufsIcCrxUC740rUVTe7a/xYdUwSICxR4MlmxeRpwKf8hpQ6QCcJqqlwiW2MgUL9MADg==}
+  '@fanilosendrison/llm-runtime@0.1.3':
+    resolution: {integrity: sha512-oLDjYQcu4yyU0BhtDXZgK8oONctVm+++Ek1dZIivKIur0PMzTiLdoE/z66vS7Vbg6ADOkr/TShQcLIUhNGJl8w==}
     engines: {node: '>=20'}
 
   '@types/js-yaml@4.0.9':
@@ -283,7 +283,7 @@ snapshots:
 
   '@fanilosendrison/event-sink@0.1.0': {}
 
-  '@fanilosendrison/llm-runtime@0.1.2':
+  '@fanilosendrison/llm-runtime@0.1.3':
     dependencies:
       ai-json-safe-parse: 0.3.0
       ulid: 2.4.0
