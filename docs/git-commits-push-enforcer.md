@@ -4,8 +4,11 @@ Blocks direct raw Git mutations and forces commits through the `/git-commits-pus
 
 `~/.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator.ts`
 
-Trust tokens are managed by:
-`~/.agents/agent-enforcers/git-commits-push-enforcer/src/core/trust-store.ts`
+One-shot guardrail permits are defined by the versioned
+`@git-commits-push/trust` package owned by the dedicated `git-commits-push`
+repository. Dotagents consumes its pinned package artifact. This mechanism is
+not an authentication boundary against arbitrary code running as the same OS
+user.
 
 ## 1. Wiring — 4 interception points
 
@@ -33,15 +36,30 @@ Obfuscation techniques are detected and blocked: env prefixes, sudo, bash -c, en
 ### Skill invocation (shell-level)
 ```bash
 /git-commits-push
-cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start
+cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start
 ```
 
-During compatibility deployment, the shared recognizer also accepts the
-historical `bun run start` launch. Both forms must contain only the exact `cd`
-and package-manager segments; appended shell commands are rejected.
+The shared recognizer accepts only the dedicated repository's canonical pnpm
+launch. The command must contain only the exact `cd` and package-manager
+segments; appended shell commands are rejected.
 
-### Trusted skill execution (internal-only)
-The `/git-commits-push` skill creates short-lived, one-shot trust tokens from its internal Git helper call sites before spawning internal git subprocesses. The token is passed via `GIT_COMMITS_PUSH_ENFORCER_TOKEN` alongside `GIT_COMMITS_PUSH_ENFORCER_SOURCE=skill`. Direct `createTrustToken()` callers outside the skill Git helpers are rejected, and a marker without a valid helper-issued token is blocked.
+### Internal one-shot permit
+
+The `/git-commits-push` runtime creates a short-lived, one-shot permit from exact
+Git helper paths in its workspace before spawning an internal Git subprocess.
+The permit is passed via `GIT_COMMITS_PUSH_ENFORCER_TOKEN` alongside
+`GIT_COMMITS_PUSH_ENFORCER_SOURCE=skill`. Validation atomically claims the
+record, verifies private file ownership and modes, requires the recorded issuer
+process to be the validator or one of its ancestors, and binds issuance to an
+authorized runtime working directory. The vendored validator package cannot
+mint permits. A marker without a well-formed, unconsumed permit is blocked.
+
+These checks prevent accidental reuse, malformed markers, and cross-user access.
+They do not establish trusted code provenance within one user account. A process
+running as the same user can fabricate files, inspect processes, or modify the
+runtime. Adversarial same-user authorization requires an external broker under a
+separate service identity; it cannot be added by signing the record with
+same-user key material.
 
 ## 4. Behavior by runtime
 
@@ -51,8 +69,8 @@ The `/git-commits-push` skill creates short-lived, one-shot trust tokens from it
 | `git push origin main` | ❌ Block | ❌ Deny | ❌ Block |
 | `BYPASS_GIT_ENFORCER=1 git commit` | ⚠️ Skip (legacy) | ⚠️ Skip (legacy) | ❌ Block |
 | `/git-commits-push` | ✅ Allow + log | ✅ Allow + log | ✅ Allow |
-| Skill internal git with helper-issued token | Not observed by parent hook | Not observed by parent hook | ✅ Allow + log |
-| Trusted marker leaks into parent hook without validation | ❌ Block (forged) | ❌ Deny (forged) | ❌ Block (forged) |
+| Skill internal Git with one-shot permit | Not observed by parent hook | Not observed by parent hook | ✅ Allow + log |
+| Trusted marker leaks into parent hook without validation | ❌ Block (invalid) | ❌ Deny (invalid) | ❌ Block (invalid) |
 
 ## 5. Telemetry
 
@@ -68,22 +86,25 @@ Non-commit-intent commands (e.g. `echo ok`, `rg -n 'git commit'`) produce **zero
 
 ## 6. Interaction with the `/git-commits-push` skill
 
-The skill bypasses enforcement only through its internal Git helpers, which create a trust token via `createTrustToken()` before each git subprocess. The Gravity shim validates the token through `hook.ts`, logs `enforcer_triggered`, then delegates to the real git binary with `--no-verify`.
+The skill bypasses enforcement only through its internal Git helpers, which
+create a one-shot permit via `createTrustToken()` before each Git subprocess.
+The Gravity shim validates and consumes the permit through `hook.ts`, logs
+`enforcer_triggered`, then delegates to the real Git binary with `--no-verify`.
 
-**Trust tokens are subprocess-level only.** Pi and Codex are agent-level
+**Permits are subprocess-level only.** Pi and Codex are agent-level
 interceptors: they see the Bash tool command (for example `/git-commits-push`),
 not the skill's internal git subprocesses. They pass `trustedSkillMarkerSet` to
 the shared core for consistency but intentionally omit `trustToken` and
 `validateToken`. If the marker leaks into a Pi or Codex parent process, the core
 fails closed and blocks it as forged. Gravity is the only adapter that validates
-and consumes helper-issued trust tokens.
+and consumes internal one-shot permits.
 
 ## 7. Relevant Files
 
 - `~/.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator.ts` — shared detection + enforcement
-- `~/.agents/agent-enforcers/git-commits-push-enforcer/src/core/trust-store.ts` — capability trust tokens
+- `~/Developper/Projects/git-commits-push/packages/trust/` — canonical one-shot guardrail-permit package
 - `~/.pi/agent/extensions/git-commits-push-enforcer.ts` — Pi adapter
 - `~/.codex/hooks/git-commits-push-enforcer.ts` — Codex adapter
 - `~/.gravity/wrappers/git-commits-push-enforcer/hook.ts` — Gravity adapter
 - `~/.gravity/wrappers/git-commits-push-enforcer/git-shim.sh` — PATH shim with minimal prefilter before `hook.ts`
-- `~/.agents/skills/git-commits-push/src/modules/git/git-exec.ts` — skill trust token generation
+- `~/Developper/Projects/git-commits-push/src/modules/git/git-exec.ts` — runtime trust-token generation

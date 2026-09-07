@@ -5,7 +5,7 @@ asset_type: "contract"
 domain: "git-commits-push"
 severity: "strict"
 name: "git-commits-push launch and resume contract"
-version: "0.1.0"
+version: "0.2.0"
 ---
 
 # git-commits-push launch and resume contract
@@ -15,10 +15,14 @@ version: "0.1.0"
 The canonical public command is:
 
 ```bash
-cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start
+cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start
 ```
 
-The command-recognition core must accept both this syntax and the historical Bun syntax during the compatibility deployment. Dotpi adapters and zero-timeout filtering must consume the shared recognition result rather than duplicate command parsing.
+The dotagents skill directory contains only `SKILL.md`. The command-recognition
+core must reject launch commands targeting the retired skill runtime directory
+and must reject shell expansions in absolute user path components. Dotpi
+adapters and zero-timeout filtering consume the shared recognition result
+rather than duplicating command parsing.
 
 ## Process topology
 
@@ -32,17 +36,34 @@ The public package-manager process may perform the initial launch. After launch:
 - paths containing spaces or non-ASCII characters must remain single arguments;
 - stdin, stdout, stderr, backpressure, exit, abort, and signal behavior must follow the shared subprocess contract.
 
-## Artifact contract
+## Repository and artifact contract
 
-The build must emit both entrypoints and deterministically copy `settings.json` and `system-prompt.md`. Runtime-relative paths must resolve from compiled artifacts without user-specific absolute paths. Source maps must be emitted and `dist/` must remain untracked.
+The runtime, workspace packages, lockfile, build, tests, and CI belong to the
+dedicated `git-commits-push` repository. Dotagents may retain versioned package
+tarballs for active harness consumers, but it must not retain runtime source.
+
+The build must emit both entrypoints and deterministically copy `settings.json`
+and `system-prompt.md`. Runtime-relative paths must resolve from compiled
+artifacts without user-specific absolute paths. Source maps must be emitted and
+`dist/` must remain untracked.
 
 ## Resume contract
 
 New Turnlock `resumeCommand` values must target compiled JavaScript. Existing persisted runs must never be rewritten silently. Before cutover, every historical run must be classified as drained, explicitly closed, or rejected as incompatible. A resume request for an incompatible run must fail closed with an actionable error.
 
-## Queue contract
+## Queue and state contract
 
-The cutover must occur only while no active run, live queue lock, or pending order exists. Queue ordering, order identifiers, lock heartbeats, stale thresholds, retry kinds, and telemetry must remain unchanged. Descendant processes must be terminated on cancellation or shutdown without leaving a live lock.
+The cutover must occur only while no active run, live queue lock, or pending
+order exists. Mutable state defaults to
+`$XDG_STATE_HOME/git-commits-push/orders/`, or
+`~/.local/state/git-commits-push/orders/` when `XDG_STATE_HOME` is absent. The
+public launcher must fail closed while the retired skill-local `.state`
+container still exists; the explicit migration command must move the complete
+container atomically before launch.
+
+Queue ordering, order identifiers, lock heartbeats, stale thresholds, retry
+kinds, and telemetry must remain unchanged. Descendant processes must be
+terminated on cancellation or shutdown without leaving a live lock.
 
 ## Output contract
 
