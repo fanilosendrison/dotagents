@@ -4,7 +4,7 @@
   "default": "deny",
   "generatedAt": "2026-08-31T00:00:00Z",
   "testParityManifest": "docs/migrations/node-pnpm/test-parity.json",
-  "expectedGreenSurfaces": 74,
+  "expectedGreenSurfaces": 39,
   "excludedPathRules": [
     ".git/**",
     "node_modules/**",
@@ -55,18 +55,6 @@
         "bun:test"
       ],
       "rationale": "The policy validator regression suite contains inert fixture strings proving that active runtime globals and imports are rejected."
-    },
-    {
-      "path": "skills/git-commits-push/src/modules/core/validators/pre-commit-validators.ts",
-      "category": "external-project-interop",
-      "owner": "git-commits-push",
-      "removalCondition": "Remove when publication validation no longer supports external repositories selecting this package manager.",
-      "requiredLiterals": [
-        "bun x vitest run",
-        "bun.lock",
-        "bun run test"
-      ],
-      "rationale": "Publication validation must run the package manager and test command declared by each external target repository."
     },
     {
       "path": "skills/loop-clean/protocol/src/runtime/run-runtime-gate.ts",
