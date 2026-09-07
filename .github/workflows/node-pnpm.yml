@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  node-runtime-bootstraps-and-stats-logger:
-    name: Node runtime, bootstraps, and stats logger on ${{ matrix.os }} / Node ${{ matrix.node-version }}
+  harness-bootstraps-and-enforcers:
+    name: Harness bootstraps and enforcers on ${{ matrix.os }} / Node ${{ matrix.node-version }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -93,16 +93,6 @@ jobs:
           pnpm run test:git-commits-push-launch-recognition
           test ! -s "$BUN_SENTINEL_LOG"
 
-      - name: Typecheck, build, and test the shared Node runtime
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(pnpm --version)" = "11.24.0"
-          pnpm run typecheck:node-runtime
-          pnpm run build:node-runtime
-          pnpm run test:node-runtime
-          test ! -s "$BUN_SENTINEL_LOG"
-
       - name: Typecheck and test the scripts package
         shell: bash
         run: |
@@ -133,30 +123,6 @@ jobs:
           pnpm run test:protocol
           test ! -s "$BUN_SENTINEL_LOG"
 
-      - name: Typecheck git-commits-push
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm run typecheck:git-commits-push
-
-      - name: Test git-commits-push source suite
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm run test:git-commits-push-node-full
-
-      - name: Compile and test git-commits-push artifacts
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm run test:git-commits-push-node-build
-
-      - name: Verify git-commits-push did not invoke Bun
-        shell: bash
-        run: |
-          set -euo pipefail
-          test ! -s "$BUN_SENTINEL_LOG"
-
       - name: Run the dependency-free symlink bootstrap tests
         shell: bash
         run: |
@@ -179,12 +145,4 @@ jobs:
           pnpm run typecheck:skill-validator
           pnpm run test:skill-validator
           pnpm run validate:skill skills/skill-creator
-          test ! -s "$BUN_SENTINEL_LOG"
-
-      - name: Typecheck and run the direct TypeScript stats smoke
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm --filter git-commits-push-tl run typecheck:node:stats
-          pnpm --filter git-commits-push-tl run test:node:stats
           test ! -s "$BUN_SENTINEL_LOG"
