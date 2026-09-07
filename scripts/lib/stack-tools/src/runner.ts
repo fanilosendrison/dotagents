@@ -1,5 +1,5 @@
 import { extname } from "node:path";
-import { runProcess } from "../../../../packages/node-runtime/src/index.ts";
+import { runProcess } from "@git-commits-push/node-runtime";
 import type { StackConfig } from "./stack-config.ts";
 
 const TOOL_TIMEOUT_MS = 30_000;

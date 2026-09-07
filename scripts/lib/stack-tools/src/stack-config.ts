@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { parseYaml } from "../../../../packages/node-runtime/src/index.ts";
+import { parseYaml } from "@git-commits-push/node-runtime";
 
 const STACK_EVAL_FILENAME = "STACK_EVAL.yaml";
 

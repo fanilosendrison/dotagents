@@ -14,7 +14,7 @@
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { delimiter, extname } from "node:path";
-import { runProcess } from "../../../packages/node-runtime/src/index.ts";
+import { runProcess } from "@git-commits-push/node-runtime";
 import {
 	computeBlocking,
 	computeSummary,
