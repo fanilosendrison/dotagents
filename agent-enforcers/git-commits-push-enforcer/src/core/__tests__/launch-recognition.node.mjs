@@ -7,10 +7,10 @@ import {
 	recognizeGitCommitsPushCommand,
 } from "../validator.ts";
 
-const RETIRED_BUN_LAUNCH =
-	"cd /Users/example/.agents/skills/git-commits-push && bun run start";
-const CANONICAL_PNPM_LAUNCH =
+const RETIRED_SKILL_DIRECTORY_LAUNCH =
 	'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
+const CANONICAL_PNPM_LAUNCH =
+	'cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start';
 
 describe("recognizeGitCommitsPushCommand", () => {
 	test("recognizes slash skill invocations", () => {
@@ -26,7 +26,7 @@ describe("recognizeGitCommitsPushCommand", () => {
 
 	test("accepts only the canonical pnpm shell launch", () => {
 		assert.strictEqual(
-			recognizeGitCommitsPushCommand(RETIRED_BUN_LAUNCH),
+			recognizeGitCommitsPushCommand(RETIRED_SKILL_DIRECTORY_LAUNCH),
 			null,
 		);
 		assert.strictEqual(
@@ -35,10 +35,11 @@ describe("recognizeGitCommitsPushCommand", () => {
 		);
 	});
 
-	test("accepts absolute, home-variable, and tilde gateway paths", () => {
+	test("accepts absolute, home-variable, and tilde project paths", () => {
 		for (const command of [
 			CANONICAL_PNPM_LAUNCH,
-			"cd ~/.agents/skills/git-commits-push && pnpm --silent run start",
+			"cd ~/Developper/Projects/git-commits-push && pnpm --silent run start",
+			"cd /Users/example/Developper/Projects/git-commits-push && pnpm --silent run start",
 		]) {
 			assert.notStrictEqual(recognizeGitCommitsPushCommand(command), null);
 		}
@@ -46,12 +47,16 @@ describe("recognizeGitCommitsPushCommand", () => {
 
 	test("rejects lookalike and incomplete launch commands", () => {
 		for (const command of [
-			"cat ~/.agents/skills/git-commits-push/README.md",
-			"cd ~/.agents/skills/git-commits-push",
+			"cat ~/Developper/Projects/git-commits-push/README.md",
+			"cd ~/Developper/Projects/git-commits-push",
 			"pnpm --silent run start",
-			"cd ~/.agents/skills/git-commits-push && pnpm run start",
-			"cd ~/.agents/skills/git-commits-push && npm run start",
-			"cd ~/.agents/skills/git-commits-push-copy && bun run start",
+			"cd ~/Developper/Projects/git-commits-push && pnpm run start",
+			"cd ~/Developper/Projects/git-commits-push && npm run start",
+			"cd ~/Developper/Projects/git-commits-push-copy && pnpm --silent run start",
+			"cd /Users/*/Developper/Projects/git-commits-push && pnpm --silent run start",
+			"cd /Users/[a-z]*/Developper/Projects/git-commits-push && pnpm --silent run start",
+			'cd "/Users/${OTHER}/Developper/Projects/git-commits-push" && pnpm --silent run start',
+			RETIRED_SKILL_DIRECTORY_LAUNCH,
 			"echo '/git-commits-push'",
 		]) {
 			assert.strictEqual(recognizeGitCommitsPushCommand(command), null);
@@ -60,14 +65,14 @@ describe("recognizeGitCommitsPushCommand", () => {
 
 	test("rejects unsafe separators and appended commands", () => {
 		for (const command of [
-			"cd ~/.agents/skills/git-commits-push; bun run start",
-			"cd ~/.agents/skills/git-commits-push | bun run start",
-			"cd ~/.agents/skills/git-commits-push || bun run start",
+			"cd ~/Developper/Projects/git-commits-push; pnpm --silent run start",
+			"cd ~/Developper/Projects/git-commits-push | pnpm --silent run start",
+			"cd ~/Developper/Projects/git-commits-push || pnpm --silent run start",
 			`${CANONICAL_PNPM_LAUNCH} && git commit -m 'unsafe'`,
 			"/git-commits-push && git push",
 			"/git-commits-push $(git push)",
 			"/git-commits-push > /tmp/result",
-			'cd "$(pwd)/.agents/skills/git-commits-push" && bun run start',
+			'cd "$(pwd)/Developper/Projects/git-commits-push" && pnpm --silent run start',
 		]) {
 			assert.strictEqual(recognizeGitCommitsPushCommand(command), null);
 		}

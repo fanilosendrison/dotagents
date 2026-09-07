@@ -8,10 +8,12 @@ export const FIXED_TEST_TIMEOUT_MILLISECONDS = 30_000;
 export const EXPECTED_NODE_TEST_FILES = Object.freeze([
 	"command-validator/src/core/__tests__/runtime-contract.test.ts",
 	"command-validator/src/core/__tests__/validator.test.ts",
+	"git-commits-push-enforcer/src/core/__tests__/raw-git-mutation.test.ts",
 	"git-commits-push-enforcer/src/core/__tests__/trust-store.test.ts",
 	"git-commits-push-enforcer/src/core/__tests__/validator.test.ts",
 	"path-guard/src/core/__tests__/path-guard.test.ts",
 	"permission-enforcer/src/core/__tests__/state.test.ts",
+	"test/run-tests.test.mjs",
 ]);
 
 export async function resolveExpectedTestFiles(enforcersDirectory) {
@@ -38,7 +40,9 @@ export async function resolveExpectedTestFiles(enforcersDirectory) {
 		}
 		const stats = await stat(absoluteTestFile);
 		if (!stats.isFile()) {
-			throw new Error(`Expected Node test path is not a file: ${expectedTestFile}`);
+			throw new Error(
+				`Expected Node test path is not a file: ${expectedTestFile}`,
+			);
 		}
 		resolvedTestFiles.push(absoluteTestFile);
 	}
@@ -47,6 +51,8 @@ export async function resolveExpectedTestFiles(enforcersDirectory) {
 
 export function buildNodeTestArguments(resolvedTestFiles) {
 	return [
+		"--preserve-symlinks",
+		"--preserve-symlinks-main",
 		"--test",
 		"--test-concurrency=1",
 		`--test-timeout=${FIXED_TEST_TIMEOUT_MILLISECONDS}`,
@@ -57,16 +63,23 @@ export function buildNodeTestArguments(resolvedTestFiles) {
 
 export async function runExpectedNodeTests(enforcersDirectory) {
 	const resolvedTestFiles = await resolveExpectedTestFiles(enforcersDirectory);
-	const result = spawnSync(process.execPath, buildNodeTestArguments(resolvedTestFiles), {
-		cwd: path.resolve(enforcersDirectory, ".."),
-		env: process.env,
-		shell: false,
-		stdio: "inherit",
-	});
+	const result = spawnSync(
+		process.execPath,
+		buildNodeTestArguments(resolvedTestFiles),
+		{
+			cwd: path.resolve(enforcersDirectory, ".."),
+			env: process.env,
+			shell: false,
+			stdio: "inherit",
+		},
+	);
 	if (result.error) {
-		throw new Error(`Unable to start the Node test runner: ${result.error.message}`, {
-			cause: result.error,
-		});
+		throw new Error(
+			`Unable to start the Node test runner: ${result.error.message}`,
+			{
+				cause: result.error,
+			},
+		);
 	}
 	if (result.status === null) {
 		throw new Error(
@@ -76,11 +89,15 @@ export async function runExpectedNodeTests(enforcersDirectory) {
 	return result.status;
 }
 
-function isDirectEntrypoint() {
-	const entrypointPath = process.argv[1];
+export function isDirectEntrypoint(
+	entrypointPath = process.argv[1],
+	moduleUrl = import.meta.url,
+) {
+	if (entrypointPath === undefined) return false;
+	const absoluteEntrypointPath = path.resolve(entrypointPath);
 	return (
-		entrypointPath !== undefined &&
-		pathToFileURL(realpathSync(path.resolve(entrypointPath))).href === import.meta.url
+		pathToFileURL(absoluteEntrypointPath).href === moduleUrl ||
+		pathToFileURL(realpathSync(absoluteEntrypointPath)).href === moduleUrl
 	);
 }
 
