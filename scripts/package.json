@@ -8,6 +8,7 @@
 		"typecheck": "tsc -p tsconfig.json"
 	},
 	"dependencies": {
+		"@git-commits-push/node-runtime": "file:../vendor/git-commits-push-node-runtime-0.1.0.tgz",
 		"zod": "^4.3.5"
 	},
 	"devDependencies": {
