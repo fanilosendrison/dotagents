@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -42,12 +42,12 @@ describe("repository validation chain", () => {
 		assert.strictEqual(rootPackage.workspaces, undefined);
 		assert.strictEqual(
 			rootPackage.scripts.test,
-			"pnpm run test:git-commits-push-node-full && pnpm run test:root:node && pnpm run test:scripts-node && pnpm run test:go-node && pnpm run test:protocol",
+			"pnpm run test:root:node && pnpm run test:scripts-node && pnpm run test:go-node && pnpm run test:protocol",
 		);
 		assert.strictEqual(rootPackage.scripts["test:bun"], undefined);
 		assert.strictEqual(
 			rootPackage.scripts["test:root:node"],
-			"pnpm run test:node-runtime && pnpm run test:create-symlink && pnpm run test:documentation-bootstraps && pnpm run test:skill-validator && pnpm run test:git-commits-push-launch-recognition && pnpm run test:agent-enforcers-node && pnpm run test:document-wrapper && pnpm run test:bun-policy",
+			"pnpm run test:create-symlink && pnpm run test:documentation-bootstraps && pnpm run test:skill-validator && pnpm run test:git-commits-push-launch-recognition && pnpm run test:agent-enforcers-node && pnpm run test:document-wrapper && pnpm run test:bun-policy",
 		);
 		assert.strictEqual(rootPackage.scripts["test:install"], undefined);
 		assert.strictEqual(
@@ -62,7 +62,7 @@ describe("repository validation chain", () => {
 		assert.strictEqual(rootPackage.scripts["test:git-commits-push"], undefined);
 		assert.strictEqual(
 			rootPackage.scripts["test:git-commits-push-node-full"],
-			"pnpm --filter git-commits-push-tl run test",
+			undefined,
 		);
 		assert.strictEqual(rootPackage.scripts["test:scripts"], undefined);
 		assert.strictEqual(
@@ -173,28 +173,16 @@ describe("repository validation chain", () => {
 		assert.strictEqual(bootstrapManifest.includes('"@types/bun"'), false);
 	});
 
-	it("removes package-local Bun state after git-commits-push parity passes", () => {
+	it("keeps only the git-commits-push launcher contract in dotagents", () => {
 		const skillRoot = join(repositoryRoot, "skills", "git-commits-push");
-		const skillManifest = readFileSync(join(skillRoot, "package.json"), "utf8");
-		const skillTypeScriptConfiguration = readFileSync(
-			join(skillRoot, "tsconfig.json"),
-			"utf8",
-		);
+		assert.deepStrictEqual(readdirSync(skillRoot).sort(), ["SKILL.md"]);
 
-		assert.strictEqual(existsSync(join(skillRoot, "bun.lock")), false);
-		assert.strictEqual(skillManifest.includes('"@types/bun"'), false);
-		assert.strictEqual(skillManifest.includes('"bun": ">=1.1.0"'), false);
+		const skillContract = readFileSync(join(skillRoot, "SKILL.md"), "utf8");
 		assert.strictEqual(
-			skillManifest.includes('"@types/node": "22.20.0"'),
+			skillContract.includes(
+				'cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start',
+			),
 			true,
-		);
-		assert.strictEqual(
-			skillTypeScriptConfiguration.includes('"types": ["node"]'),
-			true,
-		);
-		assert.strictEqual(
-			skillTypeScriptConfiguration.includes('"types": ["bun"]'),
-			false,
 		);
 	});
 
