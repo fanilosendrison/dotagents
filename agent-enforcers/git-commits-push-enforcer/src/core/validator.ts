@@ -5,7 +5,7 @@
  * of truth. The robust shell-command parser handles obfuscation techniques
  * like env prefixes, sudo wrappers, and shell -c indirection.
  *
- * Trust tokens are managed by the sibling trust-store.ts module.
+ * Trust tokens are provided by the versioned @git-commits-push/trust package.
  *
  * Exports:
  *   - detectRawGitMutation(command)      — does the command mutate via raw git?
@@ -84,12 +84,12 @@ export {
 
 // Re-export Shell Parser API
 export { detectRawGitMutation } from "./shell-parser.ts";
-/** Env var names used across processes (re-exported from trust-store). */
+/** Env var names used across processes (re-exported from the trust protocol). */
 export {
 	TRUSTED_MARKER_ENV,
 	TRUSTED_MARKER_VALUE,
 	TRUSTED_TOKEN_ENV,
-} from "./trust-store.ts";
+} from "@git-commits-push/trust";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Public API — primary exports
@@ -98,7 +98,7 @@ export {
 /**
  * Classify a complete git-commits-push invocation.
  *
- * Shell launches must be exactly `cd <skill-directory> && <package-manager>`.
+ * Shell launches must be exactly `cd <project-directory> && <package-manager>`.
  * Rejecting every additional segment prevents a valid launch prefix from
  * masking a raw Git mutation appended to the same Bash tool call.
  */
@@ -120,7 +120,7 @@ export function recognizeGitCommitsPushCommand(
 	if (
 		directoryTokens.length !== 2 ||
 		directoryTokens[0] !== "cd" ||
-		!isGitCommitsPushSkillDirectory(directoryTokens[1] ?? "")
+		!isGitCommitsPushProjectDirectory(directoryTokens[1] ?? "")
 	) {
 		return null;
 	}
@@ -292,10 +292,10 @@ function hasExactlyOneConjunctiveSeparator(command: string): boolean {
 	return quote === null && separatorCount === 1;
 }
 
-function isGitCommitsPushSkillDirectory(directory: string): boolean {
+function isGitCommitsPushProjectDirectory(directory: string): boolean {
 	if (directory.includes("$(") || directory.includes("`")) return false;
 	const withoutTrailingSlashes = directory.replace(/\/+$/, "");
-	return /(?:^|\/)\.agents\/skills\/git-commits-push$/.test(
+	return /^(?:\$HOME|~|\/Users\/[A-Za-z0-9_][A-Za-z0-9._-]*)\/Developper\/Projects\/git-commits-push$/.test(
 		withoutTrailingSlashes,
 	);
 }
