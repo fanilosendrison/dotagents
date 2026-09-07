@@ -7,5 +7,6 @@
     "skipLibCheck": true,
     "noEmit": true,
     "allowImportingTsExtensions": true
-  }
+  },
+  "exclude": ["docs/migrations/node-pnpm/archive"]
 }
