@@ -36,22 +36,24 @@ Obfuscation techniques are detected and blocked: env prefixes, sudo, bash -c, en
 ### Skill invocation (shell-level)
 ```bash
 /git-commits-push
-cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start
+"$HOME/.local/bin/git-commits-push"
 ```
 
-The shared recognizer accepts only the dedicated repository's canonical pnpm
-launch. The command must contain only the exact `cd` and package-manager
-segments; appended shell commands are rejected.
+The shared recognizer accepts the slash skill form, the exact stable absolute
+executable, and the bare `git-commits-push` command. Binary forms must be the sole
+shell token; wrappers, arguments, checkout launches, and appended shell commands
+are rejected.
 
 ### Internal one-shot permit
 
-The `/git-commits-push` runtime creates a short-lived, one-shot permit from exact
-Git helper paths in its workspace before spawning an internal Git subprocess.
+The installed `/git-commits-push` runtime creates a short-lived, one-shot permit
+from exact Git helper paths in its immutable content-addressed release before
+spawning an internal Git subprocess.
 The permit is passed via `GIT_COMMITS_PUSH_ENFORCER_TOKEN` alongside
 `GIT_COMMITS_PUSH_ENFORCER_SOURCE=skill`. Validation atomically claims the
 record, verifies private file ownership and modes, requires the recorded issuer
 process to be the validator or one of its ancestors, and binds issuance to an
-authorized runtime working directory. The vendored validator package cannot
+authorized source or immutable XDG release working directory. The vendored validator package cannot
 mint permits. A marker without a well-formed, unconsumed permit is blocked.
 
 These checks prevent accidental reuse, malformed markers, and cross-user access.

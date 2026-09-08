@@ -30,7 +30,7 @@ While `~/.claude/skills/` is a direct symlink, `~/.agents/`, `~/.codex/` and `~/
 **To commit your changes**, simply run the commit orchestrator which will auto-discover modified repos:
 
 ```bash
-cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start
+"$HOME/.local/bin/git-commits-push"
 ```
 
 
