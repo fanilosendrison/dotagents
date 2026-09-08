@@ -179,11 +179,10 @@ describe("repository validation chain", () => {
 
 		const skillContract = readFileSync(join(skillRoot, "SKILL.md"), "utf8");
 		assert.strictEqual(
-			skillContract.includes(
-				'cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start',
-			),
+			skillContract.includes('"$HOME/.local/bin/git-commits-push"'),
 			true,
 		);
+		assert.strictEqual(skillContract.includes("pnpm"), false);
 	});
 
 	it("removes package-local Bun state after scripts parity passes", () => {
