@@ -80,17 +80,20 @@ describe("isGitCommitsPushSkillCommand", () => {
 		);
 	});
 
-	test("accepts the canonical skill launch and rejects the retired launch", () => {
-		const retiredLaunch =
+	test("accepts the installed binary and rejects checkout launches", () => {
+		const retiredSkillLaunch =
 			'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
-		const canonicalLaunch =
+		const retiredProjectLaunch =
 			'cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start';
-		assert.strictEqual(isGitCommitsPushSkillCommand(retiredLaunch), false);
-		assert.strictEqual(recognizeGitCommitsPushCommand(retiredLaunch), null);
+		const canonicalLaunch = '"$HOME/.local/bin/git-commits-push"';
+		for (const retiredLaunch of [retiredSkillLaunch, retiredProjectLaunch]) {
+			assert.strictEqual(isGitCommitsPushSkillCommand(retiredLaunch), false);
+			assert.strictEqual(recognizeGitCommitsPushCommand(retiredLaunch), null);
+		}
 		assert.strictEqual(isGitCommitsPushSkillCommand(canonicalLaunch), true);
 		assert.strictEqual(
 			recognizeGitCommitsPushCommand(canonicalLaunch),
-			"pnpm-launch",
+			"binary-launch",
 		);
 	});
 
@@ -100,6 +103,10 @@ describe("isGitCommitsPushSkillCommand", () => {
 			false,
 		);
 		assert.strictEqual(isGitCommitsPushSkillCommand("ls -la"), false);
+		assert.strictEqual(
+			isGitCommitsPushSkillCommand("git-commits-push --force"),
+			false,
+		);
 		assert.strictEqual(
 			isGitCommitsPushSkillCommand(
 				"cd ~/Developper/Projects/git-commits-push && pnpm run start",

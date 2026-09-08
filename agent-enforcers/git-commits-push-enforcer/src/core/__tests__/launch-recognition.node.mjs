@@ -9,8 +9,9 @@ import {
 
 const RETIRED_SKILL_DIRECTORY_LAUNCH =
 	'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
-const CANONICAL_PNPM_LAUNCH =
+const RETIRED_PROJECT_LAUNCH =
 	'cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start';
+const CANONICAL_BINARY_LAUNCH = '"$HOME/.local/bin/git-commits-push"';
 
 describe("recognizeGitCommitsPushCommand", () => {
 	test("recognizes slash skill invocations", () => {
@@ -24,72 +25,68 @@ describe("recognizeGitCommitsPushCommand", () => {
 		);
 	});
 
-	test("accepts only the canonical pnpm shell launch", () => {
-		assert.strictEqual(
-			recognizeGitCommitsPushCommand(RETIRED_SKILL_DIRECTORY_LAUNCH),
-			null,
-		);
-		assert.strictEqual(
-			recognizeGitCommitsPushCommand(CANONICAL_PNPM_LAUNCH),
-			"pnpm-launch",
-		);
-	});
-
-	test("accepts absolute, home-variable, and tilde project paths", () => {
+	test("accepts the installed binary command without checkout knowledge", () => {
 		for (const command of [
-			CANONICAL_PNPM_LAUNCH,
-			"cd ~/Developper/Projects/git-commits-push && pnpm --silent run start",
-			"cd /Users/example/Developper/Projects/git-commits-push && pnpm --silent run start",
+			CANONICAL_BINARY_LAUNCH,
+			"git-commits-push",
+			"$HOME/.local/bin/git-commits-push",
+			"~/.local/bin/git-commits-push",
+			"/Users/example/.local/bin/git-commits-push",
 		]) {
-			assert.notStrictEqual(recognizeGitCommitsPushCommand(command), null);
+			assert.strictEqual(
+				recognizeGitCommitsPushCommand(command),
+				"binary-launch",
+				command,
+			);
 		}
 	});
 
-	test("rejects lookalike and incomplete launch commands", () => {
+	test("rejects retired checkout launches and lookalikes", () => {
 		for (const command of [
-			"cat ~/Developper/Projects/git-commits-push/README.md",
-			"cd ~/Developper/Projects/git-commits-push",
-			"pnpm --silent run start",
-			"cd ~/Developper/Projects/git-commits-push && pnpm run start",
-			"cd ~/Developper/Projects/git-commits-push && npm run start",
-			"cd ~/Developper/Projects/git-commits-push-copy && pnpm --silent run start",
-			"cd /Users/*/Developper/Projects/git-commits-push && pnpm --silent run start",
-			"cd /Users/[a-z]*/Developper/Projects/git-commits-push && pnpm --silent run start",
-			'cd "/Users/${OTHER}/Developper/Projects/git-commits-push" && pnpm --silent run start',
 			RETIRED_SKILL_DIRECTORY_LAUNCH,
-			"echo '/git-commits-push'",
+			RETIRED_PROJECT_LAUNCH,
+			"git-commits-push-copy",
+			"/usr/local/bin/git-commits-push",
+			"/Users/*/.local/bin/git-commits-push",
+			"echo 'git-commits-push'",
+			"cat ~/.local/bin/git-commits-push",
 		]) {
-			assert.strictEqual(recognizeGitCommitsPushCommand(command), null);
+			assert.strictEqual(recognizeGitCommitsPushCommand(command), null, command);
 		}
 	});
 
-	test("rejects unsafe separators and appended commands", () => {
+	test("rejects arguments, wrappers, redirects, and appended commands", () => {
 		for (const command of [
-			"cd ~/Developper/Projects/git-commits-push; pnpm --silent run start",
-			"cd ~/Developper/Projects/git-commits-push | pnpm --silent run start",
-			"cd ~/Developper/Projects/git-commits-push || pnpm --silent run start",
-			`${CANONICAL_PNPM_LAUNCH} && git commit -m 'unsafe'`,
+			"git-commits-push --force",
+			"command git-commits-push",
+			"env git-commits-push",
+			"GCP_TEST=1 git-commits-push",
+			`${CANONICAL_BINARY_LAUNCH} && git push`,
+			"git-commits-push; git commit -m unsafe",
+			"git-commits-push | tee /tmp/result",
+			"git-commits-push > /tmp/result",
+			"$(printf git-commits-push)",
+			"`printf git-commits-push`",
 			"/git-commits-push && git push",
 			"/git-commits-push $(git push)",
 			"/git-commits-push > /tmp/result",
-			'cd "$(pwd)/Developper/Projects/git-commits-push" && pnpm --silent run start',
 		]) {
-			assert.strictEqual(recognizeGitCommitsPushCommand(command), null);
+			assert.strictEqual(recognizeGitCommitsPushCommand(command), null, command);
 		}
 	});
 });
 
 describe("shared launch recognition consumers", () => {
 	test("keeps boolean and intent wrappers aligned", () => {
-		for (const command of ["/git-commits-push", CANONICAL_PNPM_LAUNCH]) {
+		for (const command of ["/git-commits-push", CANONICAL_BINARY_LAUNCH]) {
 			assert.strictEqual(isGitCommitsPushSkillCommand(command), true);
 			assert.strictEqual(detectCommitIntent(command), "git-commits-push");
 		}
 	});
 
-	test("allows canonical launches and blocks appended raw mutations", () => {
+	test("allows the binary and blocks an appended raw mutation", () => {
 		const launchResult = evaluateEnforcement({
-			command: CANONICAL_PNPM_LAUNCH,
+			command: CANONICAL_BINARY_LAUNCH,
 			legacyBypassSet: false,
 			trustedSkillMarkerSet: false,
 		});
@@ -97,7 +94,7 @@ describe("shared launch recognition consumers", () => {
 		assert.strictEqual(launchResult.detectedBy, "git-commits-push");
 
 		const appendedMutationResult = evaluateEnforcement({
-			command: `${CANONICAL_PNPM_LAUNCH} && git push`,
+			command: `${CANONICAL_BINARY_LAUNCH} && git push`,
 			legacyBypassSet: false,
 			trustedSkillMarkerSet: false,
 		});

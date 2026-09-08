@@ -9,7 +9,7 @@
  *
  * Exports:
  *   - detectRawGitMutation(command)      — does the command mutate via raw git?
- *   - recognizeGitCommitsPushCommand(cmd) — classify slash or pnpm invocation
+ *   - recognizeGitCommitsPushCommand(cmd) — classify slash or binary invocation
  *   - isGitCommitsPushSkillCommand(cmd)   — is it a recognized skill invocation?
  *   - detectCommitIntent(command)         — combined detection with classification
  *   - evaluateEnforcement(input)         — full enforcement decision (action + telemetry hint)
@@ -33,7 +33,7 @@ import {
 export type CommitIntentDetection = "git-commit" | "git-commits-push";
 export type GitCommitsPushCommandRecognition =
 	| "skill-invocation"
-	| "pnpm-launch";
+	| "binary-launch";
 export type { RawGitMutation };
 
 export interface EnforcementInput {
@@ -98,37 +98,18 @@ export {
 /**
  * Classify a complete git-commits-push invocation.
  *
- * Shell launches must be exactly `cd <project-directory> && <package-manager>`.
- * Rejecting every additional segment prevents a valid launch prefix from
- * masking a raw Git mutation appended to the same Bash tool call.
+ * The harness launch is one exact executable token. Rejecting wrappers,
+ * arguments and additional shell segments prevents a valid prefix from
+ * masking a raw Git mutation appended to the same tool call.
  */
 export function recognizeGitCommitsPushCommand(
 	command: string,
 ): GitCommitsPushCommandRecognition | null {
 	const segments = splitShellSegments(command);
-	if (segments.length === 1) {
-		const tokens = tokenizeShellSegment(segments[0] ?? "");
-		return isSafeSlashSkillInvocation(tokens) ? "skill-invocation" : null;
-	}
-
-	if (segments.length !== 2 || !hasExactlyOneConjunctiveSeparator(command)) {
-		return null;
-	}
-
-	const directoryTokens = tokenizeShellSegment(segments[0] ?? "");
-	const launchTokens = tokenizeShellSegment(segments[1] ?? "");
-	if (
-		directoryTokens.length !== 2 ||
-		directoryTokens[0] !== "cd" ||
-		!isGitCommitsPushProjectDirectory(directoryTokens[1] ?? "")
-	) {
-		return null;
-	}
-
-	if (tokensEqual(launchTokens, ["pnpm", "--silent", "run", "start"])) {
-		return "pnpm-launch";
-	}
-	return null;
+	if (segments.length !== 1) return null;
+	const tokens = tokenizeShellSegment(segments[0] ?? "");
+	if (isSafeSlashSkillInvocation(tokens)) return "skill-invocation";
+	return isSafeBinaryInvocation(tokens) ? "binary-launch" : null;
 }
 
 /** True when the command is a recognized git-commits-push invocation. */
@@ -256,47 +237,14 @@ export function buildDirectGitDeniedReason(command: string): string {
 // Helpers
 // ═══════════════════════════════════════════════════════════════════════════
 
-function hasExactlyOneConjunctiveSeparator(command: string): boolean {
-	let quote: "'" | '"' | null = null;
-	let separatorCount = 0;
-
-	for (let index = 0; index < command.length; index++) {
-		const character = command[index];
-		if (character === "\\" && quote !== "'") {
-			index++;
-			continue;
-		}
-		if (quote) {
-			if (character === quote) quote = null;
-			continue;
-		}
-		if (character === "'" || character === '"') {
-			quote = character;
-			continue;
-		}
-		if (character === "&" && command[index + 1] === "&") {
-			separatorCount++;
-			index++;
-			continue;
-		}
-		if (
-			character === "&" ||
-			character === "|" ||
-			character === ";" ||
-			character === "\n"
-		) {
-			return false;
-		}
-	}
-
-	return quote === null && separatorCount === 1;
-}
-
-function isGitCommitsPushProjectDirectory(directory: string): boolean {
-	if (directory.includes("$(") || directory.includes("`")) return false;
-	const withoutTrailingSlashes = directory.replace(/\/+$/, "");
-	return /^(?:\$HOME|~|\/Users\/[A-Za-z0-9_][A-Za-z0-9._-]*)\/Developper\/Projects\/git-commits-push$/.test(
-		withoutTrailingSlashes,
+function isSafeBinaryInvocation(tokens: readonly string[]): boolean {
+	if (tokens.length !== 1) return false;
+	const executable = tokens[0] ?? "";
+	return (
+		executable === "git-commits-push" ||
+		/^(?:\$HOME|~|\/Users\/[A-Za-z0-9_][A-Za-z0-9._-]*)\/\.local\/bin\/git-commits-push$/.test(
+			executable,
+		)
 	);
 }
 
@@ -304,16 +252,6 @@ function isSafeSlashSkillInvocation(tokens: readonly string[]): boolean {
 	return (
 		tokens[0] === "/git-commits-push" &&
 		tokens.slice(1).every((token) => /^[A-Za-z0-9._=/-]+$/.test(token))
-	);
-}
-
-function tokensEqual(
-	actual: readonly string[],
-	expected: readonly string[],
-): boolean {
-	return (
-		actual.length === expected.length &&
-		actual.every((token, index) => token === expected[index])
 	);
 }
 
