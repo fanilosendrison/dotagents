@@ -28,7 +28,7 @@
 		"validate:bun-policy": "node scripts/validate-bun-policy.mjs"
 	},
 	"dependencies": {
-		"@git-commits-push/trust": "file:vendor/git-commits-push-trust-0.1.0.tgz",
+		"@git-commits-push/trust": "file:vendor/git-commits-push-trust-0.2.0.tgz",
 		"js-yaml": "4.3.1"
 	},
 	"devDependencies": {
