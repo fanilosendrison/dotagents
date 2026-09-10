@@ -89,3 +89,14 @@ For runtimes that support Git 2.17, resolve Apple toolchain Git through `xcrun -
 
 **Regression verification:**
 Cover legacy-Darwin selection, minimum-version failure, process-level routing, and `PATH` restoration in unit tests. Also run a compiled end-to-end commit-and-push pipeline against a real local bare remote, because a plain symlink wrapper can pass `git --version` while breaking Git helper commands such as `git submodule`.
+
+## Localized Git Diagnostics Break Typed Error Classification
+
+**Description:**
+Application logic that classifies Git failures by matching English stderr phrases such as `pathspec` or `nothing to commit` returns the wrong typed error under a non-English locale.
+
+**Verified fix:**
+After a staging or commit failure, determine planned-file existence and change state with shell-free, machine-readable Git commands rather than localized diagnostics. Use raw `git status --porcelain=v1 --ignored=matching -z` output in literal pathspec mode; for paths absent from both status and disk, use `git ls-files --cached -z` to distinguish sparse or tracked paths from nonexistent paths. Preserve NUL-delimited output without trimming and pass planned filenames to inspection and staging as argument arrays. Classifying only on the failure path avoids adding Git subprocess overhead to successful commits. Reserve human-readable stderr for diagnostics, not control flow.
+
+**Regression verification:**
+Run missing-file, nonexistent-file, and mid-loop partial-commit tests under a non-English host locale. The tests must receive the same `CommitPlanError` kinds and preserve committed-SHA context without inspecting localized text. Also cover deleted tracked files, ignored files, leading whitespace, shell metacharacters, and Git pathspec metacharacters so classification cannot reintroduce output corruption, command injection, or overbroad staging.
