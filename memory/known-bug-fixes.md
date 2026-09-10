@@ -78,3 +78,14 @@ The established and robust fix is to ensure `bun-types` is installed at the root
 2. Add `"types": ["bun-types"]` to the `compilerOptions` of the root `tsconfig.json`.
 3. If the IDE opens the project via a gateway (e.g., `~/.codex/`), ensure `node_modules` and `package.json` are symlinked from the physical repo into the gateway, and that `~/.codex/tsconfig.json` explicitly lists `"types": ["bun-types"]`.
 4. **CRITICAL:** The gateway's `tsconfig.json` MUST explicitly override the `"include"` array (e.g., `"include": ["hooks/**/*.ts"]`). Because TypeScript resolves inherited `include` paths relative to the base configuration directory, relying on the physical repo's `include` will cause the IDE to treat the gateway's files as isolated scripts, dropping the global typings and causing missing type errors (e.g., `Cannot find module 'node:fs'`).
+
+## Git HTTPS Segfault on Legacy Darwin
+
+**Description:**
+On Darwin kernel 17, a third-party Git linked against both macOS CoreServices and an OpenSSL-backed libcurl can resolve OpenSSL symbols to the system BoringSSL image. HTTPS operations then fail intermittently or consistently with `git-remote-https died of signal 11`, commonly during `git ls-remote` or `git push`.
+
+**Verified fix:**
+For runtimes that support Git 2.17, resolve Apple toolchain Git through `xcrun --find git`, validate that it is an absolute executable reporting Git 2.17 or newer, and route all runtime Git subprocesses through it. A private, temporary `git` wrapper at the front of the runtime `PATH` preserves Git's own helper discovery while avoiding changes to unrelated command resolution. Restore `PATH` and remove the wrapper after the runtime finishes. Do not blindly retry an ambiguous failed push; first verify the exact remote destination SHA.
+
+**Regression verification:**
+Cover legacy-Darwin selection, minimum-version failure, process-level routing, and `PATH` restoration in unit tests. Also run a compiled end-to-end commit-and-push pipeline against a real local bare remote, because a plain symlink wrapper can pass `git --version` while breaking Git helper commands such as `git submodule`.
