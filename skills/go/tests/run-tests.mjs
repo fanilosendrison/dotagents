@@ -3,7 +3,9 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const FIXED_TEST_TIMEOUT_MILLISECONDS = 60_000;
+// Each file creates many real Git repositories and subprocesses. Keep hang
+// detection bounded while allowing slow process-launch environments to finish.
+export const FIXED_TEST_TIMEOUT_MILLISECONDS = 8 * 60_000;
 export const EXPECTED_NODE_TEST_FILES = Object.freeze([
 	"stage-harness/acceptance/run-stage.acceptance.test.ts",
 	"stage-harness/properties/run-stage.properties.test.ts",

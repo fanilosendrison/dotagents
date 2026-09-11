@@ -100,3 +100,24 @@ After a staging or commit failure, determine planned-file existence and change s
 
 **Regression verification:**
 Run missing-file, nonexistent-file, and mid-loop partial-commit tests under a non-English host locale. The tests must receive the same `CommitPlanError` kinds and preserve committed-SHA context without inspecting localized text. Also cover deleted tracked files, ignored files, leading whitespace, shell metacharacters, and Git pathspec metacharacters so classification cannot reintroduce output corruption, command injection, or overbroad staging.
+
+## Large E2E Test Files Time Out on Slow Process-Launch Environments
+
+**Description:**
+A Node test runner may report file-level timeout failures even though every
+reported subtest passes. This occurs when one test file contains many real Git
+repository and subprocess scenarios whose cumulative runtime exceeds a generic
+60-second file timeout on environments with high process-launch overhead.
+
+**Verified fix:**
+Keep the E2E behavior and real process boundaries intact. Set a bounded timeout
+that reflects the cumulative workload of the complete file instead of reducing
+property runs, mocking subprocesses, or weakening assertions. The Go stage
+harness uses an eight-minute per-file bound, preserving hang detection while
+allowing both process-heavy files to complete.
+
+**Regression verification:**
+Run the complete stage-harness test entry point. Both acceptance and property
+files must reach their final cases with no cancellation. The verified suite
+completed all 34 tests in approximately six minutes on the slow environment;
+the prior 60-second limit cancelled both files before completion.
