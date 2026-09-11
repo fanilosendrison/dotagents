@@ -1,21 +1,25 @@
 ---
 name: turnlock-context
-description: >-
-  Loads the turnlock project directives and architecture. Use ONLY when the
-  request explicitly mentions "turnlock" or relates to the turnlock project.
-  Valid triggers: the user explicitly talks about "turnlock", the user cites
-  turnlock by name, works on files under
-  /Users/famillesendrison/Developper/Projects/VegaCorp/turnlock/, or works
-  on a project that has turnlock as a dependency.
+description: Loads the current Turnlock repository directives and architecture. Use only when the request explicitly mentions Turnlock, works in the Turnlock repository, or concerns a project that depends on Turnlock.
 ---
 
-# Turnlock Context
+# Turnlock context
 
-Read `/Users/famillesendrison/Developper/Projects/VegaCorp/turnlock/AGENTS.md`.
+Locate the active Turnlock repository without relying on a user-specific absolute
+path:
 
-Extract from it:
-- **Core properties** — Snapshot-authoritative, Fail-closed, JSON-only, Minimal runtime dependencies, Mechanical determinism
-- **Project Structure** — strict separation between pure logic (`src/types`, `src/errors`) and I/O (`src/services`)
-- **Normative Interface Briefs (NIBs)** — the project is entirely spec-driven, NIBs are read-only during implementation
-- **Specific Rules** — `stdout` is exclusively for protocol blocks, atomic filesystem writes, no implicit singletons
-- **Verification Commands** — tests (`bun test`), linting (`biome`), type-checking (`tsc`)
+1. When the current working directory is inside Turnlock, resolve its root with
+   `git rev-parse --show-toplevel`.
+2. Otherwise, resolve `~/Developper/Projects/turnlock` and verify that its Git
+   remote identifies `fanilosendrison/turnlock`.
+3. Stop and report the mismatch if neither location identifies the expected
+   repository.
+
+Read the repository's `AGENTS.md` completely. Follow its required-reading links
+for the affected domain instead of duplicating cached architecture, runtime,
+package-manager, or validation facts in this skill.
+
+When the request mentions an Issue, backlog work, review finding, or Turnlock
+Engineering, also apply the shared GitHub Engineering Projects operational rule
+and read `docs/repository-governance/turnlock-engineering.md` from the resolved
+repository root.
