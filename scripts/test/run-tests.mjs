@@ -7,6 +7,7 @@ export const FIXED_TEST_TIMEOUT_MILLISECONDS = 30_000;
 export const EXPECTED_NODE_TEST_FILES = Object.freeze([
 	"claude-facade/test/facade.test.ts",
 	"claude-facade/test/validation-chain.test.ts",
+	"test/github-engineering-projects-routing.test.mjs",
 	"coding-standards-consolidate/src/__tests__/cli.test.ts",
 	"coding-standards-scanner/src/__tests__/grep-rules/abbreviations-denylist.test.ts",
 	"coding-standards-scanner/src/__tests__/grep-rules/any-without-justif.test.ts",
