@@ -4,6 +4,7 @@ This file is your map to `~/.agents/` — your core brain and governance center.
 
 ## General Guidelines
 - Do not implement anything without asking the user for explicit permission first, unless they have explicitly invoked `/go` (visible as `<skill name="go">` in the formatted prompt) in their message. Before using any file-modifying tool (Write, Edit, etc.), verify that `/go` or `<skill name="go">` is present in the user's message. If neither is present, you do NOT have authorization to implement — you may only read and analyze. Never self-trigger the `/go` skill.
+- When a repository declares a GitHub Engineering Project and the user mentions an Issue, Project item, backlog item, agent queue, or review finding, load `/github-engineering-projects` and the repository-specific Engineering Project profile.
 - When making technical decisions, do not give much weight to development cost. Instead, prefer quality, simplicity, robustness, scalability, and long term maintainability.
 - Do not reinvent a maintained format, protocol, tool, or standard when one already exists. Prefer established standards, official tools, and maintained libraries; define project-specific primitives only when they add domain or workflow semantics that existing primitives do not cover. Non-exhaustive examples of primitives to prefer when applicable:
   - Git primitives for diffs, patches, commits, refs, worktrees, and merge checks.
@@ -86,6 +87,7 @@ While `~/.claude/skills/` is a direct symlink, `~/.agents/`, `~/.codex/` and `~/
     ├── document-wrapper/
     ├── fix-a-bug/
     ├── git-commits-push/
+    ├── github-engineering-projects/
     ├── go/
     ├── pi-harness-context/           
     ├── session-lookup/
@@ -102,7 +104,7 @@ While `~/.claude/skills/` is a direct symlink, `~/.agents/`, `~/.codex/` and `~/
 | Want to...                                          | Go here first                                       |
 |-----------------------------------------------------|-----------------------------------------------------|
 | Implement a feature?                                | `operational-rules/code-implementation.md`   |
-| Handle GitHub Engineering Project work?             | `operational-rules/github-engineering-projects.md`  |
+| Handle GitHub Engineering Project work?             | `/github-engineering-projects`                       |
 | Know how you manage API keys                        | `operational-rules/managing-api-keys.md`     |
 | Know how to number versions                         | `conventions/semver.md`                      |
 | Know how to name files and folders                  | `conventions/file-and-folder-naming.md`      |
@@ -132,6 +134,7 @@ While `~/.claude/skills/` is a direct symlink, `~/.agents/`, `~/.codex/` and `~/
 | Look up or search past session history               | `/session-lookup`                  |
 | Document a wrapper (Antigravity)                    | `/document-wrapper`               |
 | Commit changes                                      | `/git-commits-push`               |
+| Handle GitHub Engineering Project work              | `/github-engineering-projects`    |
 | Create an Architecture Decision Record (ADR)        | `/adr-creator`                    |
 | Create or update a new skill                        | `/skill-creator`                  |
 | Start/Authorize implementation phase                | `/go`                             |
