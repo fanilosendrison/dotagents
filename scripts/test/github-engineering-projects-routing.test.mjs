@@ -10,13 +10,6 @@ async function read(relativePath) {
 }
 
 describe("GitHub Engineering Projects routing", () => {
-  it("keeps the operational core compact and free of embedded GraphQL", async () => {
-    const core = await read("operational-rules/github-engineering-projects.md");
-    assert.ok(core.split("\n").length <= 120);
-    assert.doesNotMatch(core, /query\s*\(/);
-    assert.doesNotMatch(core, /set_engineering_project_single_select/);
-  });
-
   it("routes one skill to three conditional contexts", async () => {
     const skill = await read("skills/github-engineering-projects/SKILL.md");
     for (const context of [
@@ -27,7 +20,15 @@ describe("GitHub Engineering Projects routing", () => {
       assert.match(skill, new RegExp(context.replace(/[./]/g, "\\$&")));
       await read(`skills/github-engineering-projects/${context}`);
     }
-    assert.match(skill, /operational-rules\/github-engineering-projects\.md/);
+  });
+
+  it("integrates operational core directly in the skill", async () => {
+    const skill = await read("skills/github-engineering-projects/SKILL.md");
+    assert.match(skill, /Require a repository profile/);
+    assert.match(skill, /Preserve technical authority/);
+    assert.match(skill, /Resolve exact identities/);
+    assert.match(skill, /Verify every mutation/);
+    assert.doesNotMatch(skill, /operational-rules\/github-engineering-projects\.md/);
   });
 
   it("routes global Engineering Project work to the skill", async () => {

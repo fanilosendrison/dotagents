@@ -48,7 +48,6 @@ While `~/.claude/skills/` is a direct symlink, `~/.agents/`, `~/.codex/` and `~/
 ├── operational-rules/        ← Core rules and architecture standards
 │   ├── code-implementation.md ← How you must implement code
 │   ├── construction-sequence.md ← TDD Construction Sequence
-│   ├── github-engineering-projects.md ← How you handle GitHub Engineering Project work
 │   └── managing-api-keys.md  ← How you manage API keys
 ├── conventions/              ← Passive conventions
 │   ├── cubits-design-doc.md  ← Cubits Design Doc (CDD) schema and rules
