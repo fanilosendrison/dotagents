@@ -20,10 +20,16 @@ Extract the raw facts of the architectural decision(s) identified in Step 1. Do 
 
 ## Tasks
 1. Read the `decisions-list.md` from your active session's folder in `../01-granularity-analysis/output/` to determine which decisions must be extracted.
-3. For each decision, analyze the transcript and extract the technical data required by `templates/extraction-template.md`.
-   - **Use the exact `Title`** provided in `decisions-list.md` for the document's main heading.
-   - *CRITICAL*: Make sure to extract any technical debt, added dependencies, or maintenance burdens as `Cons`.
-   - *CRITICAL*: Extract the actual literature, studies, papers, or technical standards discussed in the session for the `References` section. Do NOT reference the session ID or transcript itself.
+2. For each decision, analyze the transcript and extract the technical data
+   required by `templates/extraction-template.md`.
+   - Use the exact `Title` from `decisions-list.md` as the main heading.
+   - Extract technical debt, dependencies, and maintenance burdens as costs and
+     obligations.
+   - Identify the scope the decision governs.
+   - Extract only relationships explicitly asserted from the new decision to an
+     existing ADR: `clarifies`, `amends`, `supersedes`, and `confirms`.
+   - Extract actual literature, standards, and internal artifacts discussed in
+     the session. Never cite the transcript or session ID.
 
 ## Output
 Create your own session-specific directory inside `output/` (matching Step 1). 

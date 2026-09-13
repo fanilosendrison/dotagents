@@ -1,38 +1,49 @@
 ---
 okf_version: "1.0"
 kind: "RuntimeArtifact"
-format: "markdown-adr"
-title: "[Short and descriptive title]"
-status: proposed
+format: "markdown-draft"
 workspace: "[Name of the user's project/workspace]"
 date: "YYYY-MM-DD"
 step_id: 4
-supersedes: "[older-adr.md or None]"
-author: [Your Name]
-tags: [architecture, tags...]
-superseded-by: [Optional: 0003-new-adr-name]
+# target_adr is a routing descriptor, not sealed ADR-schema metadata.
+target_adr:
+  profile: "[repository profile path or legacy]"
+  id: "[repository-conformant ADR ID]"
+  name: "[Short descriptive title]"
+  status: "proposed"
+  filename: "[repository-conformant filename]"
+  relations:
+    clarifies: []
+    amends: []
+    supersedes: []
+    confirms: []
+  governs: []
 ---
 
-# [Title (Same as frontmatter)]
+# [Title using the repository H1 convention]
 
 ## Context
-[Explain the problem, the context, business priorities, and technical constraints.]
+
+[Explain the problem, constraints, and decision pressure.]
 
 ## Decision
-[Clear, concise, active voice statement of what was chosen.]
 
-## Alternatives Considered
-- **[Alternative 1]**: [Brief description, why it was evaluated, and the objective reason for its rejection.]
+[State the chosen architecture clearly without implementation speculation.]
+
+## Alternatives considered
+
+- **[Alternative]:** [Explain objectively why it was rejected.]
 
 ## Consequences
 
-### Pros
-- [Advantage 1: e.g., Solves the read performance bottleneck]
+### Benefits
 
-### Cons
-- [Disadvantage 1: e.g., Adds a critical new dependency to the project]
+- [Benefit]
+
+### Costs and obligations
+
+- [Cost or maintenance obligation]
 
 ## References
-- [Link to an external standard, research paper, study, or official documentation discussed in the session]
-- [Link to an internal design document, NIB, spec, or GitHub issue]
-- *CRITICAL: DO NOT link the transcript or the session ID as a reference.*
+
+- [Use only references extracted in Step 2.]

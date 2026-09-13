@@ -4,38 +4,53 @@ kind: "KnowledgeAsset"
 asset_type: "convention"
 domain: "file-system"
 severity: "strict"
-name: "ADR Final Naming Convention"
+name: "Repository-aware ADR naming"
 ---
 
-# ADR Naming Convention
+# Repository-aware ADR naming
 
-When creating an Architecture Decision Record (ADR), you **MUST** follow this exact naming convention:
+## Authority order
 
-**`NNNN-short-descriptive-title.md`**
+Determine the final ADR identity and filename from the active repository rather
+than from a global digit-width assumption.
 
-## Strict Rules
+1. If `docs/adr/adr-profile.yaml` exists, use its ID pattern, filename pattern,
+   digit width, preferred H1 separator, and retention rules.
+2. Otherwise, read the repository directives and inspect existing ADRs to
+   preserve their established convention.
+3. If neither source establishes a convention, ask the user before assigning an
+   identity or filename.
 
-1. **Sequential Numbering (`NNNN`)**
-   - You MUST pad the number with leading zeros to maintain 4 digits (e.g., `0001`, `0015`, `0123`).
-   - Start with `0001` and increment by one for each new ADR.
-   - Never reuse a number, even if an ADR is deprecated or rejected.
+Do not default silently to four digits or omit a repository's established
+`adr-` prefix.
 
-2. **Kebab-Case Title (`short-descriptive-title`)**
-   - All letters MUST be lowercase.
-   - Words MUST be separated by hyphens (`-`).
-   - Do NOT use spaces, underscores (`_`), or CamelCase.
-   - Keep the title short but descriptive enough to understand the decision at a glance.
+## Stable identity
 
-3. **No Dates or Status in Filename**
-   - Do NOT include dates (e.g., `2026-07-17`). Git handles versioning and history.
-   - Do NOT include status keywords like `draft`, `accepted`, `deprecated`, `final`, or `v2`. 
-   - Status must be tracked *inside* the ADR content, not in the filename.
+Treat the repository-defined ADR ID as canonical. Derive its numeric order and
+validate the filename and H1 against it.
 
-## Example
+- Select the next unallocated ID after the highest retained ID.
+- Never reuse an ID belonging to a rejected, deprecated, or superseded record.
+- Preserve every allocated record when the repository requires contiguous
+  identities.
+- Use lowercase kebab-case for the descriptive filename segment.
+- Do not include dates or lifecycle statuses in filenames.
+
+## Examples
+
+A repository profile may require:
 
 ```text
-docs/adr/
-  ├── 0001-record-architecture-decisions.md
-  ├── 0002-use-postgresql-as-primary-database.md
-  ├── 0003-implement-event-driven-architecture.md
+ADR-016
+adr-016-separate-authorship-from-execution-authority.md
 ```
+
+Another repository may legitimately require:
+
+```text
+ADR-0016
+0016-separate-authorship-from-execution-authority.md
+```
+
+The repository contract decides; the skill does not normalize one convention
+into the other.

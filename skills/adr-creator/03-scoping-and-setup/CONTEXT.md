@@ -18,13 +18,25 @@ conventions:
 
 # Step 3: Scoping & Setup
 
-Your goal is to prepare the precise identification for the new ADR(s) and handle the replacement of old ones.
+Prepare the repository-conformant identity, filename, and outgoing decision
+relationships for each ADR.
 
 ## Tasks
-1. Read the extracted metadata from your active session's folder in `../02-metadata-extraction/output/` (e.g., `2026-07-17-auth-refactor/`).
-2. **Determine IDs**: Scan the `docs/adr/` directory in the user's workspace. Find the highest `NNNN` sequential number and calculate the next one (e.g., if `0013` exists, your ID is `0014`). If you are creating multiple ADRs, assign them sequentially (e.g., `0014`, `0015`).
-3. **Determine Superseding**: Determine if any of the new decisions explicitly replace an older ADR in `docs/adr/`. If so, note the old ADR's full filename for each specific decision.
-4. **Determine Filenames**: Follow the rules in `conventions/naming-an-adr.md` to generate the exact filename for each new ADR.
+
+1. Read the extracted metadata from the active session folder in
+   `../02-metadata-extraction/output/`.
+2. Resolve the active repository root and read its directives.
+3. If `docs/adr/adr-profile.yaml` exists, read the profile and its referenced
+   schemas before assigning an ID. Otherwise, preserve the established ADR
+   convention already present in the repository.
+4. Scan every retained ADR, including rejected, deprecated, and superseded
+   records. Assign the next unallocated repository-conformant ID; never reuse an
+   identity.
+5. Determine which existing ADRs the new decision explicitly `clarifies`,
+   `amends`, `supersedes`, or `confirms`. Record only these outgoing relations;
+   do not edit older records to add reverse relations.
+6. Apply `conventions/naming-an-adr.md` to produce the exact final filename and
+   H1 identity.
 
 ## Output
 Create your own session-specific directory: `output/YYYY-MM-DD-short-topic/` (matching Step 2).

@@ -12,9 +12,31 @@ metadata:
 
 # ADR Creator (ICM Router)
 
-This skill extracts decision-making from a session and transforms it into an Architecture Decision Record (ADR) through 6 strictly isolated, sequential steps. 
+This skill extracts decision-making from a session and transforms it into an
+Architecture Decision Record (ADR) through six strictly isolated, sequential
+steps.
 
-You drop into a step folder, read its `CONTEXT.md`, perform your work, and then proceed to the next one.
+Enter one step folder, read its `CONTEXT.md`, perform the work, and then proceed
+to the next step.
+
+## Repository contract discovery
+
+Before Step 1, resolve the active repository root and read its agent directives.
+If `docs/adr/adr-profile.yaml` exists, treat that repository profile, its pinned
+schema, local overlay, and declared validation/rendering commands as the ADR
+format authority. Read the generalized
+[OKF Architecture Decision Record Profile](../../conventions/architecture-decision-record-profile.md)
+for the shared metadata semantics.
+
+Do not impose one digit width, filename prefix, H1 separator, authority order,
+status transition, or index layout across repositories. When no repository ADR
+profile exists, preserve the repository's established ADR format and naming;
+ask for direction if neither a profile nor an existing convention establishes
+them.
+
+Keep pipeline drafts as `RuntimeArtifact` documents. A sealed ADR becomes the
+repository-defined `KnowledgeAsset` only at the final step. Never treat draft
+workflow metadata as final ADR metadata.
 
 ## Workflow & Folder Structure
 
@@ -32,7 +54,7 @@ adr-creator/
 │   ├── CONTEXT.md
 │   ├── templates/
 │   └── output/
-├── 03-scoping-and-setup/                 ← Determine the correct NNNN identifier and supersedes links.
+├── 03-scoping-and-setup/                 ← Determine the repository-defined ID, filename, and outgoing relations.
 │   ├── CONTEXT.md
 │   ├── conventions/
 │   ├── templates/
@@ -69,3 +91,11 @@ adr-creator/
 - **Execution Order:** Execute the stages sequentially. Enter a folder only if the previous folder's `output/` has been successfully populated.
 - **Execution Limit:** Read **only** the `CONTEXT.md` of the current step, perform the required work, and then **STOP**. Move to the next step's folder only after the current step's output is fully generated.
 - **Global Conventions:** Even inside this skill, you must strictly respect all global conventions listed in `~/.agents/AGENTS.md` (e.g., Markdown formatting, OKF schemas).
+- **Repository Authority:** A repository profile specializes the shared OKF ADR
+  profile. Consume it; do not silently rewrite or replace it.
+- **Outgoing Relations Only:** Record `clarifies`, `amends`, `supersedes`, and
+  `confirms` on the ADR that asserts them. Derive incoming relationships through
+  repository tooling.
+- **Accepted-Record Integrity:** Never modify accepted decision content. Apply
+  lifecycle changes or schema migrations only when repository policy explicitly
+  permits them.

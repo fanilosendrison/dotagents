@@ -5,30 +5,42 @@ format: "markdown-extraction"
 workspace: "[Name of the user's project/workspace]"
 date: "YYYY-MM-DD"
 step_id: 2
-tags: [tag1, tag2, architecture]
+tags: [architecture]
 ---
 
-# [Proposed Short Descriptive Title]
+# [Proposed short descriptive title]
 
-## 1. Context & Core Problem
-[Briefly describe the context, business priorities, technical constraints, and the exact problem being solved]
+## Context and core problem
 
-## 2. Final Decision
-[Explicitly state the chosen solution]
+[Describe the context, priorities, constraints, and exact problem.]
 
-## 3. Rejected Alternatives
-- **[Alternative A]**: [Objective reason for rejection]
-- **[Alternative B]**: [Objective reason for rejection]
+## Decision
 
-## 4. Pros
-- [Benefit 1]
-- [Benefit 2]
+[State the selected architecture explicitly.]
 
-## 5. Cons (Technical Debt & Burden)
-- [Negative consequence 1]
-- [Maintenance burden 2]
+## Governed scope
 
-## 6. References
-- [Link to an external standard, research paper, study, or official documentation discussed in the session]
-- [Link to an internal design document, NIB, spec, or GitHub issue]
-- *CRITICAL: DO NOT link the transcript or the session ID as a reference.*
+- [Scope explicitly governed by this decision.]
+
+## Outgoing ADR relationships
+
+- **Clarifies:** [ADR IDs or None]
+- **Amends:** [ADR IDs or None]
+- **Supersedes:** [ADR IDs or None]
+- **Confirms:** [ADR IDs or None]
+
+## Alternatives considered
+
+- **[Alternative]:** [Objective reason for rejection.]
+
+## Benefits
+
+- [Benefit]
+
+## Costs and obligations
+
+- [Cost, technical debt, dependency, or maintenance burden.]
+
+## References
+
+- [Only literature, standards, or internal artifacts discussed in the session.]

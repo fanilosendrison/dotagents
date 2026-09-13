@@ -9,16 +9,20 @@ step_id: 3
 
 # Routing Metadata
 
+## Repository ADR contract
+
+- **Profile:** `[docs/adr/adr-profile.yaml or established legacy convention]`
+- **Schema:** `[repository schema path or None]`
+- **ID and filename convention:** `[concise resolved convention]`
+
 ## Decision 1
-- **Source File**: `[Name of the file from Step 2, e.g., decision-1-auth-refactor.md]`
-- **Sequential ID**: `[e.g., 0014]`
-- **Final ADR Filename**: `[e.g., 0014-auth-refactor.md]`
-- **Supersedes**: `[Filename of the old ADR this replaces, or "None"]`
 
-## Decision 2
-- **Source File**: `[Name of the file from Step 2, e.g., decision-2-prisma-orm.md]`
-- **Sequential ID**: `[e.g., 0015]`
-- **Final ADR Filename**: `[e.g., 0015-prisma-orm.md]`
-- **Supersedes**: `[Filename of the old ADR this replaces, or "None"]`
+- **Source File:** `[Step 2 extraction filename]`
+- **Canonical ID:** `[repository-conformant ADR ID]`
+- **Final ADR Filename:** `[repository-conformant filename]`
+- **Clarifies:** `[ADR IDs or None]`
+- **Amends:** `[ADR IDs or None]`
+- **Supersedes:** `[ADR IDs or None]`
+- **Confirms:** `[ADR IDs or None]`
 
-*(Add more if necessary)*
+<!-- Add one section per decision. -->
