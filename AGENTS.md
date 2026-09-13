@@ -50,6 +50,8 @@ While `~/.claude/skills/` is a direct symlink, `~/.agents/`, `~/.codex/` and `~/
 │   ├── construction-sequence.md ← TDD Construction Sequence
 │   └── managing-api-keys.md  ← How you manage API keys
 ├── conventions/              ← Passive conventions
+│   ├── architecture-decision-record-profile.md ← OKF ADR metadata profile
+│   ├── architecture-decision-record.schema.json ← Canonical OKF ADR schema
 │   ├── cubits-design-doc.md  ← Cubits Design Doc (CDD) schema and rules
 │   ├── decision_tdd_agent_specs.md ← Deciding TDD implementation from prompts/specs
 │   ├── dependency-contract.md ← Dependency Contract formatting rules
@@ -109,6 +111,7 @@ While `~/.claude/skills/` is a direct symlink, `~/.agents/`, `~/.codex/` and `~/
 | Know how to name files and folders                  | `conventions/file-and-folder-naming.md`      |
 | Know how to format markdown (Syntax, OKF, Voice)    | `conventions/markdown-formatting.md`         |
 | Know about the Open Knowledge Format (OKF) schema   | `conventions/okf-specification.md`           |
+| Know about the OKF ADR metadata profile              | `conventions/architecture-decision-record-profile.md` |
 | Consult recorded architecture decisions (ADRs)      | `docs/adr/`                                  |
 | Know about the way you verify bash commands         | `docs/command-validator.md`                  |
 | Know about code modification permission (/go)       | `docs/permission-enforcer.md`                |

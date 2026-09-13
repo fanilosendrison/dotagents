@@ -47,6 +47,11 @@ Used for conventions, rules, guidelines, and specifications (like this very file
   - `severity`: String (e.g., "strict", "guideline")
   - `name`: String
 
+Architecture Decision Records remain `KnowledgeAsset` documents and use the
+specialized [OKF Architecture Decision Record Profile](architecture-decision-record-profile.md).
+Its versioned JSON Schema defines stable identity, lifecycle metadata, outgoing
+relationships, decision-body integrity, and repository-adoption requirements.
+
 ### D. `RuntimeArtifact`
 Used for outputs generated during a session (e.g., drafted ADRs, data extractions).
 - **Note:** When creating templates (`templates/*.md`), they should bear the YAML frontmatter of the `RuntimeArtifact` they intend to generate. Do not use a separate `kind: Template`.
