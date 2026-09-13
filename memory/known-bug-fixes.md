@@ -101,6 +101,25 @@ After a staging or commit failure, determine planned-file existence and change s
 **Regression verification:**
 Run missing-file, nonexistent-file, and mid-loop partial-commit tests under a non-English host locale. The tests must receive the same `CommitPlanError` kinds and preserve committed-SHA context without inspecting localized text. Also cover deleted tracked files, ignored files, leading whitespace, shell metacharacters, and Git pathspec metacharacters so classification cannot reintroduce output corruption, command injection, or overbroad staging.
 
+## Recursive Active Manifests Include Ignored Virtual Environments
+
+**Description:**
+A repository-local active-manifest generator that recursively walks the file
+system can include `.venv/` dependencies even when Git ignores them. The
+manifest then becomes machine-dependent, and a separate verifier may report
+hundreds of unregistered environment files when its exclusion predicate differs
+from the generator's.
+
+**Verified fix:**
+Exclude every path containing a `.venv` component in both manifest generation
+and active-file discovery. Keep the predicates identical; excluding only the
+root `.venv` leaves nested tool or fixture environments inconsistent.
+
+**Regression verification:**
+Create root and nested `.venv` markers in an isolated repository fixture,
+generate the active manifest, assert neither marker is recorded, and run the
+real layout verifier against that generated manifest.
+
 ## Large E2E Test Files Time Out on Slow Process-Launch Environments
 
 **Description:**
