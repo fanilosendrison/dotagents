@@ -140,3 +140,26 @@ Run the complete stage-harness test entry point. Both acceptance and property
 files must reach their final cases with no cancellation. The verified suite
 completed all 34 tests in approximately six minutes on the slow environment;
 the prior 60-second limit cancelled both files before completion.
+
+## Normative Definitions Drift Across Specification Sections
+
+**Description:**
+A normative specification can assign lexical meaning in product-intent,
+invariant, implication, and synopsis sections independently. Initially
+compatible definitions can then diverge silently, while ordinary traceability
+checks continue to pass because stable requirement identifiers remain intact.
+
+**Verified fix:**
+Assign each defined normative concept one canonical definition anchor in an
+explicit terminology registry. Keep intent, obligations, implications, and
+synopses authoritative only for their own responsibilities. Track likely
+non-canonical definition-like occurrences in a non-authoritative inventory with
+whitespace-normalized fingerprints, and validate registry structure and
+inventory freshness mechanically. Treat lexical detection as heuristic review
+support, never as proof of semantic equivalence.
+
+**Regression verification:**
+Test the real specification plus isolated fixtures for competing definitions,
+missing or stale inventory entries, malformed inventory data, invalid registry
+tables, duplicate or misbound anchors, overloaded compound terms, and synopsis
+redefinitions. Retain independent human review for semantic preservation.
