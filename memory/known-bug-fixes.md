@@ -163,3 +163,25 @@ Test the real specification plus isolated fixtures for competing definitions,
 missing or stale inventory entries, malformed inventory data, invalid registry
 tables, duplicate or misbound anchors, overloaded compound terms, and synopsis
 redefinitions. Retain independent human review for semantic preservation.
+
+## Mutable Runtime Settings Dirty a Symlinked Dotfiles Repository
+
+**Description:**
+A harness can persist ordinary runtime preferences, such as the selected model,
+to a gateway path that is symlinked to a tracked file in a dotfiles repository.
+The runtime write then dirties the repository, and a later global commit
+orchestrator can create unrelated preference-only commits.
+
+**Verified fix:**
+Keep the live runtime settings file as an unversioned regular file in the
+physical gateway. Track a separate bootstrap template containing only stable
+configuration, ignore legacy worktree targets, and keep runtime-owned fields out
+of the template. Do not patch the harness persistence behavior or hide the
+tracked file with Git index flags.
+
+**Regression verification:**
+Verify that the live file is regular, local to the gateway, and mode `0600`;
+that the former repository path is untracked and ignored; and that the harness's
+real settings storage can write the live path without changing repository state.
+Run the harness type check and complete test suite after updating gateway
+documentation.
