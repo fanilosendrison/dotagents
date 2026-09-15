@@ -164,6 +164,38 @@ missing or stale inventory entries, malformed inventory data, invalid registry
 tables, duplicate or misbound anchors, overloaded compound terms, and synopsis
 redefinitions. Retain independent human review for semantic preservation.
 
+## Verified Publication Leaves a Stale Remote-Tracking Ref
+
+**Description:**
+A publisher that pins one ephemeral remote and verifies the exact published SHA
+can leave the ordinary remote-tracking ref stale. Pushing through an ephemeral
+remote does not trigger Git's named-remote tracking-ref side effect, and an
+already tracked branch never re-establishes its upstream, so `git status -sb`
+keeps reporting the branch as ahead even though the remote holds the exact
+published revision. The stale projection also makes a later recovery look like a
+failed publication.
+
+**Verified fix:**
+After postflight verification proves the destination SHA, synchronize the
+applicable local remote-tracking ref with
+`git update-ref <ref> <published> <expected-old>`. Update only when the tracked
+branch, destination ref, and effective fetch/push endpoint fingerprints match,
+so triangular workflows and split fetch/push endpoints stay untouched; a missing
+expected-old value protects a ref created concurrently. Treat local projection
+failure as a separately reported outcome and never as remote push failure, and
+resolve an ambiguous failed push by reading the destination back before
+accepting the failure.
+
+**Regression verification:**
+Cover ordinary publication, push-only publication, already-published recovery,
+concurrent and absent-ref races, triangular and split-endpoint workflows, and a
+rejected push whose destination already advanced. Keep real bare-remote and
+compiled-release coverage. On legacy Darwin the test cascade inherits Apple Git
+2.17 through `xcrun`, so new tests must avoid commands newer than that floor:
+`git branch --show-current` requires Git 2.22, and a rejected push discards its
+quarantine, so a hook-based simulation must make the published object durable
+before writing the destination ref.
+
 ## Mutable Runtime Settings Dirty a Symlinked Dotfiles Repository
 
 **Description:**
