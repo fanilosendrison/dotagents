@@ -339,3 +339,42 @@ variants), then restore production exactly.
 Temporarily make the production branch always fail and confirm the positive test
 turns RED; temporarily make it fail open and confirm the negative tests turn
 RED. Restore production byte-identically and confirm the full suite passes.
+
+## Compound Fail-Closed Guards Need Per-Operand Oracles
+
+**Description:**
+A compound fail-closed guard such as "A invalid OR B invalid" can lose one
+operand's validation while the overall command still fails for a different
+reason. Downstream processing of the missing operand produces an unrelated error
+(for example an invalid revision range), so a test asserting only non-empty
+errors or generic failure passes while the explicit fail-closed diagnostic
+contract has been lost.
+
+**Verified fix:**
+Test each invalid operand independently while the other operand is present and
+syntactically valid, and assert the explicit validation diagnostic rather than
+generic failure. A downstream error caused by a missing operand must not be
+accepted as equivalent to the intended fail-closed contract.
+
+**Regression verification:**
+Temporarily remove one operand's validation and confirm the matching oracle
+turns RED on the missing explicit diagnostic; restore production
+byte-identically and confirm the suite passes. Repeat for the symmetric operand.
+
+## Unrelated Event Types Still Require Common-Validation Oracles
+
+**Description:**
+A validator may intentionally ignore event-specific metadata for event types it
+does not dispatch on. Testing only that a clean unrelated event passes without
+metadata cannot detect a regression that skips the validations every event type
+must still execute.
+
+**Verified fix:**
+For each unrelated event type, test both a clean case that passes without event
+metadata and a violating case that must still fail through the common checks.
+Assert the shared validation diagnostic, not merely a non-empty error list.
+
+**Regression verification:**
+Temporarily short-circuit the unrelated event type to an empty result and
+confirm the violating oracle turns RED while the clean oracle stays green;
+restore production byte-identically and confirm the suite passes.
