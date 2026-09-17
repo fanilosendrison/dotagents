@@ -258,3 +258,64 @@ tracked-file mutation, untracked-file creation, tracked-file deletion,
 child-command failure, and pre-existing dirty worktree. Static audits assert
 that agent instructions and CI reference the suite without enumerating its
 members.
+
+## Canonical Validation Suite Lacks a Membership Oracle
+
+**Description:**
+A repository-integrity runner that owns validation membership and order can
+silently become weaker when a mandatory checker is deleted from its step list.
+Tests that only exercise individual helper behavior stay green because nothing
+independently asserts the suite's composition.
+
+**Verified fix:**
+Add an independent membership/order oracle that asserts the exact step names,
+command paths, and sequence as a literal expected list. The oracle intentionally
+duplicates expected behavior for verification; it must not derive expectations
+from the production step list. The runner remains the only production owner of
+membership.
+
+**Regression verification:**
+Temporarily remove a step from the production step list and confirm the
+membership test fails; restore and confirm it passes. Also run the real runner
+as a subprocess against fixture children that exit 7 to prove CLI failure
+propagation.
+
+## Worktree-Diff Whitespace Checks Miss Committed CI Changes
+
+**Description:**
+`git diff --check` only inspects unstaged worktree differences. On a clean CI
+checkout it reports nothing even when the pushed or pull-request change range
+contains committed trailing whitespace, and it also misses staged-only local
+changes. Whitespace validation can therefore pass while a bad commit is
+introduced.
+
+**Verified fix:**
+Use a dedicated side-effect-free checker that validates unstaged changes, staged
+index changes, and the exact GitHub push or pull-request change range from the
+event payload. Fail closed when CI event context is missing or malformed, and
+handle all-zero push `before` revisions through the Git empty-tree diff.
+
+**Regression verification:**
+Real temporary Git repositories with real commits cover unstaged, staged-only,
+committed push range, committed pull-request range, root-push range, malformed
+event, and clean-range cases. A purity-guard integration test proves the checker
+does not mutate the repository.
+
+## CI Event Variables Leak Into Production-Checker Fixture Tests
+
+**Description:**
+A test that runs a real production checker inside a temporary repository fixture
+inherits the host CI environment. When the checker reads GitHub event variables
+such as `GITHUB_EVENT_NAME` and `GITHUB_EVENT_PATH`, the fixture validates the
+real workflow run's commit range against the wrong repository and fails with an
+invalid revision range. The suite passes locally and fails only in CI.
+
+**Verified fix:**
+Clear GitHub event variables from the child environment for fixture invocations
+of CI-context-sensitive checkers, restoring them afterward. Keep the production
+checker unchanged so its CI behavior remains fully exercised.
+
+**Regression verification:**
+Run the fixture test with `GITHUB_EVENT_NAME=push` and a real event path set in
+the parent environment; the test must pass. Reproduce the failure with the
+isolation removed before applying the fix.
