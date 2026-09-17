@@ -319,3 +319,23 @@ checker unchanged so its CI behavior remains fully exercised.
 Run the fixture test with `GITHUB_EVENT_NAME=push` and a real event path set in
 the parent environment; the test must pass. Reproduce the failure with the
 isolation removed before applying the fix.
+
+## Fail-Closed Branches Need Positive and Negative Oracles
+
+**Description:**
+Validation tools often implement fail-closed branches for missing, malformed, or
+incomplete input. Tests that prove the failure path rejects bad input are
+insufficient on their own: an implementation that always rejects every input
+would satisfy them while breaking the valid path. The same gap exists in reverse
+when only positive tests cover a branch.
+
+**Verified fix:**
+For every fail-closed branch, add both a negative oracle proving invalid input
+fails and a positive oracle proving valid input succeeds. Prove oracle
+sensitivity with temporary production mutations (always-fail and fail-open
+variants), then restore production exactly.
+
+**Regression verification:**
+Temporarily make the production branch always fail and confirm the positive test
+turns RED; temporarily make it fail open and confirm the negative tests turn
+RED. Restore production byte-identically and confirm the full suite passes.
