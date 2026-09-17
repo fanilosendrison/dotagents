@@ -217,3 +217,44 @@ that the former repository path is untracked and ignored; and that the harness's
 real settings storage can write the live path without changing repository state.
 Run the harness type check and complete test suite after updating gateway
 documentation.
+
+## Check Commands That Regenerate Instead of Diagnosing
+
+**Description:**
+A repository check command that regenerates a required generated artifact before
+comparing it can silently recreate a missing, overwritten, or truncated
+projection. The check then reports success while the committed repository state
+was incomplete, so generated-artifact drift is never surfaced.
+
+**Verified fix:**
+Separate mutation from diagnosis. Expose a pure renderer mode that computes the
+expected content without writing, have check mode compare the on-disk artifact
+against that expected content byte-for-byte, and fail explicitly on missing,
+stale, truncated, or renderer-failure conditions. Only the explicit render
+command may mutate the artifact.
+
+**Regression verification:**
+Cover missing, stale, truncated, fresh, and renderer-failure cases; assert both
+the reported result and exact filesystem immutability. Add a test proving the
+pure renderer's stdout equals the committed artifact without touching the
+filesystem.
+
+## Parallel Validation Command Lists Drift Between Agent Instructions and CI
+
+**Description:**
+Agent instructions and CI each enumerate the validation commands to run. When
+membership or order changes, one list is updated first and the other silently
+keeps running a stale validation set.
+
+**Verified fix:**
+Move validation membership, order, and execution into one canonical executable
+suite. Agent instructions and CI invoke that suite and do not restate its
+members. The suite snapshots Git worktree status before and after execution and
+fails when a validator mutates tracked, untracked, or deleted state.
+
+**Regression verification:**
+Integrity-runner tests exercise the real command-execution path: non-mutating,
+tracked-file mutation, untracked-file creation, tracked-file deletion,
+child-command failure, and pre-existing dirty worktree. Static audits assert
+that agent instructions and CI reference the suite without enumerating its
+members.
