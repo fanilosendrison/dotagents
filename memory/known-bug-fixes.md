@@ -378,3 +378,14 @@ Assert the shared validation diagnostic, not merely a non-empty error list.
 Temporarily short-circuit the unrelated event type to an empty result and
 confirm the violating oracle turns RED while the clean oracle stays green;
 restore production byte-identically and confirm the suite passes.
+
+## Unregistered Canonical Terminology Anchors Bypass Registry-Driven Discovery
+
+**Description:**
+A specification can introduce a canonical-looking `<a id="term-..."></a>` anchor and lexical definition without adding the concept to the canonical terminology registry. The parser discovers the anchor, but a registry-driven occurrence checker can still ignore it if it validates only anchors referenced by already-registered concepts. In that failure mode, both normal validation and occurrence-list generation can pass while the new canonical definition bypasses registry and inventory governance.
+
+**Verified fix:**
+Treat the parsed `term-*` anchor namespace as closed with respect to the canonical terminology registry. After structural anchor discovery, compare every discovered `term-*` anchor against the registry's canonical-anchor set and reject every orphan before occurrence/inventory comparison. Preserve the existing converse check that every registry entry's canonical anchor exists and binds its own definition.
+
+**Regression verification:**
+Use an isolated specification fixture with a valid canonical registry plus an unregistered `term-gamma` anchor and lexical definition. Assert the checker API rejects it, assert the real `--list-occurrences` CLI exits nonzero without a traceback and reports the orphan anchor, then run the repository's complete integrity suite.
