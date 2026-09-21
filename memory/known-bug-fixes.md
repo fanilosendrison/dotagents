@@ -389,3 +389,29 @@ Treat the parsed `term-*` anchor namespace as closed with respect to the canonic
 
 **Regression verification:**
 Use an isolated specification fixture with a valid canonical registry plus an unregistered `term-gamma` anchor and lexical definition. Assert the checker API rejects it, assert the real `--list-occurrences` CLI exits nonzero without a traceback and reports the orphan anchor, then run the repository's complete integrity suite.
+
+## Recovered Publication Captures Illegally Establish Non-Application
+
+**Description:**
+A formal publication lifecycle can state that `PublicationNonApplicationRef` is
+only direct-terminal evidence while its orchestration and state-admission paths
+also accept a captured `PROVEN-COMPLETED` recovery result. Without a provenance
+guard, recovery-derived material can reach `not-applied` qualification and be
+retained as non-application evidence, contradicting the direct-only contract.
+
+**Verified fix:**
+Track the direct-versus-recovered source through M1 qualification, fail an
+attempted recovered `not-applied` result before any publication-qualification
+M2 mutation, require M2 `not-applied` admission to reference a direct
+`AdmitExecutionOutcomeV1`, and make snapshot integrity reject any
+`PublicationNonApplicationRef` whose capture was introduced by
+`AdmitExecutionRecoveryV1`. The required prior recovery-resolution mutation
+remains durable.
+
+**Regression verification:**
+Because this repository has no executable implementation for these construction
+briefs, use an independent structural oracle over the exact briefs. Verify that
+direct `not-applied` remains admissible, recovered `confirmed` remains
+admissible, recovered `not-applied` fails before publication-qualification M2
+mutation, and retained recovered-origin non-application fails snapshot
+integrity. Run the complete repository-integrity suite afterward.
