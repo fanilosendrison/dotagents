@@ -65,6 +65,65 @@ This applies to, among other things:
 - unrelated refactoring opportunities,
 - dependency issues.
 
+### Git Workspace Isolation
+
+For every implementation task in an ordinary Git repository, use one private,
+unique linked worktree. Never use the user's persistent checkout as the task
+workspace.
+
+Standardize task-worktree paths under:
+
+```text
+$HOME/Developper/Projects/.worktrees/<repository-namespace>/<unique-task-id>
+```
+
+Use the repository root name as `<repository-namespace>` when it is unique. Add
+a stable owner namespace when repositories with the same name would otherwise
+collide. Use a lowercase kebab-case `<unique-task-id>` that identifies only the
+current task.
+
+Before implementation:
+
+1. If the current directory is already the dedicated linked worktree for the
+   current task, continue there and do not create a nested worktree.
+2. Otherwise, resolve the task's authorized base from repository or task
+   authority, refresh its remote-tracking state when a remote exists, and create
+   the unique linked worktree under the standard root.
+3. Do not require the persistent checkout to be clean. Never stash, clean,
+   reset, restore, switch, merge, rebase, or commit user state merely to prepare
+   the task worktree.
+4. Perform every task edit, generated-artifact write, validation-environment
+   creation, validation, commit, reconciliation, and publication-preparation
+   operation inside the task worktree.
+
+During implementation:
+
+- Treat one task as the sole owner of its worktree.
+- Permit independent task worktrees to coexist.
+- Never edit, clean, reset, switch, inspect for cleanliness as a prerequisite,
+  or remove another task's worktree.
+- Follow repository authority for the authorized base, detached or branched
+  mode, reconciliation method, publication destination, and validation suite.
+
+After publication:
+
+1. Prove that the exact task `HEAD` is retained by the authoritative published
+   destination.
+2. Require the task worktree to contain no tracked modifications, untracked
+   non-ignored files, or active Git operation.
+3. Remove only that successfully published task worktree and prune its stale Git
+   worktree metadata.
+4. Preserve failed, interrupted, conflicted, or unpublished task worktrees for
+   inspection. Never delete them automatically.
+
+The standard physical path does not override mandatory symlink-gateway rules.
+For repositories writable only through `~/.agents/`, `~/.pi/agent/`,
+`~/.codex/`, or `~/.claude/skills/`, use the required gateway path and its
+supported isolation mechanism. Never bypass a gateway by writing directly to
+its physical repository or to an unprojected physical worktree. This exception
+changes only workspace placement; it does not authorize overwriting unrelated
+user state.
+
 ---
 
 ## 3. Strict Prohibitions (What You Must NEVER Do)
