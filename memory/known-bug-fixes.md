@@ -415,3 +415,23 @@ direct `not-applied` remains admissible, recovered `confirmed` remains
 admissible, recovered `not-applied` fails before publication-qualification M2
 mutation, and retained recovered-origin non-application fails snapshot
 integrity. Run the complete repository-integrity suite afterward.
+
+## Extracted Workspace Leaves Stale Migration Parity Targets
+
+**Description:**
+Extracting an implementation package into a dedicated repository can remove its
+files and workspace registration while leaving active migration parity records
+pointing to the retired paths. Ordinary repository tests may pass, but a
+fail-closed CI policy validator then reports missing green targets.
+
+**Verified fix:**
+Remove every extracted package surface from the active parity manifest and
+synchronize its declared totals plus the policy validator's expected green
+surface count. Keep historical narrative records unchanged when they remain
+accurate descriptions of the completed migration.
+
+**Regression verification:**
+Run the production policy validator against the slimmed repository and assert
+that the launcher-only skill's validation-chain test rejects any active parity
+path below its manifest directory. Run the scripts test package and complete CI
+matrix after publication.
