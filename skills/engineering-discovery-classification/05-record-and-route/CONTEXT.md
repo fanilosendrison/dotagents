@@ -84,7 +84,7 @@ repository explicitly assigns that role.
 
 When durable work must be created, reused, classified, or handed off through a
 repository-declared GitHub Engineering Project, load the
-`github-engineering-projects` skill and its repository profile. Do not duplicate
+`proto-lithify` skill and its repository profile. Do not duplicate
 its Issue or Project mechanics here.
 
 Re-read the destination after writing, preserve unrelated worktree state, and

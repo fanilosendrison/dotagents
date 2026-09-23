@@ -20,6 +20,6 @@ for the affected domain instead of duplicating cached architecture, runtime,
 package-manager, or validation facts in this skill.
 
 When the request mentions an Issue, backlog work, review finding, or Turnlock
-Engineering, also apply the shared GitHub Engineering Projects operational rule
+Engineering, also apply the shared `/proto-lithify` operational rule
 and read `docs/repository-governance/turnlock-engineering.md` from the resolved
 repository root.

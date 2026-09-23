@@ -33,7 +33,7 @@ implementation mechanism from the repository name. Accept those boundaries only
 from current repository authority.
 
 When the request mentions an Issue, Project work, backlog work, or a review
-finding, also apply the shared GitHub Engineering Projects operational protocol
+finding, also apply the shared `/proto-lithify` operational protocol
 and read
 `docs/repository-governance/turnlock-rust-engineering.md` from the resolved
 repository root.
