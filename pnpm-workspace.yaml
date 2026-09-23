@@ -3,7 +3,6 @@ packages:
   - packages/*
   - scripts
   - skills/create-symlink-for-dot-folders
-  - skills/go
   - skills/loop-clean/protocol
   - skills/skill-creator
 

@@ -9,10 +9,9 @@
 	},
 	"scripts": {
 		"build:skill-validator": "pnpm --filter @dotagents/skill-validator run build",
-		"test": "pnpm run test:root:node && pnpm run test:scripts-node && pnpm run test:go-node && pnpm run test:protocol",
+		"test": "pnpm run test:root:node && pnpm run test:scripts-node && pnpm run test:protocol",
 		"test:root:node": "pnpm run test:create-symlink && pnpm run test:documentation-bootstraps && pnpm run test:skill-validator && pnpm run test:git-commits-push-launch-recognition && pnpm run test:agent-enforcers-node && pnpm run test:document-wrapper && pnpm run test:bun-policy",
 		"test:scripts-node": "pnpm --filter @dotagents/scripts run test",
-		"test:go-node": "pnpm --filter go-stage-harness run typecheck && pnpm --filter go-stage-harness run test",
 		"test:protocol": "pnpm --filter @dotagents/loop-clean-protocol run typecheck && pnpm --filter @dotagents/loop-clean-protocol run test:all",
 		"test:agent-enforcers-node": "node --preserve-symlinks --preserve-symlinks-main agent-enforcers/test/run-tests.mjs",
 		"test:create-symlink": "pnpm --filter create-symlink-for-dot-folders run test",
