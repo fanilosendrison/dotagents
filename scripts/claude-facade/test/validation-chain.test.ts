@@ -42,7 +42,7 @@ describe("repository validation chain", () => {
 		assert.strictEqual(rootPackage.workspaces, undefined);
 		assert.strictEqual(
 			rootPackage.scripts.test,
-			"pnpm run test:root:node && pnpm run test:scripts-node && pnpm run test:go-node && pnpm run test:protocol",
+			"pnpm run test:root:node && pnpm run test:scripts-node && pnpm run test:protocol",
 		);
 		assert.strictEqual(rootPackage.scripts["test:bun"], undefined);
 		assert.strictEqual(
@@ -74,10 +74,7 @@ describe("repository validation chain", () => {
 			"pnpm --filter @dotagents/scripts run typecheck",
 		);
 		assert.strictEqual(rootPackage.scripts["test:go"], undefined);
-		assert.strictEqual(
-			rootPackage.scripts["test:go-node"],
-			"pnpm --filter go-stage-harness run typecheck && pnpm --filter go-stage-harness run test",
-		);
+		assert.strictEqual(rootPackage.scripts["test:go-node"], undefined);
 		assert.strictEqual(
 			rootPackage.scripts["test:protocol"],
 			"pnpm --filter @dotagents/loop-clean-protocol run typecheck && pnpm --filter @dotagents/loop-clean-protocol run test:all",
@@ -183,6 +180,20 @@ describe("repository validation chain", () => {
 			true,
 		);
 		assert.strictEqual(skillContract.includes("pnpm"), false);
+	});
+
+	it("keeps only the go authorization contract in dotagents", () => {
+		const skillRoot = join(repositoryRoot, "skills", "go");
+		assert.deepStrictEqual(readdirSync(skillRoot).sort(), ["SKILL.md"]);
+
+		const skillContract = readFileSync(join(skillRoot, "SKILL.md"), "utf8");
+		assert.strictEqual(skillContract.includes("name: go"), true);
+		assert.strictEqual(
+			skillContract.includes(
+				"[code-implementation.md](../../operational-rules/code-implementation.md)",
+			),
+			true,
+		);
 	});
 
 	it("removes package-local Bun state after scripts parity passes", () => {
