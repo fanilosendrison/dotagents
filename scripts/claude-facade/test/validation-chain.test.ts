@@ -194,6 +194,18 @@ describe("repository validation chain", () => {
 			),
 			true,
 		);
+
+		const parityManifest = readFileSync(
+			join(
+				repositoryRoot,
+				"docs",
+				"migrations",
+				"node-pnpm",
+				"test-parity.json",
+			),
+			"utf8",
+		);
+		assert.strictEqual(parityManifest.includes('"skills/go/'), false);
 	});
 
 	it("removes package-local Bun state after scripts parity passes", () => {
