@@ -435,3 +435,23 @@ Run the production policy validator against the slimmed repository and assert
 that the launcher-only skill's validation-chain test rejects any active parity
 path below its manifest directory. Run the scripts test package and complete CI
 matrix after publication.
+
+## Initial Commit Orchestration Assumes HEAD Exists
+
+**Description:**
+A commit-and-push orchestrator can discover and validate a newly initialized
+repository, then fail before creating its first commit because `HEAD` does not
+yet resolve. A subsequent `git reset HEAD` has the same invalid assumption on an
+unborn branch.
+
+**Verified fix:**
+Represent a proven unborn pre-commit baseline explicitly, and preserve that
+baseline across retries. Before treating an unresolved `HEAD` as unborn, verify
+that symbolic `HEAD` names a branch with no corresponding ref. Reset the index
+with `git reset --mixed`, which supports both existing and unborn branches.
+
+**Regression verification:**
+Use a real-repository publisher test and a compiled-launcher end-to-end test.
+Initialize a repository without commits, stage its first file, publish through
+the production pipeline to a real empty bare remote, and verify one local commit,
+its exact remote SHA, upstream establishment, and a clean worktree.
