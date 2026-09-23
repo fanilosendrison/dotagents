@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "dotagents",
   "sourceCommit": "74d46e8948172bdb2f79d0c7d2ba813c235abb4b",
-  "expectedSurfaceCount": 74,
-  "migratedSurfaceCount": 74,
+  "expectedSurfaceCount": 71,
+  "migratedSurfaceCount": 71,
   "surfaces": [
     {
       "sourceFile": "agent-enforcers/command-validator/src/core/__tests__/runtime-contract.test.ts",
@@ -904,109 +904,6 @@
         "other-expect-matchers",
         "toBe",
         "toEqual",
-        "toThrow"
-      ],
-      "assertionReplacements": {
-        "toBe": "assert.strictEqual",
-        "toEqual": "assert.deepStrictEqual",
-        "toMatchObject": "assert.partialDeepStrictEqual",
-        "toThrow": "assert.throws",
-        "rejects": "assert.rejects"
-      },
-      "parityStatus": "green",
-      "normativeChangeJustification": null
-    },
-    {
-      "sourceFile": "skills/go/tests/stage-harness/acceptance/run-stage.acceptance.test.ts",
-      "targetFile": "skills/go/tests/stage-harness/acceptance/run-stage.acceptance.test.ts",
-      "role": "test",
-      "testCaseNames": [
-        "A1 passing stage writes canonical output",
-        "A2 failing stage preserves stage errors",
-        "A3 skipped stage has no errors",
-        "A4 throwing stage becomes errored output",
-        "A5 invalid draft becomes errored output",
-        "A6 dirty tracked mutation is observable",
-        "A7 reserved root output file is rejected and replaced",
-        "A8 evidence symlink escape is rejected",
-        "A9 artefact directory inside worktree fails preflight",
-        "A10 existing artefact directory fails before stage invocation",
-        "A11 unmerged index makes tracked hash unavailable",
-        "A12 draft status and error coupling violations become errored",
-        "A13 non-Error thrown values become blocking harness errors",
-        "A14 invalid error evidence references are sanitized",
-        "A15 invalid error file and line metadata are sanitized",
-        "A16 reserved stdout and stderr root files are rejected",
-        "A17 missing artefact parent fails before stage invocation",
-        "A18 non-root workDir fails preflight",
-        "A19 invalid baseSha variants fail preflight",
-        "A20 unsupported checkout modes fail preflight",
-        "A21 non-JSON config fails preflight",
-        "A22 tracked hash covers regular file bytes and executable mode",
-        "A23 tracked hash covers symlink targets and deleted tracked files",
-        "A24 tracked type mismatch makes tracked hash unavailable",
-        "A25 submodule pointer affects hash and dirty submodule affects clean flag",
-        "A26 persistence write and rename failures produce no canonical output"
-      ],
-      "tableDrivenDeclarations": 0,
-      "assertionsDetected": [
-        "other-expect-matchers",
-        "rejects",
-        "toBe",
-        "toEqual",
-        "toMatchObject",
-        "toThrow"
-      ],
-      "assertionReplacements": {
-        "toBe": "assert.strictEqual",
-        "toEqual": "assert.deepStrictEqual",
-        "toMatchObject": "assert.partialDeepStrictEqual",
-        "toThrow": "assert.throws",
-        "rejects": "assert.rejects"
-      },
-      "parityStatus": "green",
-      "normativeChangeJustification": null
-    },
-    {
-      "sourceFile": "skills/go/tests/stage-harness/helpers/assert-stage-output.ts",
-      "targetFile": "skills/go/tests/stage-harness/helpers/assert-stage-output.ts",
-      "role": "assertion-helper",
-      "testCaseNames": [],
-      "tableDrivenDeclarations": 0,
-      "assertionsDetected": [
-        "other-expect-matchers",
-        "toBe",
-        "toEqual"
-      ],
-      "assertionReplacements": {
-        "toBe": "assert.strictEqual",
-        "toEqual": "assert.deepStrictEqual",
-        "toMatchObject": "assert.partialDeepStrictEqual",
-        "toThrow": "assert.throws",
-        "rejects": "assert.rejects"
-      },
-      "parityStatus": "green",
-      "normativeChangeJustification": null
-    },
-    {
-      "sourceFile": "skills/go/tests/stage-harness/properties/run-stage.properties.test.ts",
-      "targetFile": "skills/go/tests/stage-harness/properties/run-stage.properties.test.ts",
-      "role": "test",
-      "testCaseNames": [
-        "P1 identical tracked contents produce identical tracked hashes",
-        "P2 untracked and ignored files do not affect tracked hash",
-        "P3 evidence path escapes are always errored",
-        "P4 preflight failures never invoke stage",
-        "P5 output JSON is the canonical return value",
-        "P6 tracked hash changes for tracked content dimensions",
-        "P7 harness errors dominate stage status",
-        "P8 canonical fields are collected independently"
-      ],
-      "tableDrivenDeclarations": 0,
-      "assertionsDetected": [
-        "other-expect-matchers",
-        "rejects",
-        "toBe",
         "toThrow"
       ],
       "assertionReplacements": {

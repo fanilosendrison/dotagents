@@ -4,7 +4,7 @@
   "default": "deny",
   "generatedAt": "2026-08-31T00:00:00Z",
   "testParityManifest": "docs/migrations/node-pnpm/test-parity.json",
-  "expectedGreenSurfaces": 39,
+  "expectedGreenSurfaces": 36,
   "excludedPathRules": [
     ".git/**",
     "node_modules/**",
