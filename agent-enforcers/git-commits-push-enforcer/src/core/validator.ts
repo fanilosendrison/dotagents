@@ -9,7 +9,7 @@
  *
  * Exports:
  *   - detectRawGitMutation(command)      — does the command mutate via raw git?
- *   - recognizeGitCommitsPushCommand(cmd) — classify slash or binary invocation
+ *   - recognizeGitCommitsPushCommand(cmd) — classify a canonical binary invocation
  *   - isGitCommitsPushSkillCommand(cmd)   — is it a recognized skill invocation?
  *   - detectCommitIntent(command)         — combined detection with classification
  *   - evaluateEnforcement(input)         — full enforcement decision (action + telemetry hint)
@@ -25,15 +25,14 @@ import {
 	splitShellSegments,
 	tokenizeShellSegment,
 } from "./shell-parser.ts";
+import { hasOnlyStaticShellArguments } from "./static-shell-arguments.ts";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════════════════════
 
 export type CommitIntentDetection = "git-commit" | "git-commits-push";
-export type GitCommitsPushCommandRecognition =
-	| "skill-invocation"
-	| "binary-launch";
+export type GitCommitsPushCommandRecognition = "binary-launch";
 export type { RawGitMutation };
 
 export interface EnforcementInput {
@@ -95,21 +94,24 @@ export {
 // Public API — primary exports
 // ═══════════════════════════════════════════════════════════════════════════
 
+const CANONICAL_BINARY_LAUNCH = '"$HOME/.local/bin/git-commits-push"';
+
 /**
- * Classify a complete git-commits-push invocation.
+ * Classify a complete canonical git-commits-push binary invocation.
  *
- * The harness launch is one exact executable token. Rejecting wrappers,
- * arguments and additional shell segments prevents a valid prefix from
- * masking a raw Git mutation appended to the same tool call.
+ * The stable executable may receive static CLI arguments. Shell wrappers,
+ * operators, expansion, substitution, globbing, and redirection fail closed;
+ * git-commits-push remains the sole authority for argument semantics.
  */
 export function recognizeGitCommitsPushCommand(
 	command: string,
 ): GitCommitsPushCommandRecognition | null {
-	const segments = splitShellSegments(command);
-	if (segments.length !== 1) return null;
-	const tokens = tokenizeShellSegment(segments[0] ?? "");
-	if (isSafeSlashSkillInvocation(tokens)) return "skill-invocation";
-	return isSafeBinaryInvocation(tokens) ? "binary-launch" : null;
+	const trimmedCommand = command.trim();
+	if (!trimmedCommand.startsWith(CANONICAL_BINARY_LAUNCH)) return null;
+
+	const argumentText = trimmedCommand.slice(CANONICAL_BINARY_LAUNCH.length);
+	if (argumentText.length > 0 && !/^\s/u.test(argumentText)) return null;
+	return hasOnlyStaticShellArguments(argumentText) ? "binary-launch" : null;
 }
 
 /** True when the command is a recognized git-commits-push invocation. */
@@ -124,7 +126,12 @@ export function isGitCommitsPushSkillCommand(command: string): boolean {
 export function detectCommitIntent(
 	command: string,
 ): CommitIntentDetection | null {
-	if (isGitCommitsPushSkillCommand(command)) return "git-commits-push";
+	if (
+		isGitCommitsPushSkillCommand(command) ||
+		isGitCommitsPushShellInvocationIntent(command)
+	) {
+		return "git-commits-push";
+	}
 	if (detectRawGitMutation(command)) return "git-commit";
 	return null;
 }
@@ -167,6 +174,31 @@ export function evaluateEnforcement(
 		};
 	}
 
+	const mutation = detectRawGitMutation(command);
+
+	// A canonical installed binary invocation is logged and allowed.
+	if (recognizeGitCommitsPushCommand(command) === "binary-launch") {
+		return {
+			action: "allow",
+			detectedBy: "git-commits-push",
+			mutation,
+			eventType: "enforcer_triggered",
+		};
+	}
+
+	if (isGitCommitsPushShellInvocationIntent(command)) {
+		return {
+			action: "block",
+			deniedReason: [
+				"Invalid git-commits-push shell launch.",
+				`Run ${CANONICAL_BINARY_LAUNCH} with static arguments instead.`,
+			].join("\n"),
+			detectedBy: "git-commits-push",
+			mutation,
+			eventType: "blocked",
+		};
+	}
+
 	// Not a commit-related command — skip.
 	const detectedBy = detectCommitIntent(command);
 	if (!detectedBy) {
@@ -176,18 +208,6 @@ export function evaluateEnforcement(
 			mutation: null,
 			eventType: "skipped",
 			skipReason: "not-commit-intent",
-		};
-	}
-
-	const mutation = detectRawGitMutation(command);
-
-	// Skill invocation — log and allow.
-	if (detectedBy === "git-commits-push") {
-		return {
-			action: "allow",
-			detectedBy,
-			mutation,
-			eventType: "enforcer_triggered",
 		};
 	}
 
@@ -237,21 +257,16 @@ export function buildDirectGitDeniedReason(command: string): string {
 // Helpers
 // ═══════════════════════════════════════════════════════════════════════════
 
-function isSafeBinaryInvocation(tokens: readonly string[]): boolean {
-	if (tokens.length !== 1) return false;
-	const executable = tokens[0] ?? "";
+function isGitCommitsPushShellInvocationIntent(command: string): boolean {
+	const firstSegment = splitShellSegments(command)[0];
+	if (firstSegment === undefined) return false;
+	const executable = tokenizeShellSegment(firstSegment)[0] ?? "";
 	return (
+		executable === "/git-commits-push" ||
 		executable === "git-commits-push" ||
-		/^(?:\$HOME|~|\/Users\/[A-Za-z0-9_][A-Za-z0-9._-]*)\/\.local\/bin\/git-commits-push$/.test(
-			executable,
-		)
-	);
-}
-
-function isSafeSlashSkillInvocation(tokens: readonly string[]): boolean {
-	return (
-		tokens[0] === "/git-commits-push" &&
-		tokens.slice(1).every((token) => /^[A-Za-z0-9._=/-]+$/.test(token))
+		executable === "$HOME/.local/bin/git-commits-push" ||
+		executable === "~/.local/bin/git-commits-push" ||
+		executable.endsWith("/.local/bin/git-commits-push")
 	);
 }
 
