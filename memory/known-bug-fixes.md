@@ -455,3 +455,27 @@ Use a real-repository publisher test and a compiled-launcher end-to-end test.
 Initialize a repository without commits, stage its first file, publish through
 the production pipeline to a real empty bare remote, and verify one local commit,
 its exact remote SHA, upstream establishment, and a clean worktree.
+
+## Shell Enforcer Confuses Skill References with Executable Launches
+
+**Description:**
+A harness enforcer can recognize a slash-form skill reference with arguments as
+a valid Bash launch while rejecting the installed executable whenever arguments
+are present. Agent-level tool interception allows the slash text unchanged; it
+does not translate it into a skill invocation, so the shell fails with `ENOENT`.
+The valid binary launch is treated as unrelated, which also bypasses launch
+telemetry, parent-session propagation, and external-timeout removal.
+
+**Verified fix:**
+Recognize only the canonical quoted installed executable followed by optional
+static shell arguments. Keep CLI argument semantics in the invoked runtime.
+Reject wrappers, operators, redirection, backgrounding, expansion, substitution,
+and globbing. Detect slash-form Bash input separately and block it with an
+actionable canonical-executable diagnostic.
+
+**Regression verification:**
+Cover global and targeted binary launches, quoted paths with spaces, slash-form
+blocking, and hostile shell syntax in the shared core. Exercise the real Pi tool
+handler for telemetry and parent-session propagation, verify timeout removal,
+and run an isolated `HOME` shell-boundary probe whose harmless canonical
+executable records the exact targeted argv.
