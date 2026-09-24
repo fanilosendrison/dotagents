@@ -479,3 +479,59 @@ blocking, and hostile shell syntax in the shared core. Exercise the real Pi tool
 handler for telemetry and parent-session propagation, verify timeout removal,
 and run an isolated `HOME` shell-boundary probe whose harmless canonical
 executable records the exact targeted argv.
+
+## Private Cross-Repository Checkout Lacks an Explicit Credential
+
+**Description:**
+A workflow that pins an exact revision of a different private repository through
+`actions/checkout` fails before any build or test step. The implicit
+`github.token` is scoped to the workflow's own repository, so the secondary
+checkout reports `repository not found`. Every matrix job fails identically, and
+the failure is easy to misread as a broken pinned revision rather than a missing
+credential. Storing a personal access token instead would add a long-lived
+secret to the consuming repository.
+
+**Verified fix:**
+Publish a credential-free composite action inside the private platform
+repository whose only responsibility is to expose its own downloaded checkout
+path as a step output. Allow other private repositories of the same owner to
+consume private actions, then reference that action by full 40-character commit
+SHA. The runner's ephemeral token authenticates the download, so the consumer
+needs no second `actions/checkout`, no long-lived secret, and no personal access
+token. Drive every dependent step from the emitted path instead of a checked-out
+local directory.
+
+**Regression verification:**
+A static workflow oracle asserts the full-SHA action reference, the platform-root
+output wiring, the absence of any cross-repository `repository:` checkout, and
+the absence of any token or secret reference. A unit test executes the composite
+action's locator script under a real `GITHUB_OUTPUT` file and asserts the exact
+emitted path. End-to-end proof requires the real OS/Node matrix to reach and pass
+the consumer's own typecheck and test commands; a green run confirms the private
+action download, the guest token, and the gateway symlinks together.
+
+## Tracked Absolute Symlink Target Makes a Repository Unconsumable
+
+**Description:**
+A repository that tracks a symbolic link whose target is an absolute path in a
+different user's home directory cannot be materialized by consumers. GitHub's
+private-action downloader, which must create every tracked entry, aborts with
+`Could not find file '<staging>/<repo>-<sha>/<link path>'` and fails the whole
+job during setup. The committed tree looks valid on the author's machine because
+the absolute target happens to exist there, so the defect surfaces only for
+consumers, and it blocks every use of the repository as a dependency, action, or
+package source.
+
+**Verified fix:**
+Remove the tracked absolute symlink. The directory it pointed at already existed
+at the link's own location, and no repository file referenced the link, so the
+removal changed no behavior. Any tracked symlink whose target escapes the
+repository is either removable or must become a relative link that resolves
+inside the checkout.
+
+**Regression verification:**
+Enumerate tracked symlink entries with `git ls-files --stage` and assert that no
+entry with mode `120000` has an absolute target, skipping paths currently deleted
+in the worktree so that a pending removal does not mask the check. The test
+must fail against the offending commit and pass after removal, and the real
+consumer workflow must complete its download step.
