@@ -1,0 +1,14 @@
+name: Dotagents platform
+description: Exposes this immutable action revision as the dotagents platform root.
+
+outputs:
+  platform-root:
+    description: Absolute path to the downloaded dotagents repository root.
+    value: ${{ steps.locate.outputs.platform-root }}
+
+runs:
+  using: composite
+  steps:
+    - id: locate
+      shell: bash
+      run: '"$GITHUB_ACTION_PATH/locate-platform-root.sh"'
