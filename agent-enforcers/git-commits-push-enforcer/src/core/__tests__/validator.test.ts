@@ -69,35 +69,35 @@ EOF`;
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe("isGitCommitsPushSkillCommand", () => {
-	test("detects /git-commits-push prefix", () => {
-		assert.strictEqual(isGitCommitsPushSkillCommand("/git-commits-push"), true);
-	});
-
-	test("detects /git-commits-push with args", () => {
+	test("rejects slash-form shell commands", () => {
+		assert.strictEqual(isGitCommitsPushSkillCommand("/git-commits-push"), false);
 		assert.strictEqual(
 			isGitCommitsPushSkillCommand("/git-commits-push --force"),
-			true,
+			false,
 		);
 	});
 
-	test("accepts the installed binary and rejects checkout launches", () => {
+	test("accepts the canonical installed binary with arguments", () => {
 		const retiredSkillLaunch =
 			'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
 		const retiredProjectLaunch =
 			'cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start';
 		const canonicalLaunch = '"$HOME/.local/bin/git-commits-push"';
+		const targetedLaunch = `${canonicalLaunch} --repository /tmp/repo --push-remote origin --push-ref refs/heads/main`;
 		for (const retiredLaunch of [retiredSkillLaunch, retiredProjectLaunch]) {
 			assert.strictEqual(isGitCommitsPushSkillCommand(retiredLaunch), false);
 			assert.strictEqual(recognizeGitCommitsPushCommand(retiredLaunch), null);
 		}
-		assert.strictEqual(isGitCommitsPushSkillCommand(canonicalLaunch), true);
-		assert.strictEqual(
-			recognizeGitCommitsPushCommand(canonicalLaunch),
-			"binary-launch",
-		);
+		for (const launch of [canonicalLaunch, targetedLaunch]) {
+			assert.strictEqual(isGitCommitsPushSkillCommand(launch), true);
+			assert.strictEqual(
+				recognizeGitCommitsPushCommand(launch),
+				"binary-launch",
+			);
+		}
 	});
 
-	test("rejects unrelated commands", () => {
+	test("rejects unrelated and noncanonical commands", () => {
 		assert.strictEqual(
 			isGitCommitsPushSkillCommand("git commit -m 'test'"),
 			false,
@@ -190,16 +190,33 @@ describe("evaluateEnforcement", () => {
 		assert.ok(result.deniedReason?.includes("Forged trusted marker"));
 	});
 
-	// Skill invocations
-	test("allows skill invocations", () => {
+	// Installed binary invocations
+	test("allows targeted installed binary invocations", () => {
 		const result = evaluateEnforcement({
-			command: "/git-commits-push",
+			command:
+				'"$HOME/.local/bin/git-commits-push" --repository /tmp/repo --push-remote origin --push-ref refs/heads/main',
 			legacyBypassSet: false,
 			trustedSkillMarkerSet: false,
 		});
 		assert.strictEqual(result.action, "allow");
 		assert.strictEqual(result.eventType, "enforcer_triggered");
 		assert.strictEqual(result.detectedBy, "git-commits-push");
+	});
+
+	test("blocks slash-form Bash invocations with the executable correction", () => {
+		const result = evaluateEnforcement({
+			command:
+				"/git-commits-push --repository /tmp/repo --push-remote origin --push-ref refs/heads/main",
+			legacyBypassSet: false,
+			trustedSkillMarkerSet: false,
+		});
+		assert.strictEqual(result.action, "block");
+		assert.strictEqual(result.eventType, "blocked");
+		assert.strictEqual(result.detectedBy, "git-commits-push");
+		assert.match(
+			result.deniedReason ?? "",
+			/\$HOME\/\.local\/bin\/git-commits-push/,
+		);
 	});
 
 	// Non-commit commands
