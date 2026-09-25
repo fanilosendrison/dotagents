@@ -5,12 +5,12 @@
 
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { extractBashPaths, isGitOnlyCommand, unwrapCommand } from "./bash-parser.ts";
+import { extractBashWriteTargets, isGitOnlyCommand, unwrapCommand } from "./bash-parser.ts";
 import { resolveReal } from "./helpers.ts";
 import { recognizeGitCommitsPushCommand } from "../../../git-commits-push-enforcer/src/core/validator.ts";
 
 export * from "./helpers.ts";
-export { extractBashPaths } from "./bash-parser.ts";
+export { extractBashPaths, extractBashWriteTargets } from "./bash-parser.ts";
 
 const PROJECTS = join(homedir(), "Developper", "Projects");
 
@@ -90,7 +90,14 @@ function isSanctionedGitCommitsPushLaunch(command: string): boolean {
 }
 
 /**
- * Check whether a bash command writes to any blocked dot* path.
+ * Check whether a bash command writes to any blocked dot* path through a
+ * mechanically proven write surface.
+ *
+ * Ordinary path arguments are deliberately not inspected: their read/write
+ * semantics are not established by the guard, so they must remain
+ * byte-for-byte unchanged. Only output redirections and explicitly governed
+ * write commands contribute targets.
+ *
  * Returns the first blocked result, or { allowed: true }.
  */
 export function checkBashCommand(command: string): PathGuardResult {
@@ -104,16 +111,21 @@ export function checkBashCommand(command: string): PathGuardResult {
     return { allowed: true };
   }
 
-  const paths = extractBashPaths(command);
-  for (const p of paths) {
-    const result = checkPath(p);
+  const targets = extractBashWriteTargets(command);
+  for (const target of targets) {
+    const result = checkPath(target);
     if (!result.allowed) return result;
   }
   return { allowed: true };
 }
 
 /**
- * Rewrite blocked paths in a bash command to their gateway paths.
+ * Rewrite governed write destinations in a bash command to their gateway
+ * paths.
+ *
+ * Only mechanically proven write targets are substituted. Ordinary path
+ * arguments, including relative paths and Git relative pathspecs, are left
+ * byte-for-byte unchanged.
  */
 export function rewriteBashCommand(command: string): { rewritten: boolean; newCommand: string; logMessage?: string } {
   // A canonical git-commits-push launch is sanctioned and owns its arguments.
@@ -125,15 +137,15 @@ export function rewriteBashCommand(command: string): { rewritten: boolean; newCo
     return { rewritten: false, newCommand: command };
   }
 
-  const paths = extractBashPaths(command).sort((a, b) => b.length - a.length);
+  const targets = extractBashWriteTargets(command).sort((a, b) => b.length - a.length);
   let newCommand = command;
   let rewritten = false;
   const logs: string[] = [];
 
-  for (const p of paths) {
-    const result = checkPath(p);
+  for (const target of targets) {
+    const result = checkPath(target);
     if (!result.allowed && result.rewrittenPath) {
-      newCommand = newCommand.split(p).join(result.rewrittenPath);
+      newCommand = newCommand.split(target).join(result.rewrittenPath);
       logs.push(`[Path-Guard] 🔄 Silent redirection to ${result.gateway}`);
       rewritten = true;
     }
