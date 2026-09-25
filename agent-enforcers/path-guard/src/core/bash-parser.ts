@@ -140,6 +140,11 @@ function normalizePathCandidate(token: string): string | null {
  *
  * Looks for absolute paths, ~/ paths, and targets of > / >> redirects.
  * Returns deduplicated list of paths to check.
+ *
+ * This is the "every path-like token" abstraction and is kept for
+ * non-enforcement consumers such as telemetry. Enforcement must use
+ * `extractBashWriteTargets()` instead: a path reference alone is not write
+ * evidence, and the two sets must not be conflated.
  */
 export function extractBashPaths(command: string): string[] {
   const paths = new Set<string>();
@@ -187,6 +192,71 @@ export function extractBashPaths(command: string): string[] {
   }
 
   return [...paths];
+}
+
+/**
+ * Output-redirection operators whose operand is a mechanically certain write
+ * destination.
+ *
+ * The set is the one the guard already governed before this boundary:
+ * `>`, `>>`, `1>`, `1>>`, `2>`, `2>>`, `&>`, `&>>`, in attached (`>path`) and
+ * detached (`> path`) form. Input redirections (`<`, `<<`, `<<<`) are absent
+ * on purpose: their operand is read, not written.
+ */
+const ATTACHED_OUTPUT_REDIRECT = /^(?:1>>|1>|2>>|2>|&>>|&>|>>|>(?!\|))(.+)$/;
+const DETACHED_OUTPUT_REDIRECT = /^(?:1>>|1>|2>>|2>|&>>|&>|>>|>)$/;
+
+/**
+ * Extract the destinations of mechanically proven Bash write surfaces.
+ *
+ * Only explicit output redirections and explicitly governed write commands
+ * (`tee`) contribute targets. Ordinary path-like arguments and input
+ * redirections never contribute: their read/write semantics are not
+ * established by the guard, so they must remain byte-for-byte unchanged.
+ *
+ * The returned targets keep the same path-like filter the guard applied
+ * before this boundary, so a bare word is not resolved against the guard's
+ * working directory.
+ */
+export function extractBashWriteTargets(command: string): string[] {
+  const targets = new Set<string>();
+
+  // Unwrap command wrappers (env -i, bash -c, etc.) before extracting targets.
+  const unwrapped = unwrapCommand(command);
+  const tokens = tokenizeCommand(unwrapped);
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (!token) continue;
+
+    if (DETACHED_OUTPUT_REDIRECT.test(token)) {
+      const next = tokens[i + 1];
+      if (next) {
+        const target = normalizePathCandidate(next);
+        if (target) targets.add(target);
+      }
+      continue;
+    }
+
+    const attached = token.match(ATTACHED_OUTPUT_REDIRECT);
+    if (attached) {
+      const target = normalizePathCandidate(attached[1]);
+      if (target) targets.add(target);
+      continue;
+    }
+
+    if (token === "tee") {
+      for (let j = i + 1; j < tokens.length; j++) {
+        const candidate = tokens[j];
+        if (candidate === "|" || candidate === "&&" || candidate === ";") break;
+        if (candidate.startsWith("-")) continue;
+        const target = normalizePathCandidate(candidate);
+        if (target) targets.add(target);
+      }
+    }
+  }
+
+  return [...targets];
 }
 
 /**
