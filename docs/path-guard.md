@@ -1,6 +1,8 @@
 # Path Guard
 
-Prevents writing directly to `~/Developper/Projects/dot*` repos. All writes must go through the **symlink gateway** `~/.<name>/`.
+Prevents writing directly to `~/Developper/Projects/dot*` repos through the **write surfaces it governs**. Governed writes must go through the **symlink gateway** `~/.<name>/`.
+
+The guard is **not** a general filesystem/process isolation boundary. It governs Write/Edit tool calls and the Bash write destinations whose operand is mechanically established by shell syntax or by an explicitly governed command. Ordinary path arguments are preserved, and mutations performed internally by an arbitrary launched process are outside its guarantee (see §3, Enforcement boundary).
 
 ## 1. Wiring — 2 interception points
 
@@ -28,7 +30,8 @@ pi.on("tool_call", async (event) => {
 pi.on("tool_call", async (event) => {
     if (!isToolCallEventType("bash", event)) return;
     // → sanctioned git-commits-push launches pass through untouched
-    // → otherwise extracts paths, rewrites them, prepends a stderr warning
+    // → otherwise extracts governed write targets, rewrites them, prepends a
+    //   stderr warning only when a substitution actually happens
 });
 ```
 
@@ -64,18 +67,29 @@ function resolveReal(givenPath: string): string | null
 - For existing files : `realpathSync()` resolves symlinks
 - For new files : walks up ancestors until it finds an existing one, then `realpathSync` on the ancestor
 
-### Path extraction from bash commands
+### Governed Bash write targets
 
 ```typescript
-function extractBashPaths(command: string): string[]
+function extractBashWriteTargets(command: string): string[]
 ```
 
 1. **Unwraps** command wrappers : `env -i`, `sudo`, `nohup`, `bash -c '...'`
-2. **Tokenizes** shell quotes and escapes before extracting path-like tokens
-3. Extracts :
-   - **Redirect targets** : `> path`, `>> path`, `2> path`
+2. **Tokenizes** shell quotes and escapes before extracting tokens
+3. Extracts only mechanically established write destinations :
+   - **Output redirect targets** : `> path`, `>> path`, `1> path`, `2> path`,
+     `2>> path`, `&> path`, `&>> path`, attached (`>path`) or detached (`> path`)
    - **Tee targets** : `tee -a path`
-   - **Path-like tokens** : `/...`, `~/...`, `relative/with/slash`
+4. Never extracts :
+   - ordinary path-like arguments (`ls relative/path`, `git diff -- path`, an
+     argument of an arbitrary program)
+   - input redirection operands (`< path`, `<< word`) — their operand is read
+   - bare words (`> out.txt`), which are not resolved against the guard working
+     directory
+
+The older `extractBashPaths()` helper remains as the non-enforcement "every
+path-like token" abstraction used by telemetry consumers (for example the Pi
+extension's `path-guard` event attribution). Enforcement must not use it :
+"all paths" and "governed write targets" are separate concepts.
 
 ### Command wrapper unwrapping
 
@@ -105,9 +119,9 @@ Each segment (separated by `&&` or `;`) must be either `git ...`, `cd ...`,
 
 ### Sanctioned git-commits-push launches
 
-The Bash guard governs the direct accesses it protects. It is **not** an
-argument-semantics analyzer : `extractBashPaths()` is syntactic and cannot know
-what an arbitrary program means by the paths it receives.
+The Bash guard governs the write surfaces it protects. It is **not** an
+argument-semantics analyzer : its extraction is syntactic and cannot know what
+an arbitrary program means by the paths it receives.
 
 A canonical installed-binary launch is therefore left **strictly untouched** :
 
@@ -132,6 +146,33 @@ as before.
 The guard owns no `git-commits-push` argument grammar and interprets none of its
 arguments.
 
+### Enforcement boundary (normative)
+
+```text
+Known governed write destination
+  Write / Edit tool path, output redirection target, `tee` target
+  → protected
+
+Ordinary or unknown path argument
+  Read-only argument, Git relative pathspec, argument of an arbitrary program
+  → preserved byte-for-byte
+
+Mutation performed internally by a launched process, or a write whose
+  destination cannot be established mechanically
+  → outside the path guard guarantee
+```
+
+A path that merely appears in a Bash command is **not** write evidence. The
+guard rewrites the operand of an output redirection or a `tee`, and it rewrites
+`Write` / `Edit` tool paths; it does not guess how `cp`, `rm`, `rsync`, `python`,
+`node`, or any other program treats its own operands. There is no command
+registry and no general read/write argument analyzer.
+
+Preventing every process-level write to a protected repository is a stronger
+requirement than a Bash path parser can provide. That guarantee belongs to a
+filesystem/process isolation layer, not to this guard. This limit is the
+accepted normative boundary, not a defect to repair inside the parser.
+
 ## 4. Behavior by runtime
 
 ### Pi (Extension) — Rewrite mode
@@ -141,17 +182,21 @@ arguments.
 | **Write** `file_path = "~/Developper/Projects/dotpi/agent/foo.ts"` | 🔄 **Rewritten** to `~/.pi/agent/foo.ts` (silent) |
 | **Edit** `path = "~/Developper/Projects/dotagents/AGENTS.md"` | 🔄 **Rewritten** to `~/.agents/AGENTS.md` |
 | **Bash** `echo "test" > ~/Developper/Projects/dotagents/README.md` | 🔄 **Rewritten** + prepends `echo -e "\033[33m[Path-Guard] 🔄 Redirection...\033[0m" >&2 && ...` |
+| **Bash** `cat ~/Developper/Projects/dotagents/AGENTS.md` | ✅ Passes unchanged — read-only argument, not write evidence |
+| **Bash** `ls relative/path` (cwd in a physical `dot*` worktree) | ✅ Passes unchanged — relative read argument preserved byte-for-byte |
 | **Bash** `cd ~/Developper/Projects/dotpi && git diff` | ✅ Passes — git-only command |
-| **Bash** `cd ~/Developper/Projects/dotagents && bun run test` | 🔄 **Rewritten** to `cd ~/.agents && bun run test` |
+| **Bash** `cd ~/Developper/Projects/dotagents && bun run test` | ✅ Passes unchanged — `cd` is an ordinary path argument, not a governed write destination |
+| **Bash** `some-program ~/Developper/Projects/dotagents/path` | ✅ Passes unchanged — unknown argument semantics; outside the guarantee |
 | **Bash** `"$HOME/.local/bin/git-commits-push" --repository "~/Developper/Projects/dotagents" ...` | ✅ Passes — sanctioned canonical launch, arguments untouched |
-| **Bash** `"$HOME/.local/bin/git-commits-push" ... > ~/Developper/Projects/dotagents/out.txt` | 🔄 **Rewritten** — the recognizer refuses this form, so the direct write stays protected |
+| **Bash** `"$HOME/.local/bin/git-commits-push" ... > ~/Developper/Projects/dotagents/out.txt` | 🔄 **Rewritten** — the recognizer refuses this form, so the redirect write stays protected; the `--repository` argument itself is preserved |
 
 ### Codex (Pre-tool-use) — Deny mode
 
 | Tool | Given command/path | Behavior |
 | ---- | ------------------ | -------- |
 | **Write** direct `dot*` path | ❌ Deny + message "Use `~/.<name>/` instead" |
-| **Bash** writing to `dot*` path | ❌ Deny + rewritten command hint |
+| **Bash** redirect/tool write to a `dot*` path | ❌ Deny + rewritten command hint |
+| **Bash** read-only or unknown path argument | ✅ Allowed by path-guard; argument unchanged |
 | **Bash** `cd` + `git` only | ✅ Allowed by path-guard; raw commit/push may still be blocked by git enforcer |
 | **Bash** canonical `git-commits-push` launch | ✅ Allowed by path-guard; arguments are not inspected or rewritten |
 
@@ -162,17 +207,19 @@ path-guard/
 └── src/
     └── core/
         ├── path-guard.ts              ← checkPath, checkBashCommand, rewriteBashCommand
-        ├── bash-parser.ts             ← unwrapCommand, extractBashPaths, isGitOnlyCommand
+        ├── bash-parser.ts             ← unwrapCommand, extractBashPaths (all paths), extractBashWriteTargets (enforcement), isGitOnlyCommand
         ├── helpers.ts                 ← resolveReal, targetsDotRepo, extractRepo
         └── __tests__/
             ├── path-guard.test.ts
+            ├── path-guard-relative-boundary.test.ts
             └── git-commits-push-shell-boundary.test.ts
 ```
 
 ## 6. Agent mitigation (when blocked)
 
-1. **Pi :** you are never blocked — paths are silently rewritten. A yellow `[Path-Guard]` message appears in stderr to inform you
+1. **Pi :** you are never blocked — a governed write destination is silently rewritten. A yellow `[Path-Guard]` message appears in stderr to inform you. Ordinary read-only arguments are not rewritten.
 2. **Codex :** the block is final. You must :
-   - Replace the physical path with the gateway : `~/.agents/` instead of `~/Developper/Projects/dotagents/`
+   - Replace the physical write destination with the gateway : `~/.agents/` instead of `~/Developper/Projects/dotagents/`
    - If you need to commit or push, use `/git-commits-push`; do not run raw `git commit` or `git push`
-3. **Do not** try wrappers (`env`, `bash -c`, `sudo`) to bypass — they are automatically unwrapped
+3. **Do not** try wrappers (`env`, `bash -c`, `sudo`) to bypass a governed write — they are automatically unwrapped
+4. A write performed internally by a program you launch (`cp`, `rm`, `rsync`, a script, ...) is **not** governed by the Bash parser. Route those writes through the gateway yourself; the guard cannot enforce them for you.
