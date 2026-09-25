@@ -27,7 +27,8 @@ pi.on("tool_call", async (event) => {
 // 3. Bash — rewrites the command
 pi.on("tool_call", async (event) => {
     if (!isToolCallEventType("bash", event)) return;
-    // → extracts paths, rewrites them, prepends a stderr warning
+    // → sanctioned git-commits-push launches pass through untouched
+    // → otherwise extracts paths, rewrites them, prepends a stderr warning
 });
 ```
 
@@ -102,6 +103,35 @@ Each segment (separated by `&&` or `;`) must be either `git ...`, `cd ...`,
 `echo ...` with no redirect, or `true`/`false`/`exit`. Raw `git commit` and
 `git push` are still handled by `git-commits-push-enforcer`.
 
+### Sanctioned git-commits-push launches
+
+The Bash guard governs the direct accesses it protects. It is **not** an
+argument-semantics analyzer : `extractBashPaths()` is syntactic and cannot know
+what an arbitrary program means by the paths it receives.
+
+A canonical installed-binary launch is therefore left **strictly untouched** :
+
+```typescript
+import { recognizeGitCommitsPushCommand } from "~/.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator.ts";
+
+function isSanctionedGitCommitsPushLaunch(command: string): boolean {
+  return recognizeGitCommitsPushCommand(command) === "binary-launch";
+}
+```
+
+`checkBashCommand()` returns `allowed` and `rewriteBashCommand()` returns the
+command byte-identical for those launches, before any path extraction.
+
+`recognizeGitCommitsPushCommand()` is the **only** authority for this decision.
+It already fails closed on shell wrappers, `&&`/`;` chains, pipelines,
+redirections, backgrounding, command substitution, backticks, process
+substitution, non-canonical executable forms, and dynamic arguments. Commands it
+refuses receive **no** exemption, so their direct writes stay protected exactly
+as before.
+
+The guard owns no `git-commits-push` argument grammar and interprets none of its
+arguments.
+
 ## 4. Behavior by runtime
 
 ### Pi (Extension) — Rewrite mode
@@ -113,6 +143,8 @@ Each segment (separated by `&&` or `;`) must be either `git ...`, `cd ...`,
 | **Bash** `echo "test" > ~/Developper/Projects/dotagents/README.md` | 🔄 **Rewritten** + prepends `echo -e "\033[33m[Path-Guard] 🔄 Redirection...\033[0m" >&2 && ...` |
 | **Bash** `cd ~/Developper/Projects/dotpi && git diff` | ✅ Passes — git-only command |
 | **Bash** `cd ~/Developper/Projects/dotagents && bun run test` | 🔄 **Rewritten** to `cd ~/.agents && bun run test` |
+| **Bash** `"$HOME/.local/bin/git-commits-push" --repository "~/Developper/Projects/dotagents" ...` | ✅ Passes — sanctioned canonical launch, arguments untouched |
+| **Bash** `"$HOME/.local/bin/git-commits-push" ... > ~/Developper/Projects/dotagents/out.txt` | 🔄 **Rewritten** — the recognizer refuses this form, so the direct write stays protected |
 
 ### Codex (Pre-tool-use) — Deny mode
 
@@ -121,6 +153,7 @@ Each segment (separated by `&&` or `;`) must be either `git ...`, `cd ...`,
 | **Write** direct `dot*` path | ❌ Deny + message "Use `~/.<name>/` instead" |
 | **Bash** writing to `dot*` path | ❌ Deny + rewritten command hint |
 | **Bash** `cd` + `git` only | ✅ Allowed by path-guard; raw commit/push may still be blocked by git enforcer |
+| **Bash** canonical `git-commits-push` launch | ✅ Allowed by path-guard; arguments are not inspected or rewritten |
 
 ## 5. File tree
 
@@ -128,8 +161,12 @@ Each segment (separated by `&&` or `;`) must be either `git ...`, `cd ...`,
 path-guard/
 └── src/
     └── core/
-        ├── path-guard.ts              ← checkPath, checkBashCommand, rewriteBashCommand, extractBashPaths
-        └── __tests__/path-guard.test.ts
+        ├── path-guard.ts              ← checkPath, checkBashCommand, rewriteBashCommand
+        ├── bash-parser.ts             ← unwrapCommand, extractBashPaths, isGitOnlyCommand
+        ├── helpers.ts                 ← resolveReal, targetsDotRepo, extractRepo
+        └── __tests__/
+            ├── path-guard.test.ts
+            └── git-commits-push-shell-boundary.test.ts
 ```
 
 ## 6. Agent mitigation (when blocked)
