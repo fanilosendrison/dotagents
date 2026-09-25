@@ -136,6 +136,25 @@ function normalizePathCandidate(token: string): string | null {
 }
 
 /**
+ * Collect the path-like write targets following a `tee` invocation.
+ *
+ * `tee` is an explicitly governed write surface, so its non-option operands
+ * are destinations until the next command separator. Both path extraction
+ * modes share this rule so the governed surface has one definition.
+ */
+function collectTeeWriteTargets(tokens: string[], teeIndex: number): string[] {
+  const targets: string[] = [];
+  for (let j = teeIndex + 1; j < tokens.length; j++) {
+    const candidate = tokens[j];
+    if (candidate === "|" || candidate === "&&" || candidate === ";") break;
+    if (candidate.startsWith("-")) continue;
+    const target = normalizePathCandidate(candidate);
+    if (target) targets.push(target);
+  }
+  return targets;
+}
+
+/**
  * Extract candidate file paths from a bash command string.
  *
  * Looks for absolute paths, ~/ paths, and targets of > / >> redirects.
@@ -175,13 +194,7 @@ export function extractBashPaths(command: string): string[] {
     }
 
     if (token === "tee") {
-      for (let j = i + 1; j < tokens.length; j++) {
-        const candidate = tokens[j];
-        if (candidate === "|" || candidate === "&&" || candidate === ";") break;
-        if (candidate.startsWith("-")) continue;
-        const path = normalizePathCandidate(candidate);
-        if (path) paths.add(path);
-      }
+      for (const path of collectTeeWriteTargets(tokens, i)) paths.add(path);
       continue;
     }
 
@@ -246,13 +259,7 @@ export function extractBashWriteTargets(command: string): string[] {
     }
 
     if (token === "tee") {
-      for (let j = i + 1; j < tokens.length; j++) {
-        const candidate = tokens[j];
-        if (candidate === "|" || candidate === "&&" || candidate === ";") break;
-        if (candidate.startsWith("-")) continue;
-        const target = normalizePathCandidate(candidate);
-        if (target) targets.add(target);
-      }
+      for (const target of collectTeeWriteTargets(tokens, i)) targets.add(target);
     }
   }
 
