@@ -109,12 +109,74 @@ After publication:
 
 1. Prove that the exact task `HEAD` is retained by the authoritative published
    destination.
-2. Require the task worktree to contain no tracked modifications, untracked
+2. Complete any repository-required validation that applies to the exact
+   published state.
+3. Apply the post-publication persistent-checkout reconciliation rule below.
+4. Require the task worktree to contain no tracked modifications, untracked
    non-ignored files, or active Git operation.
-3. Remove only that successfully published task worktree and prune its stale Git
+5. Remove only that successfully published task worktree and prune its stale Git
    worktree metadata.
-4. Preserve failed, interrupted, conflicted, or unpublished task worktrees for
+6. Preserve failed, interrupted, conflicted, or unpublished task worktrees for
    inspection. Never delete them automatically.
+
+#### Post-publication persistent-checkout reconciliation
+
+The user's persistent checkout is protected from task writes while the task is in
+progress, but a safely fast-forwardable persistent checkout MUST NOT be
+intentionally left stale after successful publication.
+
+Apply reconciliation after required validation of the exact published state and
+before successful task-worktree cleanup.
+
+First refresh the repository's authoritative remote-tracking target and capture
+its exact object identity:
+
+```bash
+git -C <PERSISTENT_CHECKOUT> fetch <REMOTE>
+TARGET_OID="$(git -C <PERSISTENT_CHECKOUT> rev-parse <REMOTE_TARGET_REF>)"
+LOCAL_OID="$(git -C <PERSISTENT_CHECKOUT> rev-parse HEAD)"
+```
+
+Synchronize the persistent checkout if and only if all of these conditions hold:
+
+1. the repository-specific expected target branch is currently checked out;
+2. the persistent checkout has no tracked modifications or untracked
+   non-ignored files;
+3. no Git operation is active, including `MERGE_HEAD`, `CHERRY_PICK_HEAD`,
+   `REVERT_HEAD`, `rebase-merge`, `rebase-apply`, `BISECT_LOG`, or `sequencer`;
+4. `LOCAL_OID` is ancestor-or-equal to the freshly captured `TARGET_OID`.
+
+When all four conditions hold, synchronization is mandatory:
+
+```bash
+git -C <PERSISTENT_CHECKOUT> merge --ff-only "$TARGET_OID"
+```
+
+Then require:
+
+```bash
+test "$(git -C <PERSISTENT_CHECKOUT> rev-parse HEAD)" = "$TARGET_OID"
+```
+
+Synchronize to the captured object identity, not to an independently re-resolved
+moving ref.
+
+If any synchronization precondition is false, preserve the persistent checkout
+exactly as found. Never stash, clean, reset, restore, switch branches, rebase,
+create a non-fast-forward merge, commit user state, or otherwise mutate the
+checkout to make synchronization possible.
+
+When synchronization is skipped, report:
+
+* the persistent checkout path;
+* current branch or detached state;
+* `LOCAL_OID`;
+* freshly fetched `TARGET_OID`;
+* the exact failed synchronization precondition.
+
+A protected persistent checkout may remain behind only because safe
+fast-forward reconciliation is impossible without disturbing user or Git
+operation state. Staleness by agent choice is not permitted.
 
 The standard physical path does not override mandatory symlink-gateway rules.
 For repositories writable only through `~/.agents/`, `~/.pi/agent/`,
