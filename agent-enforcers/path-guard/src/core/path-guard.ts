@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { extractBashPaths, isGitOnlyCommand, unwrapCommand } from "./bash-parser.ts";
 import { resolveReal } from "./helpers.ts";
+import { recognizeGitCommitsPushCommand } from "../../../git-commits-push-enforcer/src/core/validator.ts";
 
 export * from "./helpers.ts";
 export { extractBashPaths } from "./bash-parser.ts";
@@ -75,10 +76,29 @@ export function checkPath(givenPath: string): PathGuardResult {
 }
 
 /**
+ * True when the command is a canonical git-commits-push launch.
+ *
+ * The shared git-commits-push recognizer is the sole authority for this
+ * decision. It already fails closed on shell wrappers, operators,
+ * redirections, backgrounding, substitutions, dynamic arguments, and every
+ * non-canonical executable form. Path extraction is syntactic and cannot know
+ * the meaning of an arbitrary program's arguments, so a sanctioned launch is
+ * left untouched instead of guessed at.
+ */
+function isSanctionedGitCommitsPushLaunch(command: string): boolean {
+  return recognizeGitCommitsPushCommand(command) === "binary-launch";
+}
+
+/**
  * Check whether a bash command writes to any blocked dot* path.
  * Returns the first blocked result, or { allowed: true }.
  */
 export function checkBashCommand(command: string): PathGuardResult {
+  // A canonical git-commits-push launch is sanctioned and owns its arguments.
+  if (isSanctionedGitCommitsPushLaunch(command)) {
+    return { allowed: true };
+  }
+
   // Whitelist pure git operations — they run inside dot* repos legitimately
   if (isGitOnlyCommand(unwrapCommand(command))) {
     return { allowed: true };
@@ -96,6 +116,11 @@ export function checkBashCommand(command: string): PathGuardResult {
  * Rewrite blocked paths in a bash command to their gateway paths.
  */
 export function rewriteBashCommand(command: string): { rewritten: boolean; newCommand: string; logMessage?: string } {
+  // A canonical git-commits-push launch is sanctioned and owns its arguments.
+  if (isSanctionedGitCommitsPushLaunch(command)) {
+    return { rewritten: false, newCommand: command };
+  }
+
   if (isGitOnlyCommand(unwrapCommand(command))) {
     return { rewritten: false, newCommand: command };
   }
