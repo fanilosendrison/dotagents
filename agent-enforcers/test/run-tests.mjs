@@ -13,6 +13,7 @@ export const EXPECTED_NODE_TEST_FILES = Object.freeze([
 	"git-commits-push-enforcer/src/core/__tests__/validator.test.ts",
 	"path-guard/src/core/__tests__/git-commits-push-shell-boundary.test.ts",
 	"path-guard/src/core/__tests__/path-guard-relative-boundary.test.ts",
+	"path-guard/src/core/__tests__/path-guard-wrapper-boundary.test.ts",
 	"path-guard/src/core/__tests__/path-guard.test.ts",
 	"permission-enforcer/src/core/__tests__/state.test.ts",
 	"test/run-tests.test.mjs",
