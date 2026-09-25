@@ -159,8 +159,17 @@ describe("git-commits-push path guard shell boundary", () => {
 
 		const result = runProbe(command, false);
 
+		// The refused form receives no exemption, so its redirect destination is
+		// still a governed write target and is rewritten to the gateway.
 		assert.strictEqual(result.rewritten, true);
-		assert.strictEqual(result.newCommand.includes(physicalWorktree), false);
-		assert.ok(result.newCommand.includes(`${home}/.probe`));
+		assert.strictEqual(
+			result.newCommand.includes(`${physicalWorktree}/out.txt`),
+			false,
+		);
+		assert.ok(result.newCommand.includes(`${home}/.probe/out.txt`));
+		// The ordinary --repository argument is preserved byte-for-byte.
+		assert.ok(
+			result.newCommand.includes(`--repository "${physicalWorktree}"`),
+		);
 	});
 });
