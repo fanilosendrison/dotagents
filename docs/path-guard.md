@@ -83,7 +83,8 @@ interface BashWriteTargetOccurrence {
   path: string;
   start: number;
   end: number;
-  quote: "'" | '"' | null;
+  quote: "'" | '"' | null;       // destination context in the unwrapped text
+  wrapperQuotes: ("'" | '"')[];  // nested-shell layers crossed, innermost first
 }
 ```
 
@@ -99,7 +100,8 @@ Both go through the same scan :
 
 1. **Unwraps** command wrappers : `env -i`, `sudo`, `nohup`, `bash -c '...'`,
    while keeping a map from unwrapped characters back to their offset in the
-   original command
+   original command and a record of every nested-shell quoting boundary
+   crossed
 2. **Tokenizes** shell quotes and escapes, keeping the raw span and quoting
    context of every decoded character
 3. Extracts only mechanically established write destinations :
@@ -117,6 +119,20 @@ Only source occurrences identified as governed write destinations may be
 rewritten. An identical path spelling elsewhere in the command, for example a
 read argument (`cat x > x`) or a `cat` operand in `cat x | tee x`, remains
 byte-for-byte unchanged.
+
+The occurrence also carries the original insertion context, not just the
+unwrapped lexical context. A destination inside a `bash -c` command string is
+first rendered in the unwrapped command language, then escaped for every
+nested-shell quoting layer crossed while mapping the span back to the original
+command. The replacement therefore changes the governed destination value
+without changing how the surrounding shell/wrapper structure is parsed, and
+`bash -c` still receives exactly one command string.
+
+Only the wrappers currently recognized by `unwrapCommand()` are covered :
+`exec`, `env`, `sudo`, `nohup`, and `bash` / `sh` / `zsh` / `dash` / `ksh`
+`-c '...'` or `-c "..."`, including compositions such as
+`env FOO=bar bash -c '...'`. Anything outside those forms is preserved, not
+reinterpreted.
 
 The older `extractBashPaths()` helper remains as the non-enforcement "every
 path-like token" abstraction used by telemetry consumers (for example the Pi
