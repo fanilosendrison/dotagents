@@ -70,11 +70,38 @@ function resolveReal(givenPath: string): string | null
 ### Governed Bash write targets
 
 ```typescript
+function extractBashWriteTargetOccurrences(command: string): BashWriteTargetOccurrence[]
+```
+
+This is the single source of truth for governed write surfaces. Each
+occurrence carries the decoded `path` and the exact `start`/`end` span of the
+destination in the original command, so enforcement targets that span and
+nothing else :
+
+```typescript
+interface BashWriteTargetOccurrence {
+  path: string;
+  start: number;
+  end: number;
+  quote: "'" | '"' | null;
+}
+```
+
+```typescript
 function extractBashWriteTargets(command: string): string[]
 ```
 
-1. **Unwraps** command wrappers : `env -i`, `sudo`, `nohup`, `bash -c '...'`
-2. **Tokenizes** shell quotes and escapes before extracting tokens
+is derived from the occurrence list : it returns the deduplicated destination
+paths in first-occurrence order. Callers that rewrite a command use the
+positional occurrences, never a textual search for the returned strings.
+
+Both go through the same scan :
+
+1. **Unwraps** command wrappers : `env -i`, `sudo`, `nohup`, `bash -c '...'`,
+   while keeping a map from unwrapped characters back to their offset in the
+   original command
+2. **Tokenizes** shell quotes and escapes, keeping the raw span and quoting
+   context of every decoded character
 3. Extracts only mechanically established write destinations :
    - **Output redirect targets** : `> path`, `>> path`, `1> path`, `2> path`,
      `2>> path`, `&> path`, `&>> path`, attached (`>path`) or detached (`> path`)
@@ -85,6 +112,11 @@ function extractBashWriteTargets(command: string): string[]
    - input redirection operands (`< path`, `<< word`) — their operand is read
    - bare words (`> out.txt`), which are not resolved against the guard working
      directory
+
+Only source occurrences identified as governed write destinations may be
+rewritten. An identical path spelling elsewhere in the command, for example a
+read argument (`cat x > x`) or a `cat` operand in `cat x | tee x`, remains
+byte-for-byte unchanged.
 
 The older `extractBashPaths()` helper remains as the non-enforcement "every
 path-like token" abstraction used by telemetry consumers (for example the Pi
@@ -116,6 +148,12 @@ function isGitOnlyCommand(cmd: string): boolean
 Each segment (separated by `&&` or `;`) must be either `git ...`, `cd ...`,
 `echo ...` with no redirect, or `true`/`false`/`exit`. Raw `git commit` and
 `git push` are still handled by `git-commits-push-enforcer`.
+
+The whitelist is evaluated **after** governed write targets are enforced. A
+mechanically established governed write target cannot be bypassed by git-only
+classification : `git log > ~/Developper/Projects/dotagents/out.txt` is
+rewritten or denied exactly like any other output redirect, while `git log`
+and `cd ~/Developper/Projects/dotagents && git diff` stay unchanged.
 
 ### Sanctioned git-commits-push launches
 
@@ -185,6 +223,7 @@ accepted normative boundary, not a defect to repair inside the parser.
 | **Bash** `cat ~/Developper/Projects/dotagents/AGENTS.md` | ✅ Passes unchanged — read-only argument, not write evidence |
 | **Bash** `ls relative/path` (cwd in a physical `dot*` worktree) | ✅ Passes unchanged — relative read argument preserved byte-for-byte |
 | **Bash** `cd ~/Developper/Projects/dotpi && git diff` | ✅ Passes — git-only command |
+| **Bash** `git log > ~/Developper/Projects/dotagents/out.txt` | 🔄 **Rewritten** — the redirect is governed before the git whitelist is consulted |
 | **Bash** `cd ~/Developper/Projects/dotagents && bun run test` | ✅ Passes unchanged — `cd` is an ordinary path argument, not a governed write destination |
 | **Bash** `some-program ~/Developper/Projects/dotagents/path` | ✅ Passes unchanged — unknown argument semantics; outside the guarantee |
 | **Bash** `"$HOME/.local/bin/git-commits-push" --repository "~/Developper/Projects/dotagents" ...` | ✅ Passes — sanctioned canonical launch, arguments untouched |
@@ -207,7 +246,7 @@ path-guard/
 └── src/
     └── core/
         ├── path-guard.ts              ← checkPath, checkBashCommand, rewriteBashCommand
-        ├── bash-parser.ts             ← unwrapCommand, extractBashPaths (all paths), extractBashWriteTargets (enforcement), isGitOnlyCommand
+        ├── bash-parser.ts             ← unwrapCommand, extractBashPaths (all paths), extractBashWriteTargetOccurrences / extractBashWriteTargets (enforcement), isGitOnlyCommand
         ├── helpers.ts                 ← resolveReal, targetsDotRepo, extractRepo
         └── __tests__/
             ├── path-guard.test.ts
