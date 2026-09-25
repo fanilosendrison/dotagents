@@ -38,8 +38,9 @@ export interface BashWriteTargetOccurrence {
   /** Exclusive end offset of the destination in the original command. */
   readonly end: number;
   /**
-   * Quoting context active at the span, or `null` when the span mixes
-   * quoting contexts and must be replaced as a complete shell word.
+   * Quoting context active at the span in the unwrapped command text, or
+   * `null` when the span mixes quoting contexts and must be replaced as a
+   * complete shell word.
    *
    * When it is a quote character, the span excludes the surrounding quote
    * delimiters and must be replaced with content escaped for that quoting
@@ -47,6 +48,15 @@ export interface BashWriteTargetOccurrence {
    * including any delimiters, and must be replaced by one.
    */
   readonly quote: Quote | null;
+  /**
+   * Quoting contexts of the nested-shell (`bash -c`) boundaries crossed while
+   * mapping the destination back to the original command, innermost first.
+   *
+   * The rendered replacement must be escaped for each of them before being
+   * spliced into the original command: they describe the original source
+   * context, which can differ from the unwrapped lexical context.
+   */
+  readonly wrapperQuotes: readonly Quote[];
 }
 
 interface TextWithMap {
@@ -54,10 +64,31 @@ interface TextWithMap {
   readonly map: number[];
 }
 
+/** One contiguous piece of an unwrap step's output. */
+interface UnwrapSegment {
+  /** Range covered in the step output text. */
+  readonly childStart: number;
+  readonly childEnd: number;
+  /** Start of the contiguous parent range the segment maps to. */
+  readonly parentStart: number;
+  /**
+   * Quote context the segment is decoded from in the parent text, or `null`
+   * when the segment is copied literally (no nested shell boundary).
+   */
+  readonly quoting: Quote | null;
+}
+
+/** One `unwrapCommand()` transformation, mapping its output to its input. */
+interface UnwrapStep {
+  readonly segments: readonly UnwrapSegment[];
+}
+
 interface UnwrappedCommand {
   readonly text: string;
   /** For each character of `text`, its index in the original command or -1. */
   readonly sourceMap: readonly number[];
+  /** Transformations applied, in application order. */
+  readonly steps: readonly UnwrapStep[];
 }
 
 interface UnwrappedWriteTargetOccurrence {
@@ -98,13 +129,63 @@ function trimWithMap(source: TextWithMap): TextWithMap {
 }
 
 /**
+ * Build the unwrap step for a nested-shell `-c` boundary: the quoted command
+ * string is decoded from `quote`, while the trailing arguments are copied
+ * literally. The returned map is cumulative to the original command.
+ */
+function buildShellWrapperStep(
+  parent: TextWithMap,
+  inner: readonly [number, number],
+  tail: readonly [number, number],
+  quote: Quote,
+): { text: string; map: number[]; step: UnwrapStep } {
+  const innerText = takeRange(parent, inner[0], inner[1]);
+  const tailText = takeRange(parent, tail[0], tail[1]);
+  const combined = concatenateWithMap([innerText, "separator", tailText]);
+  const trimmed = trimWithMap(combined);
+
+  const trimStart = combined.text.length - combined.text.trimStart().length;
+  const trimEnd = combined.text.trimEnd().length;
+  const innerLength = inner[1] - inner[0];
+
+  const segments: UnwrapSegment[] = [];
+  const addSegment = (
+    rawStart: number,
+    rawEnd: number,
+    parentStart: number,
+    quoting: Quote | null,
+  ) => {
+    const visibleStart = Math.max(rawStart, trimStart);
+    const visibleEnd = Math.min(rawEnd, trimEnd);
+    if (visibleEnd <= visibleStart) return;
+    segments.push({
+      childStart: visibleStart - trimStart,
+      childEnd: visibleEnd - trimStart,
+      parentStart: parentStart + (visibleStart - rawStart),
+      quoting,
+    });
+  };
+
+  addSegment(0, innerLength, inner[0], quote);
+  addSegment(
+    innerLength + 1,
+    innerLength + 1 + (tail[1] - tail[0]),
+    tail[0],
+    null,
+  );
+
+  return { text: trimmed.text, map: trimmed.map, step: { segments } };
+}
+
+/**
  * Unwrap command wrappers (`exec`, `env`, `sudo`, `nohup`, `bash -c '...'`)
  * while keeping a map from each unwrapped character back to its offset in the
- * original command.
+ * original command and a record of every nested-shell boundary crossed.
  *
  * The unwrapped text is byte-identical to the historical `unwrapCommand()`
  * result; the map exists so write-target occurrences keep an exact source span
- * into the original command.
+ * into the original command, and the steps keep the original quoting context
+ * of each mapped span.
  */
 function unwrapCommandWithSourceMap(command: string): UnwrappedCommand {
   const trimOffset = command.length - command.trimStart().length;
@@ -116,6 +197,16 @@ function unwrapCommandWithSourceMap(command: string): UnwrappedCommand {
       (_, index) => trimOffset + index,
     ),
   };
+  const steps: UnwrapStep[] = [];
+
+  const pushSliceStep = (start: number, end: number): TextWithMap => {
+    steps.push({
+      segments: [
+        { childStart: 0, childEnd: end - start, parentStart: start, quoting: null },
+      ],
+    });
+    return takeRange(current, start, end);
+  };
 
   const maxDepth = 10;
   for (let depth = 0; depth < maxDepth; depth++) {
@@ -126,7 +217,7 @@ function unwrapCommandWithSourceMap(command: string): UnwrappedCommand {
     const execMatch = current.text.match(execRe);
     const execInner = execMatch?.indices?.[1];
     if (execInner) {
-      current = takeRange(current, execInner[0], execInner[1]);
+      current = pushSliceStep(execInner[0], execInner[1]);
       changed = true;
       continue;
     }
@@ -137,7 +228,7 @@ function unwrapCommandWithSourceMap(command: string): UnwrappedCommand {
     const envMatch = current.text.match(envRe);
     const envInner = envMatch?.indices?.[1];
     if (envInner) {
-      current = takeRange(current, envInner[0], envInner[1]);
+      current = pushSliceStep(envInner[0], envInner[1]);
       changed = true;
       continue;
     }
@@ -147,7 +238,7 @@ function unwrapCommandWithSourceMap(command: string): UnwrappedCommand {
     const sudoMatch = current.text.match(sudoRe);
     const sudoInner = sudoMatch?.indices?.[1];
     if (sudoInner) {
-      current = takeRange(current, sudoInner[0], sudoInner[1]);
+      current = pushSliceStep(sudoInner[0], sudoInner[1]);
       changed = true;
       continue;
     }
@@ -157,7 +248,7 @@ function unwrapCommandWithSourceMap(command: string): UnwrappedCommand {
     const nohupMatch = current.text.match(nohupRe);
     const nohupInner = nohupMatch?.indices?.[1];
     if (nohupInner) {
-      current = takeRange(current, nohupInner[0], nohupInner[1]);
+      current = pushSliceStep(nohupInner[0], nohupInner[1]);
       changed = true;
       continue;
     }
@@ -170,13 +261,9 @@ function unwrapCommandWithSourceMap(command: string): UnwrappedCommand {
     const singleInner = cMatchSingle?.indices?.[1];
     const singleTail = cMatchSingle?.indices?.[2];
     if (singleInner && singleTail) {
-      current = trimWithMap(
-        concatenateWithMap([
-          takeRange(current, singleInner[0], singleInner[1]),
-          "separator",
-          takeRange(current, singleTail[0], singleTail[1]),
-        ]),
-      );
+      const built = buildShellWrapperStep(current, singleInner, singleTail, "'");
+      steps.push(built.step);
+      current = { text: built.text, map: built.map };
       changed = true;
       continue;
     }
@@ -186,13 +273,9 @@ function unwrapCommandWithSourceMap(command: string): UnwrappedCommand {
     const doubleInner = cMatchDouble?.indices?.[1];
     const doubleTail = cMatchDouble?.indices?.[2];
     if (doubleInner && doubleTail) {
-      current = trimWithMap(
-        concatenateWithMap([
-          takeRange(current, doubleInner[0], doubleInner[1]),
-          "separator",
-          takeRange(current, doubleTail[0], doubleTail[1]),
-        ]),
-      );
+      const built = buildShellWrapperStep(current, doubleInner, doubleTail, '"');
+      steps.push(built.step);
+      current = { text: built.text, map: built.map };
       changed = true;
       continue;
     }
@@ -200,7 +283,7 @@ function unwrapCommandWithSourceMap(command: string): UnwrappedCommand {
     if (!changed) break;
   }
 
-  return { text: current.text, sourceMap: current.map };
+  return { text: current.text, sourceMap: current.map, steps };
 }
 
 /**
@@ -550,6 +633,39 @@ function resolveSourceSpan(
 }
 
 /**
+ * Walk an occurrence span outward through the unwrap steps and collect the
+ * quote contexts of the nested-shell boundaries it crosses, innermost first.
+ *
+ * Identity steps copy the text literally and contribute no quote. A span
+ * always lies inside one segment of each step: `-c` steps separate the quoted
+ * command string from its trailing arguments at whitespace, which tokens
+ * never cross.
+ */
+function collectWrapperQuotes(
+  steps: readonly UnwrapStep[],
+  start: number,
+  end: number,
+): Quote[] {
+  const wrapperQuotes: Quote[] = [];
+  let spanStart = start;
+  let spanEnd = end;
+
+  for (let index = steps.length - 1; index >= 0; index--) {
+    const segment = steps[index].segments.find(
+      (candidate) => spanStart >= candidate.childStart && spanEnd <= candidate.childEnd,
+    );
+    if (!segment) break;
+    if (segment.quoting !== null) wrapperQuotes.push(segment.quoting);
+    const localStart = spanStart - segment.childStart;
+    const localEnd = spanEnd - segment.childStart;
+    spanStart = segment.parentStart + localStart;
+    spanEnd = segment.parentStart + localEnd;
+  }
+
+  return wrapperQuotes;
+}
+
+/**
  * Extract the destinations of mechanically proven Bash write surfaces with
  * the exact source span each destination occupies in the original command.
  *
@@ -561,7 +677,7 @@ function resolveSourceSpan(
 export function extractBashWriteTargetOccurrences(
   command: string,
 ): BashWriteTargetOccurrence[] {
-  const { text, sourceMap } = unwrapCommandWithSourceMap(command);
+  const { text, sourceMap, steps } = unwrapCommandWithSourceMap(command);
   const occurrences: BashWriteTargetOccurrence[] = [];
 
   for (const occurrence of extractBashWriteTargetOccurrencesFromText(text)) {
@@ -572,6 +688,11 @@ export function extractBashWriteTargetOccurrences(
       start: span.start,
       end: span.end,
       quote: occurrence.quote,
+      wrapperQuotes: collectWrapperQuotes(
+        steps,
+        occurrence.start,
+        occurrence.end,
+      ),
     });
   }
 

@@ -138,7 +138,7 @@ export function checkBashCommand(command: string): PathGuardResult {
 interface GovernedRewrite {
   readonly start: number;
   readonly end: number;
-  readonly quote: "'" | '"' | null;
+  readonly replacement: string;
   readonly rewrittenPath: string;
   readonly gateway?: string;
 }
@@ -163,6 +163,29 @@ function escapeForQuoteContext(path: string, quote: "'" | '"'): string {
 }
 
 /**
+ * Encode the gateway path for the exact source context of the occurrence.
+ *
+ * The destination is first rendered in the unwrapped command language, then
+ * escaped for every nested-shell boundary crossed back to the original
+ * command. The replacement is therefore safe to splice at the original source
+ * span without changing how the surrounding shell/wrapper structure is
+ * parsed.
+ */
+function renderBashWriteTargetReplacement(
+  occurrence: BashWriteTargetOccurrence,
+  rewrittenPath: string,
+): string {
+  let replacement =
+    occurrence.quote === null
+      ? formatShellWord(rewrittenPath)
+      : escapeForQuoteContext(rewrittenPath, occurrence.quote);
+  for (const wrapperQuote of occurrence.wrapperQuotes) {
+    replacement = escapeForQuoteContext(replacement, wrapperQuote);
+  }
+  return replacement;
+}
+
+/**
  * Rewrite governed write destinations in a bash command to their gateway
  * paths.
  *
@@ -184,7 +207,10 @@ export function rewriteBashCommand(command: string): { rewritten: boolean; newCo
     rewrites.push({
       start: occurrence.start,
       end: occurrence.end,
-      quote: occurrence.quote,
+      replacement: renderBashWriteTargetReplacement(
+        occurrence,
+        result.rewrittenPath,
+      ),
       rewrittenPath: result.rewrittenPath,
       gateway: result.gateway,
     });
@@ -208,11 +234,7 @@ export function rewriteBashCommand(command: string): { rewritten: boolean; newCo
   for (const rewrite of rewrites) {
     // Occurrences come from disjoint tokens, so spans never overlap.
     if (rewrite.start < cursor) continue;
-    const replacement =
-      rewrite.quote === null
-        ? formatShellWord(rewrite.rewrittenPath)
-        : escapeForQuoteContext(rewrite.rewrittenPath, rewrite.quote);
-    newCommand += command.slice(cursor, rewrite.start) + replacement;
+    newCommand += command.slice(cursor, rewrite.start) + rewrite.replacement;
     cursor = rewrite.end;
 
     if (!loggedPaths.has(rewrite.rewrittenPath)) {
