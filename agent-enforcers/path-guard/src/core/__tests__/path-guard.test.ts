@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { homedir } from "node:os";
 import { describe, test } from "node:test";
+import { recognizeGitCommitsPushCommand } from "../../../../git-commits-push-enforcer/src/core/validator.ts";
 import {
 	checkBashCommand,
 	checkPath,
@@ -81,4 +83,87 @@ describe("path-guard Core Unit Tests", () => {
 		const result = rewriteBashCommand(cmd);
 		assert.strictEqual(result.rewritten, false);
 	});
+});
+
+describe("git-commits-push canonical launch sanction", () => {
+	const physicalDotPi = `${homedir()}/Developper/Projects/dotpi`;
+	const canonicalLaunch = '"$HOME/.local/bin/git-commits-push"';
+	const targetedLaunch = [
+		canonicalLaunch,
+		`--repository "${physicalDotPi}"`,
+		"--push-remote origin",
+		"--push-ref refs/heads/main",
+	].join(" ");
+
+	test("leaves a canonical global launch unchanged", () => {
+		assert.strictEqual(
+			recognizeGitCommitsPushCommand(canonicalLaunch),
+			"binary-launch",
+		);
+		const result = rewriteBashCommand(canonicalLaunch);
+		assert.strictEqual(result.rewritten, false);
+		assert.strictEqual(result.newCommand, canonicalLaunch);
+		assert.strictEqual(checkBashCommand(canonicalLaunch).allowed, true);
+	});
+
+	test("leaves a canonical targeted launch unchanged", () => {
+		assert.strictEqual(
+			recognizeGitCommitsPushCommand(targetedLaunch),
+			"binary-launch",
+		);
+		const result = rewriteBashCommand(targetedLaunch);
+		assert.strictEqual(result.rewritten, false);
+		assert.strictEqual(result.newCommand, targetedLaunch);
+	});
+
+	test("allows a canonical targeted launch", () => {
+		assert.strictEqual(checkBashCommand(targetedLaunch).allowed, true);
+	});
+
+	test("never substitutes the physical repository path", () => {
+		const result = rewriteBashCommand(targetedLaunch);
+		assert.ok(result.newCommand.includes(physicalDotPi));
+		assert.strictEqual(result.newCommand.includes(`${homedir()}/.pi/agent`), false);
+		assert.strictEqual(result.newCommand.includes("Silent redirection"), false);
+	});
+
+	test("still protects a direct write to a dot* repository", () => {
+		const cmd = `echo 'hello' > ${physicalDotPi}/settings.json`;
+		const rewritten = rewriteBashCommand(cmd);
+		assert.strictEqual(rewritten.rewritten, true);
+		assert.ok(rewritten.newCommand.includes(`${homedir()}/.pi/agent/settings.json`));
+		assert.strictEqual(checkBashCommand(cmd).allowed, false);
+	});
+
+	test("does not exempt a launcher-like command that redirects", () => {
+		const cmd = `${canonicalLaunch} --repository "${physicalDotPi}" > ${physicalDotPi}/out.txt`;
+		assert.strictEqual(recognizeGitCommitsPushCommand(cmd), null);
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(result.newCommand.includes(`${homedir()}/.pi/agent/out.txt`));
+		assert.strictEqual(result.newCommand.includes(physicalDotPi), false);
+	});
+
+	const rejectedForms = [
+		["env wrapper", `env GCP_TEST=1 ${canonicalLaunch} --repository "${physicalDotPi}"`],
+		["&& chain", `${canonicalLaunch} --repository "${physicalDotPi}" && git push`],
+		["; chain", `${canonicalLaunch} --repository "${physicalDotPi}" ; git commit -m x`],
+		["pipeline", `${canonicalLaunch} --repository "${physicalDotPi}" | tee ${physicalDotPi}/out.txt`],
+		["redirection", `${canonicalLaunch} --repository "${physicalDotPi}" > ${physicalDotPi}/out.txt`],
+		["backgrounding", `${canonicalLaunch} --repository "${physicalDotPi}" &`],
+		["command substitution", `${canonicalLaunch} --repository "$(git rev-parse --show-toplevel)" > ${physicalDotPi}/out.txt`],
+		["backticks", `${canonicalLaunch} --repository \`pwd\` > ${physicalDotPi}/out.txt`],
+		["process substitution", `${canonicalLaunch} --repository <(pwd) > ${physicalDotPi}/out.txt`],
+		["slash form", `/git-commits-push --repository "${physicalDotPi}"`],
+		["tilde form", `~/.local/bin/git-commits-push --repository "${physicalDotPi}"`],
+		["unquoted canonical form", `$HOME/.local/bin/git-commits-push --repository "${physicalDotPi}"`],
+	] as const;
+
+	for (const [form, cmd] of rejectedForms) {
+		test(`does not sanction the rejected ${form}`, () => {
+			assert.strictEqual(recognizeGitCommitsPushCommand(cmd), null);
+			assert.strictEqual(checkBashCommand(cmd).allowed, false);
+			assert.strictEqual(rewriteBashCommand(cmd).rewritten, true);
+		});
+	}
 });
