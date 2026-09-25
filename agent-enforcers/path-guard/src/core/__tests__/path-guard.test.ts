@@ -410,3 +410,74 @@ describe("path-guard positional extraction inside command wrappers", () => {
 		assert.strictEqual(result.newCommand.split(path).length - 1, 1);
 	});
 });
+
+describe("path-guard wrapper quoting (original-source encoding)", () => {
+	const physicalDotPi = `${homedir()}/Developper/Projects/dotpi`;
+	const gatewayDotPi = `${homedir()}/.pi/agent`;
+	const physicalEscaped = `${physicalDotPi}/file\\ name`;
+
+	test("rewrites an unquoted destination inside a single-quoted bash -c wrapper", () => {
+		const cmd = `bash -c 'echo x > ${physicalEscaped}'`;
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(
+			result.newCommand.includes(
+				`bash -c 'echo x > '\\''${gatewayDotPi}/file name'\\'''`,
+			),
+		);
+		assert.strictEqual(result.newCommand.includes(physicalEscaped), false);
+	});
+
+	test("preserves a read occurrence and keeps the wrapper quotes intact", () => {
+		const cmd = `bash -c 'cat ${physicalEscaped} > ${physicalEscaped}'`;
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(
+			result.newCommand.includes(
+				`bash -c 'cat ${physicalEscaped} > '\\''${gatewayDotPi}/file name'\\'''`,
+			),
+		);
+		assert.strictEqual(result.newCommand.split(physicalEscaped).length - 1, 1);
+	});
+
+	test("rewrites a destination inside a double-quoted bash -c wrapper", () => {
+		const cmd = `bash -c "echo x > ${physicalEscaped}"`;
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(
+			result.newCommand.includes(`bash -c "echo x > '${gatewayDotPi}/file name'"`),
+		);
+		assert.strictEqual(result.newCommand.includes(physicalEscaped), false);
+	});
+
+	test("rewrites a destination inside env + bash -c", () => {
+		const cmd = `env FOO=bar bash -c 'echo x > ${physicalEscaped}'`;
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(
+			result.newCommand.includes(
+				`env FOO=bar bash -c 'echo x > '\\''${gatewayDotPi}/file name'\\'''`,
+			),
+		);
+	});
+
+	test("keeps a double-quoted destination inside a single-quoted wrapper", () => {
+		const cmd = `bash -c 'echo x > "${physicalEscaped}"'`;
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(
+			result.newCommand.includes(
+				`bash -c 'echo x > "${gatewayDotPi}/file name"'`,
+			),
+		);
+	});
+
+	test("reports the wrapper quoting chain on the occurrence", () => {
+		const cmd = `bash -c 'echo x > ${physicalEscaped}'`;
+		const [occurrence] = extractBashWriteTargetOccurrences(cmd);
+		assert.ok(occurrence);
+		assert.strictEqual(occurrence.path, `${physicalDotPi}/file name`);
+		assert.strictEqual(occurrence.quote, null);
+		assert.deepEqual(occurrence.wrapperQuotes, ["'"]);
+	});
+});
