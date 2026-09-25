@@ -6,6 +6,7 @@ import {
 	checkBashCommand,
 	checkPath,
 	extractBashPaths,
+	extractBashWriteTargetOccurrences,
 	extractBashWriteTargets,
 	rewriteBashCommand,
 } from "../path-guard.ts";
@@ -287,4 +288,125 @@ describe("git-commits-push canonical launch sanction", () => {
 			assert.strictEqual(result.newCommand.includes(`${physicalDotPi}/out.txt`), false);
 		});
 	}
+});
+
+describe("path-guard PG-2 conformance (git-only cannot mask a governed write)", () => {
+	const physicalDotPi = `${homedir()}/Developper/Projects/dotpi`;
+	const gatewayDotPi = `${homedir()}/.pi/agent`;
+
+	test("governs an output redirect on a pure git command", () => {
+		const cmd = `git log > ${physicalDotPi}/out.txt`;
+		assert.strictEqual(checkBashCommand(cmd).allowed, false);
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(result.newCommand.includes(`${gatewayDotPi}/out.txt`));
+		assert.strictEqual(result.newCommand.includes(`${physicalDotPi}/out.txt`), false);
+	});
+
+	test("governs an append redirect on a pure git command", () => {
+		const cmd = `git diff >> ${physicalDotPi}/out.txt`;
+		assert.strictEqual(checkBashCommand(cmd).allowed, false);
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(result.newCommand.includes(`${gatewayDotPi}/out.txt`));
+		assert.strictEqual(result.newCommand.includes(`${physicalDotPi}/out.txt`), false);
+	});
+
+	test("still leaves a pure git command without write targets unchanged", () => {
+		const cmd = "git log";
+		assert.strictEqual(checkBashCommand(cmd).allowed, true);
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, false);
+		assert.strictEqual(result.newCommand, cmd);
+	});
+
+	test("still leaves cd + git unchanged", () => {
+		const cmd = `cd ${physicalDotPi} && git diff`;
+		assert.strictEqual(checkBashCommand(cmd).allowed, true);
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, false);
+		assert.strictEqual(result.newCommand, cmd);
+	});
+});
+
+describe("path-guard PG-3 conformance (only write-target occurrences are rewritten)", () => {
+	const physicalDotPi = `${homedir()}/Developper/Projects/dotpi`;
+	const gatewayDotPi = `${homedir()}/.pi/agent`;
+
+	test("preserves a read occurrence identical to the redirect destination", () => {
+		const path = `${physicalDotPi}/x`;
+		const cmd = `cat ${path} > ${path}`;
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(result.newCommand.includes(`cat ${path} > ${gatewayDotPi}/x`));
+		assert.strictEqual(result.newCommand.split(path).length - 1, 1);
+	});
+
+	test("preserves a read occurrence identical to the tee destination", () => {
+		const path = `${physicalDotPi}/x`;
+		const cmd = `cat ${path} | tee ${path}`;
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(result.newCommand.includes(`cat ${path} | tee ${gatewayDotPi}/x`));
+		assert.strictEqual(result.newCommand.split(path).length - 1, 1);
+	});
+
+	test("rewrites every write occurrence of the same path", () => {
+		const path = `${physicalDotPi}/x`;
+		const cmd = `printf a > ${path} ; printf b >> ${path}`;
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.strictEqual(result.newCommand.includes(path), false);
+		assert.strictEqual(result.newCommand.split(`${gatewayDotPi}/x`).length - 1, 2);
+	});
+
+	test("preserves a quoted read occurrence and rewrites only the quoted destination", () => {
+		const path = `${physicalDotPi}/file name`;
+		const cmd = `cat "${path}" > "${path}"`;
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(result.newCommand.includes(`cat "${path}" > "${gatewayDotPi}/file name"`));
+		assert.strictEqual(result.newCommand.split(path).length - 1, 1);
+	});
+
+	test("rewrites an attached redirect occurrence positionally", () => {
+		const path = `${physicalDotPi}/x`;
+		const cmd = `cat ${path} >${path}`;
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(result.newCommand.includes(`cat ${path} >${gatewayDotPi}/x`));
+		assert.strictEqual(result.newCommand.split(path).length - 1, 1);
+	});
+
+	test("reports occurrence spans that address the write destination only", () => {
+		const cmd = `cat /tmp/read.txt | tee /tmp/write.txt`;
+		const occurrences = extractBashWriteTargetOccurrences(cmd);
+		assert.strictEqual(occurrences.length, 1);
+		const occurrence = occurrences[0];
+		assert.ok(occurrence);
+		assert.strictEqual(occurrence.path, "/tmp/write.txt");
+		assert.strictEqual(cmd.slice(occurrence.start, occurrence.end), "/tmp/write.txt");
+	});
+});
+
+describe("path-guard positional extraction inside command wrappers", () => {
+	const physicalDotPi = `${homedir()}/Developper/Projects/dotpi`;
+	const gatewayDotPi = `${homedir()}/.pi/agent`;
+
+	test("rewrites a governed destination inside an unwrapped bash -c wrapper", () => {
+		const cmd = `env FOO=bar bash -c 'echo x > ${physicalDotPi}/wrapped.txt'`;
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(result.newCommand.includes(`bash -c 'echo x > ${gatewayDotPi}/wrapped.txt'`));
+		assert.strictEqual(result.newCommand.includes(`${physicalDotPi}/wrapped.txt`), false);
+	});
+
+	test("preserves a read occurrence inside a wrapper while rewriting the write", () => {
+		const path = `${physicalDotPi}/x`;
+		const cmd = `bash -c 'cat ${path} > ${path}'`;
+		const result = rewriteBashCommand(cmd);
+		assert.strictEqual(result.rewritten, true);
+		assert.ok(result.newCommand.includes(`bash -c 'cat ${path} > ${gatewayDotPi}/x'`));
+		assert.strictEqual(result.newCommand.split(path).length - 1, 1);
+	});
 });
