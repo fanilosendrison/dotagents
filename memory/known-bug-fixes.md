@@ -535,3 +535,32 @@ entry with mode `120000` has an absolute target, skipping paths currently delete
 in the worktree so that a pending removal does not mask the check. The test
 must fail against the offending commit and pass after removal, and the real
 consumer workflow must complete its download step.
+
+## Immutable Historical Resume Paths Bypass Current Runtime Guards
+
+**Description:**
+A durable workflow resume command can contain the absolute orchestrator path of
+the release that created the run. Adding a safety guard only to the current
+release does not protect historical suspended runs: their old commands continue
+to load immutable old code and can reach Git or delegated-result processing
+without executing the new guard. Deleting historical releases is not safe when
+compatible exact-scope runs still have legitimate resume authority.
+
+**Verified fix:**
+During an explicitly confirmed offline window, inspect the authoritative run
+state, reject live ownership and ambiguous paths, checkpoint only abandoned
+SQLite WAL state, and classify each historical scope. Atomically rename every
+global or missing-scope run to a same-filesystem quarantine, then occupy its
+canonical run path with a versioned regular-file tombstone. Preserve worktree
+and targeted runs at their canonical paths and keep every historical release
+immutable. Make the operation idempotent and recover the crash interval between
+the quarantine rename and tombstone publication.
+
+**Regression verification:**
+Create a suspended global run with delegation results capable of reaching the
+mutation phase, capture its historical resume entrypoint, apply the cutover, and
+replay that entrypoint exactly. Require a pre-application `state_missing` error,
+zero executed phases, no Git or LLM invocation, and content-identical target
+repositories. Exercise real historical workflow-runtime generations, SQLite
+authority over stale projections, abandoned WAL checkpointing, hostile paths,
+crash recovery, repeated apply, and preservation of exact-scope runs.
