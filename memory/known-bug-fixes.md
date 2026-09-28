@@ -687,3 +687,24 @@ competing input sources instead of assigning silent precedence.
 detection, action-button mutual exclusion, and exclusive source selection.
 Exercise the served scripts through the real static routes and retain syntax
 checks for the browser controller.
+
+## Wrapper Return-Code Checks Erase Tri-State Diagnostics
+
+**Description:** A local validation wrapper can consume a substrate that maps
+specific nonzero exit codes to `UNDETERMINED`, then inspect the raw return code
+before the typed status. The overall validation remains fail-closed, but the
+wrapper reports the observation as a generic failure and loses the tri-state
+diagnostic promised by the substrate.
+
+**Verified fix:** Classify each obligation by its typed status before applying
+generic nonzero-return handling. Preserve `UNDETERMINED` in the local diagnostic
+and exclude it from the ordinary failed-step collection, while retaining a
+non-passing wrapper exit. Process remaining nonzero violated obligations through
+the existing failure path.
+
+**Regression verification:** Use a real temporary Git repository and child
+process exiting with an exit code configured as undetermined. Assert directly
+that the wrapper returns no failed-step entry and emits the undetermined
+diagnostic. Also execute the real wrapper CLI across the process boundary and
+assert that it remains non-passing, reports `undetermined`, and never reports
+the same obligation as `failed`.
