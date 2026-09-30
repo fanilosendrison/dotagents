@@ -38,7 +38,6 @@ A trivial task is typically small (often fewer than 10 changed lines), but line 
 
 ### Task Complexity Protocols
 
-- **Non-trivial implementation**: You must use the `strategy-evaluator` (you will get a GO / GAP / REJECT opinion; do not code until you get a GO).
 - **Complex tasks**: For a multi-step or multi-file plan, track the execution as explicit tasks and update their status as work progresses.
   - When the active harness exposes `TaskCreate`, you MUST use `TaskCreate`.
   - When the active harness does not expose `TaskCreate`, use an explicit in-session **Task Ledger** as the mandatory fallback.
@@ -46,7 +45,7 @@ A trivial task is typically small (often fewer than 10 changed lines), but line 
   - Exactly one execution unit SHOULD be `IN_PROGRESS` at a time unless the approved plan explicitly authorizes parallel independent work.
   - Update the Task Ledger whenever an execution unit starts, completes, or becomes blocked.
   - A Task Ledger is ephemeral execution state. MUST NOT write it into repository files, Issues, commits, generated artifacts, or other durable project authority merely to satisfy this rule.
-  - The fallback changes only the progress-tracking mechanism. It does NOT waive the `strategy-evaluator`, approval, worktree-isolation, scope, validation, publication, or reporting requirements.
+  - The fallback changes only the progress-tracking mechanism. It does NOT waive approval, worktree-isolation, scope, validation, publication, or reporting requirements.
   - If neither `TaskCreate` nor an in-session Task Ledger can be maintained by the active harness, report `GAP` and do not implement.
 
 ---
