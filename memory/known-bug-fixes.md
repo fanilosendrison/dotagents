@@ -976,3 +976,23 @@ termination. After a real migration, compare an immutable byte manifest,
 require all linked worktrees to resolve at the new root, prove no legacy venv
 paths, rerun the full suite with default configuration, and confirm scheduler
 state is unchanged.
+
+## Windows Symlinks Retain Unusable Portable Separators
+
+**Description:** Windows may successfully create a relative symbolic link from
+a forward-slash path such as `../sibling/file`, and `read_link()` may return that
+exact target, while dereference and canonicalization fail with
+`ERROR_INVALID_NAME` (OS error 123). A separate check of the target file can
+therefore pass even though reading through the actual link fails.
+
+**Verified fix:** At the Windows-only filesystem transport boundary, replace
+portable `/` separators with `MAIN_SEPARATOR_STR` before passing the target to
+`symlink_file` or `symlink_dir`. Keep the declared portable path unchanged and
+do not canonicalize, trim, case-fold, normalize Unicode, eliminate components,
+follow the link, or precheck target existence.
+
+**Regression verification:** On native Windows, use the real symlink creation
+adapter to create a relative link to a sibling carrier. Require symlink metadata,
+canonicalization, dereference, byte equality with the carrier, and preservation
+of exact content bytes. Retain an Ubuntu comparison and any higher-level test
+whose expected stage depends on successfully reading through the link.
