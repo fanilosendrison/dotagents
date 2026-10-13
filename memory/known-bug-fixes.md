@@ -708,3 +708,271 @@ that the wrapper returns no failed-step entry and emits the undetermined
 diagnostic. Also execute the real wrapper CLI across the process boundary and
 assert that it remains non-passing, reports `undetermined`, and never reports
 the same obligation as `failed`.
+
+## GitHub Issue Body Patch Leaves an Orphaned Markdown Fence
+
+**Description:** A narrowly targeted GitHub Issue body replacement can leave a
+closing Markdown fence between the end of one section and the next heading.
+GitHub stores the body successfully, but the rendered contract contains an
+orphaned fence and the section boundary is malformed.
+
+**Verified fix:** Fetch the current body, replace the exact malformed sequence
+with the same prose followed by a blank line and the next heading, then compare
+the API readback byte-for-byte with the intended body. Do not rewrite unrelated
+sections, comments, Project fields, or relationships.
+
+**Regression verification:** Fetch the body through the GitHub API and assert
+that the affected section does not end with a code fence, the next heading is
+preceded by a blank line, and the API readback matches the submitted body
+exactly.
+
+## Python urllib Does Not Use the Platform Trust Store
+
+**Description:** A Python provider using `urllib.request.urlopen` can fail TLS
+certificate verification even when DNS, TCP, curl, and an authenticated provider
+CLI all reach the same HTTPS endpoint successfully. The provider then reports a
+network or timeout result, making a fail-closed live conformance check remain
+undetermined. Python's default SSL context may use a CA source that differs from
+the operating system trust store.
+
+**Verified fix:** Add an exact `truststore` dependency and pass a request-local
+`truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)` to `urlopen`. Keep certificate
+and hostname verification enabled, do not mutate global SSL state, and classify
+direct or `URLError`-wrapped `SSLCertVerificationError` failures separately from
+ordinary network and timeout failures.
+
+**Regression verification:** Test the exact context passed to `urlopen`, direct
+and wrapped certificate-verification failures, unchanged timeout/network/HTTP
+classification, and the absence of global SSL injection or verification bypass.
+Run the provider against the real public endpoint and require the consumer's
+complete fail-closed integrity suite to report a determined satisfied result.
+
+## Python HTTPS Validation Fails When the Default CA Bundle Is Missing
+
+**Description:** A Python `urllib` provider check can report a generic network
+or timeout failure even though DNS and the remote API are healthy. The wrapped
+cause is `SSLCertVerificationError`, the active default SSL context contains no
+certificate authorities, and the interpreter's expected `cert.pem` is absent.
+`pip install` may still work because pip carries a separate vendored CA bundle.
+
+**Verified fix:** Run the certificate-installation command supplied by the
+active Python distribution. For the python.org macOS distribution, this is
+`Install Certificates.command`; it installs or updates `certifi` and binds the
+interpreter's default OpenSSL CA path to that maintained bundle. Do not disable
+TLS verification or treat a pip download as proof that standard-library HTTPS
+trust is configured.
+
+**Alternative verification:** Require the default SSL context to load a
+non-empty CA set, call the affected HTTPS checker without environment overrides,
+and run the complete canonical validation suite. Confirm independently that the
+same API endpoint is reachable and returns the expected provider data.
+
+## Mechanical Construction Synchronization Invents Derived Dependency Authority
+
+**Description:** A mechanical construction synchronization can choose an
+unapproved compatibility/version bump, copy selected dependency facts into a
+non-authoritative construction plan, and rewrite a downstream dependency Issue
+without preserving the exact execution-identity contract.
+
+**Verified fix:** Apply the explicitly authorized SemVer transition and
+synchronize every consumer. Keep the active System Brief as the canonical owner
+of selected dependency facts; make construction plans reference that owner
+without manually copying mutable package, revision, runtime, or Issue facts.
+Preserve the exact downstream execution mapping, including runner Execution,
+protocol attempt, cognitive-call identity, direct invocation, provider attempts,
+and the distinction between call identity and provider response identity.
+
+**Regression verification:** Assert the exact published versions and consumer
+references, assert that the construction plan contains no selected dependency
+identity or live Issue reference, and inspect the downstream Issue body for the
+complete identity mapping and `call_id != provider response identity`. Run the
+canonical repository-integrity suite and verify unrelated Project fields and
+native relationships remain unchanged.
+
+## Canonical JSON Value Artifacts Are Rejected as Documents
+
+**Description:** A checker can reuse a canonical JSON document loader for an
+artifact whose construction contract requires canonical JSON value bytes. The
+semantic JSON is identical, but the loader incorrectly requires one trailing
+newline and rejects the valid no-newline artifact.
+
+**Verified fix:** Keep document and value serialization explicit. Preserve the
+existing document loader for artifact classes that require a trailing newline,
+and use a dedicated value loader for the no-newline artifact class. Do not
+canonicalize raw producer output.
+
+**Regression verification:** Prove both sides of the byte boundary: canonical
+value bytes without a newline must pass end to end, while the same semantic JSON
+with exactly one trailing newline must fail with the value-serialization
+diagnostic. Retain packet tests proving document serialization still requires
+its newline.
+
+## Late Lifecycle Events Read Invalidated Pi Extension Contexts
+
+**Description:** A session replacement or reload can invalidate an extension
+context while an old-runtime lifecycle event such as `agent_settled` remains
+queued. A handler that reads `ctx` before checking its shutdown state then throws
+Pi's stale-context error even though no post-shutdown work remains.
+
+**Verified fix:** Clear an extension-local activity sentinel during
+`session_shutdown`. In potentially late handlers, check that local sentinel
+before any `ctx` access and return immediately when the extension is inactive.
+Do not catch or suppress the stale-context error, and do not retain the old
+context for post-replacement work.
+
+**Regression verification:** Run each real extension handler through
+`session_shutdown` with an active context, then dispatch `agent_settled` with a
+context proxy that throws on every property read. The late event must complete
+without reading the proxy, while the existing active-settlement tests continue
+to verify normal completion and refresh behavior.
+
+## Immutable Validation Oracles Are Recomputed for Every Fixture
+
+**Description:** A large validation test suite can call one complete checker for
+hundreds of isolated fixtures while the checker embeds expensive immutable
+self-conformance oracles. Parsing caches do not address this cost: every fixture
+recomputes the same semantic corpus, and nested identity resolution may also
+rebuild the same admission index repeatedly. One test file can consequently run
+for hours even though no individual test is blocked.
+
+**Verified fix:** Cache immutable oracle results process-locally by the exact
+bytes of every dependency actually read and by the oracle implementation
+identity. Never cache when a dependency is missing, unreadable, non-regular, or
+reached through a symlink. Preserve dynamic manifest and evidence validation
+outside the cache. Cache derived indexes only against an exact deep snapshot of
+their authoritative source state, so direct mutations invalidate them. Build
+committed Git fixtures once and materialize isolated linked worktrees, and reuse
+preloaded generic governance only when the fixture's complete governance corpus
+is byte-identical.
+
+**Regression verification:** Prove cache hits on identical content, invalidation
+on content changes and direct state mutation, preservation of cached errors,
+and fail-closed behavior for missing, recursive, or symlinked dependencies.
+Retain end-to-end tests that mutate protocol artifacts and governance routes,
+then run the complete canonical integrity suite and compare wall-clock time with
+the reproduced baseline.
+
+## Git Line Framing Removal Strips Valid Path Bytes
+
+**Description:** A Git command that emits a filesystem path followed by one LF
+framing delimiter can return a path whose own final character is CR, LF, ASCII
+space, or TAB. Applying `strip()`, `rstrip()`, `splitlines()`, or CRLF-wide
+normalization removes valid path bytes and can reject an exact worktree root.
+
+**Verified fix:** Require the output to end in LF, remove exactly that one final
+byte, and decode or compare every preceding byte unchanged. Treat missing final
+LF as malformed output and fail through the controlled error boundary. Do not
+reconstruct or normalize the path.
+
+**Regression verification:** Create real committed Git worktrees ending in CR,
+LF, ASCII space, and TAB. Assert `git rev-parse --show-toplevel` returns the
+byte-exact path plus one LF, exact-root validation succeeds, and nested-root
+validation fails. Add a separate mocked no-final-LF response to prove malformed
+framing fails closed.
+
+## Append-Only Archive Tests Hardcode the Former Latest Entry
+
+**Description:** Tests for an append-only report archive can hardcode the latest
+report ID, observation window, and predecessor. The suite passes until the next
+valid report is published, then positive fixtures target stale continuity and
+fail despite correct production behavior.
+
+**Verified fix:** Discover the latest archive through the production history
+index, derive the synthetic candidate's predecessor and period start from that
+entry, and generate a strictly later fixture identity. Keep stable historical
+IDs only where a test intentionally targets immutability of that exact entry.
+
+**Regression verification:** Publish or fixture an additional valid archive
+entry, then run the complete suite. History-index tests must identify the new
+last entry, positive continuity fixtures must follow it, and negative missing-
+actor and cursor-advance oracles must remain failing for their intended reasons.
+
+## Root-Only Administrative Guards Miss Resolved Nested Boundaries
+
+**Description:** A filesystem observation guard can reserve an administrative
+entry name at every lexical path depth while physically protecting only the
+repository root's instance. On a case-insensitive filesystem, a nested
+case-variant path can then enter a nested administrative directory. A symlink
+into a sibling nested administrative subtree can bypass the guard on every
+filesystem.
+
+**Verified fix:** Walk only the current capability-resolved candidate ancestry.
+At each participating parent, enumerate directory entries and require exact
+native-name equality before opening the protected administrative entry. Apply
+the existing platform identity classifier to that entry. Do not case-fold,
+infer generic aliases, scan the worktree recursively, or treat the containing
+directory as a discovered nested repository.
+
+**Regression verification:** On case-insensitive hosts, reject mixed-case paths
+that physically enter a nested exact administrative entry. On case-sensitive
+hosts, prove a distinct stored case variant remains observable and
+content-sensitive. On Unix, reject a tracked symlink into a sibling nested
+administrative subtree before absent-path handling. Include native Windows
+runtime tests for nested directory-form and file-form administrative aliases.
+
+## Process Observation Failures Masquerade as Process Absence
+
+**Description:** Process supervision can translate a failed or malformed `ps`
+observation into `None` or an empty member list. Termination then reports success
+while an owned process or descendant may still be alive. Separately, comparing
+raw `lstart` text can reject the same process because day-of-month padding or
+other whitespace differs between process-table queries.
+
+**Verified fix:** Distinguish proven `ESRCH` absence from indeterminate
+observation. Use one bounded, locale-fixed process-table adapter; reject launch,
+timeout, nonzero-exit, empty-table, and malformed-row outcomes with a typed
+ownership error. Normalize every observed and expected birth identity by
+compressing whitespace before exact comparison, without rewriting durable
+receipts. Never signal after identity observation becomes indeterminate.
+
+**Regression verification:** Inject process-probe and process-table outcomes
+through the real supervisor module. Cover live-process failures, `EPERM`, initial
+and concurrent `ESRCH`, malformed global rows, zombies with active descendants,
+zero signals after unknown identity, padded one-digit dates, exact date/time
+mismatches, legacy receipt compatibility, TERM-to-KILL escalation, and
+controller resume with unchanged state and no second launch.
+
+**Follow-up — PID/PGID reuse:** Treat a valid numeric process group as
+insufficient ownership evidence. Ignore malformed birth/state details only for
+rows whose strict PID and PGID prove they are outside the target group, and
+permit at most one complete retry of a targeted `malformed-response`. Never
+signal from reconciliation after the receipt-bound leader is absent. Restrict
+termination to a living supervisor that still owns the unreaped child
+lifecycle, and never let a generic command runner signal a group after the root
+process has emitted `exit`.
+
+**Follow-up verification:** Cover leaderless PGID reuse, reuse after valid entry,
+new members between TERM and KILL, chained transient observations, zero
+reconciliation signals, living-supervisor cleanup, and root-exited descendants
+that remain alive until explicitly cleaned by their test owner.
+
+## Moving a Runtime Directory Splits Locks and Embedded Path State
+
+**Description:** Renaming an application runtime directory can appear atomic
+while leaving multiple non-atomic identities behind. Configuration, virtual
+environments, Git linked-worktree pointers, scheduler material, durable state,
+and lock paths may retain the old absolute root. A process that loaded the old
+configuration before the rename can recreate the source and acquire a distinct
+lock, while a crash during pointer or configuration repair can wedge every
+retry.
+
+**Verified fix:** Hold a stable POSIX gate outside both roots before loading
+configuration, then acquire the ordinary state lock. Validate physical paths,
+terminal state, scheduler absence, same-filesystem layout, and exact
+configuration bytes before mutation. Hide configuration behind a durable
+transaction barrier, use atomic no-replace root rename, rebase only exact known
+defaults, recreate the venv, and repair only one-to-one qualified Git pointer
+bindings. Keep pointer staging outside worktrees, bind it to a durable sidecar,
+and publish pointer changes with atomic exchange plus post-exchange byte/mode
+validation and rollback. Rebase historical operational paths only in memory;
+do not rewrite receipts, sessions, states, logs, or evidence.
+
+**Regression verification:** Exercise source/target collisions, symlink and
+symlink-before-`..` aliases, lock loss, every rename/config/pointer/staging crash
+boundary, short writes, mode changes under restrictive umask, internal and
+external repositories, unrelated worktrees, ownership-marker files, partial
+venvs, malformed durable state, explicit and empty overrides, and hard process
+termination. After a real migration, compare an immutable byte manifest,
+require all linked worktrees to resolve at the new root, prove no legacy venv
+paths, rerun the full suite with default configuration, and confirm scheduler
+state is unchanged.
