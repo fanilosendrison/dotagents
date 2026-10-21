@@ -1,8 +1,18 @@
+---
+okf_version: "1.0"
+kind: "KnowledgeAsset"
+asset_type: "guide"
+domain: "agent-enforcement"
+severity: "strict"
+name: "Command and Tool Validator"
+---
+
 # Command & Tool Validator
 
-Prevents execution of **destructive or dangerous bash commands** and blocks
-usage of **modification tools** unless the runtime's permission checker says
-the current session is authorized.
+Classifies **destructive or dangerous bash commands** and blocks usage of
+**modification tools** unless the runtime's permission checker says the current
+session is authorized. Each runtime owns the final policy for commands that the
+shared validator classifies as `HIGH` with `action: "ask"`.
 
 The validator has been refactored into two specialized validators:
 - **BashValidator** — validates bash commands against security rules
@@ -62,9 +72,11 @@ Irreversible destructive patterns (non-exhaustive):
 | **cat /etc/shadow** | `cat /etc/shadow` | `cat\s+\/etc\/(passwd\|shadow\|sudoers)` |
 | **Netcat reverse** | `nc -l -e /bin/bash` | `nc\s+.*-l.*-e` |
 
-### HIGH — Asks for confirmation
+### HIGH — Runtime-specific policy
 
-Potentially dangerous but sometimes legitimate commands:
+Potentially dangerous but sometimes legitimate commands return
+`action: "ask"` from the shared validator. Pi allows them silently, Claude Code
+asks interactively, and Codex requires a one-shot approval token.
 
 | Command | Risk |
 | ------- | ---- |
@@ -92,6 +104,10 @@ All three runtimes share the same rules defined in `~/.agents/agent-enforcers/co
 - **NETWORK_COMMANDS**: `nc`, `netcat`, `nmap`, `telnet`, `ssh-keygen`, `iptables`, `ufw`, `firewall-cmd`, `ipfw`
 - **SYSTEM_COMMANDS**: `systemctl`, `service`, `kill`, `killall`, `pkill`, `mount`, `umount`, `swapon`, `swapoff`
 - **DANGEROUS_PATTERNS**: 50+ regex patterns covering destructive writes, pipes to shell, crypto miners, docker prunes, kernel module loading, cron injection, credential dumping, Prisma destructive resets, and more
+
+The historical `CRITICAL_COMMANDS` name does not itself determine severity. A
+bare command-name match returns `HIGH` with `action: "ask"`; a matching
+`DANGEROUS_PATTERNS` entry produces the `CRITICAL` denial.
 
 The Pi extension does not add its own patterns — it imports the shared core validator directly.
 
@@ -135,7 +151,7 @@ Relative-path writes after `cd` to a protected directory are also not caught
 | Situation | Behavior |
 | --------- | -------- |
 | `rm -rf /` | ❌ Block: "Destructive command blocked" + violation list |
-| `sudo apt update` | ⚠️ **UI Dialog**: `ctx.ui.confirm("Dangerous command", ...)` → if refused, block |
+| `sudo apt update` | ✅ Allowed silently; telemetry retains `HIGH` severity and reason |
 | `ls -la` | ✅ Passes |
 | `chmod +x script.sh` | ✅ Passes (whitelisted) |
 | Restricted tool (Write/Edit) without permission in the same Pi session | ❌ Block: "Permission denied" |
@@ -169,8 +185,8 @@ Each runtime logs validation events to its own path:
 The Codex hook and Pi extension build telemetry details through the same runtime
 contract helper. That helper owns command truncation, reason joining, severity
 inclusion, approval metadata, and target detection for bash versus restricted
-tools. The final approval mechanism is still runtime-specific: Pi can ask through
-`ctx.ui.confirm`, while Codex uses a one-shot `allow-command <token>` retry flow.
+tools. The final policy remains runtime-specific: Pi maps `ask` to `allow`
+silently, while Codex uses a one-shot `allow-command <token>` retry flow.
 
 | Runtime | Log path | Format |
 | ------- | -------- | ------ |
@@ -204,7 +220,7 @@ command-validator/
      never allowed — read the file if you need its contents, but do not attempt to
      modify, move, or overwrite it.
 2. **HIGH (ask):**
-   - **Pi:** a UI dialog appears — respond in the dialog
+   - **Pi:** the command is allowed silently; no user action is required
    - **Claude Code:** Claude Code prompts the user via `permissionDecision: "ask"` — the user confirms or denies inline
    - **Codex:** the error contains a token `allow-command <token>` — ask the user to approve. The user must type `allow-command <token>` to call `approveToken()`, then re-run the command so `consumeOverride()` finds the approved entry.
 3. **Permission denied (/go missing):** if a write tool is blocked (`ToolPermissionValidator`), ask the user to type `/go` in their next message. This triggers the `/go` skill which loads `operational-rules/implementation.md` and unlocks implementation authorization.
