@@ -5,11 +5,7 @@ import type {
 	ValidationSeverity,
 } from "./types.ts";
 
-export type RuntimeValidationAction =
-	| ValidationAction
-	| "ask_approved"
-	| "ask_rejected"
-	| "override_approved";
+export type RuntimeValidationAction = ValidationAction | "override_approved";
 
 export type RuntimeUserResponse = "yes" | "no";
 
@@ -40,7 +36,6 @@ export interface RuntimeValidationDetails {
 }
 
 const RAW_COMMAND_LIMIT = 500;
-const CONFIRMATION_COMMAND_LIMIT = 100;
 
 export function shouldValidateRuntimeTool(
 	toolName: string,
@@ -126,8 +121,4 @@ export function formatCodexPendingApprovalMessage(
 		"To allow this command once, reply:",
 		`allow-command ${token}`,
 	].join("\n");
-}
-
-export function formatPiConfirmationMessage(rawCommand: string): string {
-	return `Allow: ${rawCommand.slice(0, CONFIRMATION_COMMAND_LIMIT)}`;
 }

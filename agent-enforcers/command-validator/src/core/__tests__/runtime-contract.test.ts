@@ -4,7 +4,6 @@ import {
 	createRuntimeValidationDetails,
 	formatCodexDenyMessage,
 	formatCodexPendingApprovalMessage,
-	formatPiConfirmationMessage,
 	formatValidationReason,
 	shouldValidateRuntimeTool,
 } from "../runtime-contract.ts";
@@ -66,7 +65,6 @@ describe("command-validator runtime contract", () => {
 	test("formats shared reasons and runtime messages", () => {
 		assert.strictEqual(formatValidationReason(deniedResult), "first violation; second violation");
 		assert.strictEqual(formatValidationReason(deniedResult, ", "), "first violation, second violation");
-		assert.strictEqual(formatPiConfirmationMessage("x".repeat(120)), `Allow: ${"x".repeat(100)}`);
 		assert.ok((formatCodexDenyMessage("rm -rf /tmp/stuff", deniedResult)).includes("Severity: CRITICAL"));
 		assert.ok((formatCodexPendingApprovalMessage("sudo ls", deniedResult, "token")).includes("allow-command token"));
 	});
