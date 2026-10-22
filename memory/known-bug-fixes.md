@@ -996,3 +996,28 @@ adapter to create a relative link to a sibling carrier. Require symlink metadata
 canonicalization, dereference, byte equality with the carrier, and preservation
 of exact content bytes. Retain an Ubuntu comparison and any higher-level test
 whose expected stage depends on successfully reading through the link.
+
+## Reloading a Published Harness Fix Uses the Stale Local Checkout
+
+**Description:** A harness fix can be published and verified on the remote while
+the persistent local checkout remains behind because unrelated modifications
+make automatic fast-forward reconciliation unsafe. Reloading a harness session
+then reloads the stale local extension rather than the published revision, so
+old behavior remains visible. Each running session also owns its loaded
+extension instance and must reload independently.
+
+**Verified fix:** Never overwrite, stash, or commit the unrelated checkout state.
+Use the runtime's exact resource exclusion and local-extension inclusion
+mechanisms to disable the stale auto-discovered extension and load an immutable
+projection of the verified published commit. Preserve the gateway directory
+shape and dependency symlinks required by relative imports. Verify the projected
+blob identities against Git. Remove the override after the persistent checkout
+can be safely fast-forwarded, then reload every active session.
+
+**Regression verification:** Resolve resources through the production package
+manager and require exactly one enabled instance of the affected extension, with
+the stale auto-discovered path disabled. Load that enabled module through the
+production TypeScript loader and exercise its real handler: high-risk commands
+must not open a confirmation, critical commands must remain blocked, restricted
+modification tools must still require authorization, and telemetry must retain
+the expected severity and final action.
