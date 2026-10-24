@@ -72,6 +72,60 @@ This applies to, among other things:
 - unrelated refactoring opportunities,
 - dependency issues.
 
+### Handling test failures discovered during unrelated work
+
+1. Preserve the failing command, complete output, exit code, test identity,
+   toolchain, relevant environment, and source revision.
+2. Determine whether the failure was introduced by the current task, affects a
+   required guarantee or acceptance criterion of the current task,
+   demonstrably predates the current task and is independent of its changes, or
+   remains undetermined.
+3. If the current task introduced the failure, fix it before publication.
+4. If the failure affects a guarantee required by the current task, resolve it
+   before publication, regardless of whether it predates the task.
+5. If the failure is independently established as pre-existing and unrelated,
+   identify the repository responsible for the failing component; search open
+   and closed GitHub Issues for the same unresolved defect; reuse an existing
+   applicable Issue when one exists, or create a new Issue in the owning
+   repository; verify the resulting Issue through a fresh GitHub read; and
+   preserve its canonical URL in the task report.
+6. Include the following in a new Issue: the observable failure; exact
+   reproduction command; expected and observed behavior; baseline revision;
+   toolchain and relevant environment; exact failure or timeout; evidence
+   establishing pre-existence; evidence establishing independence from the
+   active task; currently known and unknown causes; affected component; bounded
+   acceptance criteria; and required validation.
+7. Do not invent a root cause. An observed timeout can justify an investigation
+   Issue without proving the underlying defect.
+8. Do not create duplicate Issues. Do not automatically reopen a closed Issue
+   without verifying whether its resolution remains valid.
+9. Use the existing repository-declared Issue and Engineering Project workflow
+   when available. Respect its vocabulary, ownership, classification, and
+   native relationship rules. If no Engineering Project profile exists, create
+   or reuse the GitHub Issue without inventing Project membership or fields.
+10. Verify Issue creation or reuse before applying the unrelated-failure
+    exception. If GitHub is unavailable, the owner is unresolved, or tracking
+    cannot be verified, stop.
+11. Treat Issue routing as durable tracking, not repair. The defect remains
+    outstanding until its own acceptance criteria and validation are satisfied.
+12. After successful routing, proceed with unrelated work only when independence
+    is supported by reproducible evidence; all relevant tests and acceptance
+    criteria of the current task pass; no required correctness, safety, or
+    security guarantee is compromised; no more specific unconditional
+    publication requirement prohibits proceeding; the full-suite failure
+    remains explicitly disclosed; and the Issue URL is recorded.
+13. Never label an entire test suite as passing when any test failed.
+14. If the failure's relationship to the current task remains uncertain, stop.
+    Never treat uncertainty as independence.
+15. Do not create a native blocked-by relationship merely because two Issues are
+    related. Create one only when there is a real execution prerequisite.
+16. Apply this procedure to confirmed flaky tests, retaining evidence of
+    inconsistent results on equivalent revisions and environments.
+17. Apply this routing obligation automatically to future tasks. It does not
+    require separate user approval to create an Issue for a validated unrelated
+    defect when ordinary GitHub mutation permission has already been granted for
+    the active task.
+
 ### Git Workspace Isolation
 
 For every implementation task in an ordinary Git repository, use one private,
@@ -197,9 +251,9 @@ user state.
 
 ## 3. Strict Prohibitions (What You Must NEVER Do)
 
-- Never ignore a failing test.
-  - If the failure was caused by your changes, fix it before completion.
-  - If it is pre-existing and unrelated to the approved task, report it explicitly and do not modify unrelated behavior without approval.
+- Never ignore a failing or flaky test. Apply the canonical classification,
+  Issue-routing, and publication procedure under Scope Discipline, and never
+  represent failed validation as passing.
 - Never use weak generic types (`any`, `Object`, `interface{}`, `dynamic`) without commenting your justification.
 - Never put domain or application business logic in the infrastructure layer.
 - Never create files whose names no longer accurately describe their content — split them.

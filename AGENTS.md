@@ -15,7 +15,7 @@ This file is your map to `~/.agents/` — your core brain and governance center.
   - SARIF, JUnit XML, TAP, LCOV, or Cobertura for tool reports.
   - Official provider APIs instead of scraping web UIs.
   - Official language or package-manager CLIs instead of custom dependency or lockfile parsers.
-- Apply high standard to engineering excellence. If you see a test failure or test flakiness, even if it is not caused by what you are working on right now, you must still get it fixed.
+- Never ignore a failing or flaky test. Apply the test-failure classification, mandatory Issue routing, and publication rules in `operational-rules/code-implementation.md`. Fix failures attributable to the current change or affecting its required guarantees. Independently established, pre-existing, unrelated failures must be tracked through a verified GitHub Issue before unrelated work can proceed. Never represent failed validation as passing.
 
 
 ---
