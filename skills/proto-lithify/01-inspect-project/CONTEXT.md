@@ -70,9 +70,11 @@ To add an already validated Issue to the Project, invoke:
   --project-owner "<project-owner>" \
   --project-number "<project-number>" \
   --repo "<owner/repository>" \
-  --issue "<issue-number>" \
-  --issue-url "<absolute-issue-url>"
+  --issue "<issue-number>"
 ```
+
+The adapter derives the GitHub Issue URL exclusively from the validated
+`--repo` and `--issue` values. Do not supply an independent Issue URL.
 
 Treat `noop` as success only when the receipt proves the requested current
 state. For `applied`, require a verified fresh postcondition. Re-read the Issue
