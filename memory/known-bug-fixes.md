@@ -1021,3 +1021,365 @@ production TypeScript loader and exercise its real handler: high-risk commands
 must not open a confirmation, critical commands must remain blocked, restricted
 modification tools must still require authorization, and telemetry must retain
 the expected severity and final action.
+
+## Better-SQLite3 PRAGMA Reads Inherit Default Safe Integers
+
+**Description:** After `Database#defaultSafeIntegers(true)`, integer-valued
+`Database#pragma(..., { simple: true })` reads return JavaScript `bigint`
+values. Exact comparisons against number literals therefore fail even though
+the values are numerically equivalent. Text-valued PRAGMAs such as
+`journal_mode` remain strings.
+
+**Verified fix:** Compare integer PRAGMA results with exact bigint literals such
+as `1n`, `2n`, `5000n`, and `0n`, while comparing `journal_mode` with its exact
+string. Do not disable safe-integer mode for PRAGMA verification or infer the
+effective setting from SQL text, messages, or logs. This follows from
+`Database#pragma` creating an internal statement that inherits the database's
+default safe-integer mode.
+
+**Alternative verification:** When the authorized scope cannot add executable
+tests, reproduce the behavior against the exact selected Better-SQLite3,
+bundled SQLite, and Node versions. Verify every effective connection profile
+with scalar PRAGMA reads, audit that only an explicitly rejected anti-example
+uses number literals, and run the repository's complete integrity suite.
+
+## Credential Lock Permission Does Not Authorize Credential Persistence
+
+**Description:** A macOS sandbox can permit an OAuth credential store's lock
+directory while still denying the store's direct write to the credential file.
+Lock acquisition then succeeds, but refresh persistence fails with `EPERM`; a
+successful read-only auth check does not detect the missing write capability.
+
+**Verified fix:** Preserve the existing lock-directory exceptions and add an
+exception for only the literal credential-file path. Do not authorize its
+parent, a `subpath`, wildcard, temporary file, backup, adjacent JSON file, or
+other account configuration. Confirm first that the installed store writes the
+live file directly and does not use rename or temporary-file publication.
+
+**Regression verification:** Generate the production profile under a fixture
+`HOME` and use the real platform sandbox with inert credentials. Prove existing
+file persistence, exact-file creation, lock operations, and fresh-process
+readback. Independently require `EACCES` or `EPERM` for pre-existing neighbours,
+an absent new neighbour, and sensitive reads, including a home path with spaces
+and quotes. Provider refresh remains a separate live qualification.
+
+## Prepared State Rejects a Product Observation Missing Its Internal Baseline
+
+**Description:** A controller can observe only external product revisions, pass
+that object unchanged through execution-context construction, and then fail when
+persisting a prepared run because durable-state validation also requires the
+exact internal attempt baseline. Unit tests can miss the production mismatch by
+injecting an already-complete product object.
+
+**Verified fix:** Keep external product observation responsible only for the
+external repositories. At the context boundary that owns the attempt baseline,
+reject any supplied own `internal` property that differs from that baseline and
+return a fresh product object with `internal` bound to the exact attempt
+baseline. Do not weaken durable-state validation or re-observe the controller's
+current internal `HEAD`.
+
+**Regression verification:** Use real temporary Git repositories and Git
+`url.insteadOf` redirects in an isolated child process. Exercise the complete
+observation-to-context-to-preparation-to-state path, interrupted preparation and
+resume, contradictory supplied values, an internal main that advances beyond a
+detached attempt baseline, and byte-preserving rejection by the unchanged state
+validator.
+
+## Resolving a Virtual-Environment Launcher Drops Its Environment Identity
+
+**Description:** A process controller can accept an absolute virtual-environment
+Python launcher and call `Path.resolve()` before execution. Because the launcher
+is normally a symlink to the base interpreter, the resolved executable starts
+without the virtual environment's prefix and site packages. A child that should
+enter standby can instead fail during import with `ModuleNotFoundError`.
+
+**Verified fix:** Preserve and execute the validated absolute launcher path
+lexically. Resolve it only into a separately labeled diagnostic value; never use
+the resolved target as the executable. Continue validating that the supplied
+launcher exists and is absolute.
+
+**Regression verification:** Execute the lexical launcher in a child process and
+require both virtual-environment identity and import of an environment-only
+dependency. Reproduce that the resolved target lacks that dependency, then run
+the real controller and require its reported launcher path to remain lexical
+through successful child standby and completion.
+
+## Rejected Candidate Retries Lose the Controller Diagnostic
+
+**Description:** A durable workflow can preserve a rejected candidate for a new
+author attempt while omitting the validator's exact diagnostic from the rebuilt
+execution context. The author sees the old candidate but not the reason it was
+rejected, so a normal retry can repeat semantic continuity errors.
+
+**Verified fix:** At the context boundary, include a non-empty prior controller
+diagnostic only when a preserved candidate is actually available. Serialize the
+diagnostic as one JSON string, label it explicitly as untrusted data, and pass
+it through both fresh attempt preparation and prepared-prompt reconstruction.
+Do not persist a second diagnostic field, truncate the text, weaken validators,
+or reset retry counters and author budgets.
+
+**Regression verification:** Use real temporary Git repositories, a byte copy
+of the real archive, the real state store, and candidate fixture files. Cover
+multiline and instruction-like diagnostics, preparation with and without a
+candidate, interruption and resume, prompt reconstruction, exact identity and
+budget preservation, and byte-identical original prompt and validators.
+
+## Evidence Digests Fail on Mixed Runtime Object Graphs
+
+**Description:** An external qualification harness can hash a genuine runtime
+object graph with plain `json.dumps`. The graph may contain validators, tuple
+mapping keys, sets, bytes, or other non-JSON runtime values even when its domain
+data is JSON-compatible, causing evidence construction to fail only after an
+expensive genuine execution. A `default=` callback handles unsupported values
+but does not handle unsupported mapping keys.
+
+**Verified fix:** Keep domain serialization and observational evidence hashing
+separate. For evidence-only graph comparisons, recursively project mappings to
+sorted key/value entry sequences, preserve JSON values, encode bytes and
+containers deterministically, and represent every remaining non-JSON leaf by a
+fully qualified type token. Never include `repr` output that may contain
+process-specific addresses. Do not use this projection as a product identity or
+canonical domain serialization.
+
+**Regression verification:** Hash two independently allocated instances of the
+same non-JSON runtime type under equal tuple-keyed mappings and require equal
+digests, then execute the genuine end-to-end evidence path containing the real
+runtime objects.
+
+## Lowercase Parameter Expansion Fails on macOS Bash 3.2
+
+**Description:** A shell loop can use Bash 4's `${name,,}` expansion to derive a
+lowercase output filename. The default Bash on supported legacy macOS is 3.2,
+which exits with `bad substitution` before running the enclosed command and can
+leave an orchestration sequence partially applied.
+
+**Verified fix:** Use explicit static output filenames for a fixed operation set,
+or perform case conversion through a portable external operation when inputs are
+genuinely dynamic. Do not depend on Bash 4-only parameter transformations in
+macOS orchestration commands.
+
+**Regression verification:** Execute the real command sequence with the platform
+`/bin/bash`, require every expected output receipt, and verify the resulting
+remote state independently after a reproduced partial attempt.
+
+## Qualification Harness Assigns a Witness to the Wrong Validation Owner
+
+**Description:** A qualification harness can require one target oracle to reject
+a mutation whose actual purpose is to prove dependency invalidation. A
+semantics-neutral metadata change may correctly leave that oracle green while
+adjacent exact-artifact validators fail closed, causing the harness to report a
+false evidence failure.
+
+**Verified fix:** Classify the witness by its source-owned responsibility before
+evaluating it. Preserve the target oracle's genuine unchanged result, require
+the exact fail-closed diagnostics from the boundaries that own byte identity,
+and keep cross-boundary coverage substitution `UNDETERMINED` unless separately
+proved. Never rerun an exhausted witness merely to repair its classification.
+
+**Regression verification:** Apply a genuine dependency-content mutation that
+preserves schema semantics. Require the semantic oracle to remain green, the
+actual exact-artifact owners to emit their diagnostics, and the pure evidence
+classifier to accept both facts while preserving the original raw run.
+
+## Regex Backtracking Broadens a Malformed Structured Prefix
+
+**Description:** A regex that recognizes a hierarchical token with optional
+segments and then asserts a word boundary can backtrack after the longest token
+fails its boundary. A malformed value such as `2.2Afoo` may therefore be
+accepted as ancestor `2` when the intervening dot satisfies the boundary,
+turning malformed input into broader authority.
+
+**Verified fix:** Parse the maximal structured candidate deterministically with
+ASCII-specific grammar, validate the scalar immediately following that complete
+candidate, and reject the complete candidate when the continuation is
+alphanumeric or underscore. Never retry or reinterpret an ancestor prefix.
+
+**Regression verification:** Cover valid bare, dotted, and terminal-uppercase
+forms; punctuation boundaries; malformed alphanumeric and underscore suffixes;
+Unicode alphanumeric suffixes; and non-ASCII digits. Also exercise the real
+downstream authorization or hierarchy check so malformed input cannot pass by
+resolving to an ancestor.
+
+## Unobserved Fixture Rejections Leave Polling Tests Unbounded
+
+**Description:** A concurrency test can start an asynchronous fixture, poll a
+boolean until its callback enters, and observe the fixture promise only after
+that loop. If acquisition rejects before entry, the rejection is initially
+unobserved and the loop has no terminal condition. The test reports an
+unhandled rejection and can retain helper operations until an external timeout.
+
+**Verified fix:** Attach fulfilled and rejected outcome handlers immediately
+when creating the first fixture promise. Race callback entry against that
+non-rejecting outcome, bound entry and final settlement independently, and
+release the held callback in `finally`. Preserve the primary operation error;
+when a distinct settlement error also occurs, report both without duplicating
+the same error object. Never remove fixture state after settlement becomes
+undetermined.
+
+**Regression verification:** Inject an acquisition rejection under strict
+unhandled-rejection handling and require bounded propagation of the identical
+error before the concurrent operation starts. Also cover synchronous failure,
+completion before entry, successful entry and release, operation failure,
+entry timeout, settlement timeout, combined primary and settlement errors, and
+the real lock-exclusion scenario followed by successful reacquisition.
+
+## Test Mutations Become No-Ops Under Restrictive Umasks
+
+**Description:** A filesystem race or integrity test can apply a fixed mode with
+`chmod` and assume that this changed the fixture. Under a restrictive umask, the
+fixture may already have that mode, so the injected mutation is a no-op and an
+expected fail-closed rejection never occurs.
+
+**Verified fix:** Set the fixture's precondition explicitly to a known distinct
+mode, read it back before starting the operation, then inject the target mode.
+Keep the original rejection and post-failure preservation assertions. Do not
+change production validation merely because an environment-dependent fixture
+failed to establish its intended mutation.
+
+**Regression verification:** Execute the real fixture test under a restrictive
+umask that would otherwise create the file at the target mode. Require the
+explicit initial-mode assertion, the injected distinct mode, the expected
+migration rejection, and preservation of the changed mode and transaction.
+Run the complete owning test file and broader targeted suite under that umask.
+
+## Relative Tool Paths Break After a Subprocess Working-Directory Change
+
+**Description:** A wrapper can validate a relative packet path successfully,
+then launch a subprocess with that packet as its working directory while still
+passing packet-derived relative paths as command arguments. Those arguments are
+resolved again from the new working directory, so an existing schema or output
+path becomes a nonexistent nested path and the tool fails before execution.
+
+**Verified fix:** Reject symlinked execution inputs, resolve the packet and
+program paths to strict absolute paths before validation or changing the child
+working directory, and derive every subprocess artifact path from the resolved
+packet root. Validate required input artifacts before starting the subprocess.
+
+**Regression verification:** Invoke the real wrapper with relative packet and
+program paths and a real subprocess fixture that checks the schema path from its
+actual working directory. Require the subprocess to observe an existing
+absolute schema path and an absolute output path rooted in the intended packet.
+
+## Nested Routing Coordinates Retain an Already-Supplied Mapping Prefix
+
+**Description:** A model loader can select a nested routing mapping, then pass
+that mapping to a generic resolver while also prefixing the route with the
+mapping's parent key. Resolution still reaches the expected target when the
+loader instead supplies the full document, but the retained route tuple uses a
+different coordinate basis from conforming implementations.
+
+**Verified fix:** Pass the selected nested mapping as the resolver input and
+construct route segments relative to that mapping. Do not strip or normalize a
+prefix after resolution, because that conceals the value retained by the
+resolver rather than correcting its input coordinates.
+
+**Regression verification:** Use one shared multi-route fixture whose oracle
+observes each resolver result's retained route, declared path, and relative
+target directly in independent implementations. Preserve the old observation
+shape by default, reject non-boolean observation controls, and confront the
+result against a real consumer containing every required route.
+
+## Optional JSON Schema Formats Silently Accept Invalid Values
+
+**Description:** A JSON Schema validator can receive a `FormatChecker` while the
+optional implementation for a declared format is absent. The checker then treats
+unknown formats as conforming, so invalid date-time strings pass schema-only and
+full validation. Permissive JavaScript date conversion can independently turn
+invalid strings into `NaN`, causing every ordered comparison to evaluate false.
+
+**Verified fix:** Install the maintained format extra at an exact validator
+version, then qualify one checker instance by verifying registration and both
+positive and negative functional probes before any validation mode can report
+success. In runtime comparisons, validate the complete lexical and Gregorian
+calendar form first, require a finite conversion, and compare nullable values
+against `null` explicitly rather than through truthiness.
+
+**Regression verification:** In isolated subprocesses, replace the checker with
+both an unregistered implementation and one that accepts every value; require a
+stable environment error and no valid result in every mode. Independently test
+every schema date-time field and runtime receipt timestamp, impossible calendar
+values, missing timezones, offsets, lowercase T/Z, nullable fields, and epoch
+zero. Retain a syntactically valid out-of-window case to prove chronology checks
+remain active after instant validation.
+
+## Protocol Deadlines Become Flaky When Coupled to Real Transport Latency
+
+**Description:** A test can configure a production protocol client with a very
+short deterministic request deadline while also spawning a real process and
+using native pipes. Under load, initialization or response transport may exceed
+the deadline before the intended protocol response is classified. The test then
+reports a timeout instead of the malformed or valid response it was meant to
+verify, and the timeout stack alone may not identify which operation expired.
+
+**Verified fix:** Test the short protocol deadline with the real client, a
+transport-only child double, and a controlled clock at the exact boundary. Keep
+separate real-process integration tests using the unchanged production timeout.
+Share response cases and fixture payloads across both layers, require exact
+error causes, and use bounded readiness, settlement, exit, and owned-child
+cleanup. Synthetic transport delays may prove the boundary separation but do
+not establish the cause of a historical flake.
+
+**Regression verification:** Cover every malformed response and valid control
+in both layers. In controlled time, prove pending state immediately before the
+deadline, timeout exactly at the deadline, initialization timeout, queue
+settlement, one failure notification, and no late replacement of the cause. In
+real transport, assert the production timeout is selected and verify delayed
+initialization and delayed responses still reach the exact protocol verdict.
+Run the complete serialized suite without retries, skips, or concurrency
+changes.
+
+## Mutable Prompt Metadata Does Not Bind Prompt Semantics
+
+**Description:** A packet verifier can validate immutable source snapshots and a
+packet identity while trusting prompt length and hash fields stored beside the
+prompt. Altering the prompt and updating those two mutable fields then passes
+verification without changing the original packet identity.
+
+**Verified fix:** Bind the complete prompt program to packet identity, including
+trusted mission and policy material, independently recompute program and source
+manifest identities, and reconstruct every expected prompt byte from those
+bound inputs and exact source snapshots. Compare actual prompt bytes to that
+reconstruction before checking declared hash and length.
+
+**Regression verification:** Build a legitimate packet containing CRLF source
+bytes, preserve every snapshot and the original packet identity, alter only the
+prompt, update its declared hash and length, and require verification to reject
+the content. Retain a positive CRLF packet test and reject attempts to alter the
+bound program.
+
+## Mutable Git Ref Lookup Produces an Incoherent Journal Snapshot
+
+**Description:** A journal reader can observe a branch ref at commit A and then
+retrieve content through the branch name after it advances to commit B. The
+reader returns B's state associated with A's SHA, so a subsequent
+compare-and-swap is based on a snapshot that never existed.
+
+**Verified fix:** Read the ref exactly once, validate the observed commit SHA,
+and retrieve journal content using that immutable commit SHA. Validate complete
+API response shape, Base64 encoding, canonical bytes, and embedded request
+identity before returning the commit/state pair.
+
+**Regression verification:** Deterministically return ref A, advance the branch
+to B, and make branch-name content resolve to B while commit-qualified content
+resolves to A. Require the reader to return A/A. Also cover coherent stale
+reads, competing non-fast-forward updates, and incomplete ref and content
+responses.
+
+## Abbreviated Task Updates Accumulate as Duplicate Rows
+
+**Description:** A live task widget can parse a detailed ledger but fail to
+reconcile later abbreviated updates when detailed identifiers use a colon, such
+as `T1 : description`, or updates group identifiers as `T1–T5` and `T6/T7`.
+Each update is then appended as a new row, inflating task and status counts.
+
+**Verified fix:** Parse the identifier expression independently from `:` or
+em-dash descriptions, normalize numeric ranges and slash-separated groups into
+canonical identifier sets, and apply each update to matching detailed tasks.
+Preserve the original task descriptions and attach explicit update text as
+detail rather than replacing or duplicating the task.
+
+**Regression verification:** Feed the production Markdown parser, reconciler,
+and renderer a detailed seven-task ledger followed by exact, ranged, and
+slash-group updates. Require seven final status rows, the original descriptions,
+the final per-task statuses, the explicit blocked detail, and no abbreviated
+range or group rows.
