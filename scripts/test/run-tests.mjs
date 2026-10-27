@@ -9,6 +9,7 @@ export const EXPECTED_NODE_TEST_FILES = Object.freeze([
 	"claude-facade/test/validation-chain.test.ts",
 	"test/platform-action.test.mjs",
 	"test/proto-lithify-routing.test.mjs",
+	"test/task-ledger-producer-contract.test.mjs",
 	"coding-standards-consolidate/src/__tests__/cli.test.ts",
 	"coding-standards-scanner/src/__tests__/grep-rules/abbreviations-denylist.test.ts",
 	"coding-standards-scanner/src/__tests__/grep-rules/any-without-justif.test.ts",
