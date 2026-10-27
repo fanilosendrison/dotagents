@@ -48,6 +48,31 @@ A trivial task is typically small (often fewer than 10 changed lines), but line 
   - The fallback changes only the progress-tracking mechanism. It does NOT waive approval, worktree-isolation, scope, validation, publication, or reporting requirements.
   - If neither `TaskCreate` nor an in-session Task Ledger can be maintained by the active harness, report `GAP` and do not implement.
 
+#### Task Ledger Producer Contract
+
+Every Task Ledger status transition MUST be emitted as a machine-parseable
+Markdown block in the same assistant message that announces or acts on the
+transition. A prose-only status statement does not satisfy this contract.
+
+Emit the transition block before status prose or the next tool call so passive
+consumers can observe the new state before subsequent work begins. Use this
+canonical shape for intermediate updates:
+
+```markdown
+**Task Ledger update**
+- `DONE` — T2
+- `IN_PROGRESS` — T3
+```
+
+Do not wrap the emitted Task Ledger block in a code fence. The fence above only
+documents the required source form. Use only `PENDING`, `IN_PROGRESS`, `DONE`,
+or `BLOCKED`; preserve the identifiers declared by the initial complete ledger.
+A `BLOCKED` update MUST include its reason on the same task line.
+
+Emit a complete Task Ledger before the final completion report. Intermediate
+updates MAY contain only the tasks whose status changed; the complete final
+ledger MUST include every execution unit and its final status.
+
 ---
 
 ## 2. Scope Discipline

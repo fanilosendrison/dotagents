@@ -4,6 +4,7 @@ This file is your map to `~/.agents/` — your core brain and governance center.
 
 ## General Guidelines
 - Do not implement anything without asking the user for explicit permission first, unless they have explicitly invoked `/go` (visible as `<skill name="go">` in the formatted prompt) in their message. Before using any file-modifying tool (Write, Edit, etc.), verify that `/go` or `<skill name="go">` is present in the user's message. If neither is present, you do NOT have authorization to implement — you may only read and analyze. Never self-trigger the `/go` skill.
+- When an in-session Task Ledger is active, follow the Task Ledger producer contract in `operational-rules/code-implementation.md`. A prose-only task-status statement never counts as a Task Ledger update.
 - When a repository declares a GitHub Engineering Project and the user mentions an Issue, Project item, backlog item, agent queue, or review finding, load `/proto-lithify` and the repository-specific Engineering Project profile.
 - Apply `/engineering-discovery-classification` whenever review, testing, analysis, implementation, integration, or governance work exposes a material discovery that could affect an authoritative contract, decision, verification or qualification claim, architecture commitment, conformance boundary, or repository-governance rule. Load only the action contexts required by that discovery.
 - When making technical decisions, do not give much weight to development cost. Instead, prefer quality, simplicity, robustness, scalability, and long term maintainability.

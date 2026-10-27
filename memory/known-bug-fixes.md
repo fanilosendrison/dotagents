@@ -1383,3 +1383,22 @@ and renderer a detailed seven-task ledger followed by exact, ranged, and
 slash-group updates. Require seven final status rows, the original descriptions,
 the final per-task statuses, the explicit blocked detail, and no abbreviated
 range or group rows.
+
+## Prose-Only Task Progress Leaves a Passive Ledger Stale
+
+**Description:** An agent can announce that one task completed and another
+started using ordinary prose without emitting a structured Task Ledger update.
+A passive widget has no authoritative status transition to consume, so it keeps
+showing the last structured state even though the surrounding narrative has
+advanced.
+
+**Verified fix:** Keep the widget strict and make the producer contract
+explicit. Emit a canonical, machine-parseable Task Ledger transition block in
+the same assistant message, before status prose or the next tool call. Require a
+complete final ledger and specify that prose alone never satisfies the update
+obligation.
+
+**Regression verification:** A repository test must require the always-loaded
+agent directives to route active ledgers to the canonical producer contract and
+must require that contract to contain the exact parseable transition shape,
+ordering requirement, code-fence prohibition, and complete-final-ledger rule.
