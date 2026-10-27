@@ -1402,3 +1402,24 @@ obligation.
 agent directives to route active ledgers to the canonical producer contract and
 must require that contract to contain the exact parseable transition shape,
 ordering requirement, code-fence prohibition, and complete-final-ledger rule.
+
+## Slash-Separated Task Descriptions Expand During Streaming
+
+**Description:** A Task Ledger reconciler can treat slash-separated prose such
+as `commit/publication` as a grouped identifier expression. One accidental
+abbreviated item then switches the complete ledger into update mode, where every
+unmatched task is appended again for each repeated streaming snapshot. A
+seven-task widget can consequently grow to more than one thousand rows.
+
+**Verified fix:** Accept single-letter symbolic identifiers and identifiers with
+numeric components, but reject multi-letter prose words as symbolic identifiers.
+Treat an implicit abbreviated update as such only when every incoming item is a
+valid task reference. Make unmatched updates idempotent by replacing an exact
+task match before appending a genuinely new task.
+
+**Regression verification:** Reconcile a complete ledger containing
+`commit/publication` 250 times and require byte-equivalent two-row state. Feed
+the exact seven-task production ledger through repeated `message_update` events
+and session restoration, requiring one live render and seven restored rows.
+Replay the captured streaming session character by character and require both
+the maximum and final row counts to remain seven.
