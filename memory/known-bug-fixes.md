@@ -1423,3 +1423,134 @@ the exact seven-task production ledger through repeated `message_update` events
 and session restoration, requiring one live render and seven restored rows.
 Replay the captured streaming session character by character and require both
 the maximum and final row counts to remain seven.
+
+## Descriptor Metadata Does Not Prove a Stable File Observation
+
+**Description:** A reader can validate a path against an open regular-file
+descriptor and compare descriptor metadata before and after reading, yet accept
+stale bytes after the path is rebound to another inode. A same-inode rewrite of
+equal length can also evade size and coarse timestamp comparisons. Hashes,
+structured facts, or negative credential-screening claims may then describe
+bytes no longer present at the named path.
+
+**Verified fix:** Track the caller's complete first sequential read with a
+bounded incremental byte count and SHA-256, then perform a second fixed-block
+read from offset zero through the same open descriptor. Accept only equal byte
+counts and digests after EOF, and finally revalidate the path with `lstat`
+against the still-open descriptor's device, inode, and regular-file type. Treat
+any incomplete read, mismatch, absent path, symlink, or observation error as
+indeterminate. This is bounded coherence, not a lock or protection against
+adversarial ABA mutation.
+
+**Regression verification:** Deterministically schedule mutations after the real
+consumer reaches EOF but before context exit. Cover rename-away plus regular-file
+replacement and same-inode, same-size rewrites under an oracle that suppresses
+timestamp changes. Require event facts to become unavailable, old artifact
+digests to become unavailable, credential screening to become indeterminate,
+and bounded reads to raise. Retain stable empty, exact-limit, known-pattern,
+cross-block, and large-file memory controls.
+
+## Ephemeral Remote Markers Cannot Establish Durable Attempt Consumption
+
+**Description:** An at-most-once operation can store its consumed marker and raw
+diagnostics only under a remote temporary directory. Shutdown, rebuild, or
+ordinary temporary-file cleanup then removes both the anti-replay fact and the
+only causal evidence, making a consumed identity appear unused and leaving
+sanitized receipts unable to explain the failure.
+
+**Verified fix:** Permanently close known consumed identities in code. For future
+authorized identities, write an exclusive, fsynced request reservation to the
+designated controller's private persistent storage before command emission.
+Before remote Shutdown, retain bounded diagnostics only after sanitary receipt
+admission, remote and local credential screening, and remote/local digest
+agreement. Keep reservation, receipt retention, and diagnostic retention as
+separate truthful controls; never automatically delete a reservation.
+
+**Regression verification:** Simulate controller restart and complete remote
+`/tmp` deletion after arming, then require replay refusal from persistent local
+state. Exercise concurrent arming, partial and malformed claims, fsync failure,
+contamination, oversized or aliased artifacts, transfer and hash failures, and
+verified local survival after remote deletion. Require the Shutdown boundary to
+run after every retention outcome without converting partial retention to PASS.
+
+## Sandbox Child Uses an Interpreter Outside Its Replaced PATH
+
+**Description:** A trusted workflow can start a sandbox runtime successfully but
+pass the bare command `python3` after replacing the child PATH with a minimal
+permission-profile value. When the trusted interpreter is installed outside
+that PATH, the sandbox reaches child execution and returns executable-not-found.
+The wrapper then reports only a generic sandbox probe failure and emits no
+observation receipt.
+
+**Verified fix:** Resolve the broker process interpreter through
+`sys.executable`, require its strict resolved target to be an absolute,
+executable regular file, and pass that absolute path as the sandbox child
+command. Do not broaden the permission-profile PATH or weaken the sandbox.
+Reject an invalid interpreter before launching the sandbox runtime.
+
+**Regression verification:** Execute the real subprocess runner against a
+sandbox shim under an empty PATH. Make the shim reject relative or
+non-executable child commands and emit a valid observation only for the absolute
+resolved interpreter. Also replace `sys.executable` with a missing path and
+require the probe to fail before the runner is called.
+
+## Optional Credential Environment Falls Back to Ambient Authority
+
+**Description:** A private-source helper can return no child environment when a
+repository is absent from its dedicated allowlist. A later subprocess then
+inherits an ambient workflow token, allowing private metadata access or clone
+under privileged publication authority instead of failing before source access.
+
+**Verified fix:** For the private mode, use a strict environment constructor
+that independently requires both exact allowlist membership and a nonempty
+dedicated source token. Build the child environment from a narrow key allowlist
+and set only that source token; never represent missing private authority as
+`None` when `None` means ambient inheritance. Keep the optional helper only for
+paths where public access is valid.
+
+**Regression verification:** Exercise the real preparation boundary with an
+ambient privileged token. Test absent private allowlist with a dedicated token,
+and present allowlist with no dedicated token. Both must reject explicitly
+before source metadata access, journal construction, or clone.
+
+## New Receipt Fields Break Immutable Historical Evidence
+
+**Description:** Extending a mode-specific evidence receipt with a newly
+required discriminator can invalidate authentic historical receipts that
+predate the field, even when their original evidence type, assurance scope,
+metadata, and identities remain unchanged. Making the field universally
+optional can instead permit cross-mode substitution.
+
+**Verified fix:** Validate legacy omission only for the historical mode whose
+original receipt contract lacked the field, using authenticated surrounding
+metadata plus its original evidence type and scope. Require the discriminator
+for every new mode and reject any contradictory value when the legacy field is
+present. Never rewrite historical evidence.
+
+**Regression verification:** Revalidate an exact baseline-shaped legacy receipt
+without the new field and require success. Require a new-mode receipt missing or
+altering the discriminator to fail, and retain public/private cross-mode
+substitution tests.
+
+## Partial Source Resolvers Overclaim Compiler Semantics
+
+**Description:** A source-boundary checker can parse a language AST and then
+approximate imports, aliases, lexical scopes, and namespaces. Unsupported
+self-referential aliases or same-spelled declarations in another namespace or
+scope can make the approximation accept a root that the compiler resolves
+externally. Adding cases incrementally turns the checker into an unsound custom
+compiler front end.
+
+**Verified fix:** When the actual migration contract only requires preserving
+independently inspected source, replace semantic approximation with immutable
+source identity. Require regular tracked files, hash the current working bytes
+through the version-control system's normal path-specific content filters, and
+compare against explicit accepted object identities. Keep rebaselining an
+explicit independently reviewed decision.
+
+**Regression verification:** Check the accepted working files, then use
+non-production temporary copies to prove rejection after one-byte changes,
+import aliases, qualified calls, macros, modules, conditional declarations,
+removal, nonregular replacement, and symlink replacement. Restore the original
+bytes and require success. Also fail closed on version-control process failure
+and malformed object output.
