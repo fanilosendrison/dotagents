@@ -1,3 +1,13 @@
+---
+okf_version: "1.0"
+kind: "KnowledgeAsset"
+asset_type: "troubleshooting"
+name: "known-bug-fixes"
+version: "1.0.0"
+domain: "engineering"
+severity: "guideline"
+---
+
 # Known Bugs and Fixes
 
 ## IDE Import Resolution Bug in Symlinked Gateways
@@ -1554,3 +1564,35 @@ import aliases, qualified calls, macros, modules, conditional declarations,
 removal, nonregular replacement, and symlink replacement. Restore the original
 bytes and require success. Also fail closed on version-control process failure
 and malformed object output.
+
+## Terminal Workflow Reporting Drops Computed Application State
+
+**Description:** A workflow phase can build and report a new repository state, then return a terminal result whose API accepts only output or an error. The durable application state remains at its prior checkpoint, even after an exact remote publication. Local reporting therefore does not prove that validated final identities, publication evidence or preserved partial-commit identities survived.
+
+**Verified fix:** Respect the workflow runtime's actual transition API. For the affected publication mode, persist schema-validated success/failure state through a no-effect checkpoint before terminal reporting. Acknowledge that checkpoint without inference or Git, and make its continuation report only persisted evidence. Preserve existing resume limits: an interrupted effect without provable final identity stops rather than inventing a result, replanning landed commits or recreating a deleted destination.
+
+**Regression verification:** Exercise the real installed public launcher in isolated HOME/XDG against bare remotes. Inspect persisted success and exact validated/publication SHAs after dirty, clean-ahead and clean-at-base publication. Resume clean checkpoints, interrupted dirty commits and known-success state with a missing destination; require preserved identities, no extra inference, safe refusal where proof is missing and no automatic recreation. Also require phase-level failure checkpoints to retain landed commit identities before terminal failure.
+
+## Resumed Publication Checks Its Source Anchor Only After Committing
+
+**Description:** A resumed publication can structurally accept a persisted source-anchor SHA while checking its ancestry only during final push validation. An incoherent anchor is then refused remotely, but a local commit has already been created, violating the pre-effect qualification boundary.
+
+**Verified fix:** Revalidate the persisted source anchor and authorized history boundary before message repair or commit effects, without recapturing a new remote baseline. Retain the pre-commit identity/absence guard and the independent final outgoing-history proof. Missing or non-ancestral local objects remain a prerequisite failure, never a reason to fetch or reinterpret authority.
+
+**Regression verification:** Seed the real commit/publication phase with a well-shaped but locally unrelated anchor and valid staged work. Require failure before any HEAD change, preserve the dirty work, and perform no message replanning or publication. First reproduce that the old path creates a commit before failing, then require the unchanged negative oracle and valid anchored controls to pass after correction.
+
+## Local Git Object Reads Trigger Implicit Promisor Fetch
+
+**Description:** A publisher can intend to require local proof objects while calling Git commands that lazily retrieve missing objects from a promisor remote. A direct `cat-file` check or outgoing-patch read may then fetch through a different endpoint, mutate the object database and admit work instead of reporting a missing prerequisite.
+
+**Verified fix:** Use maintained local-only traversal primitives for object identification and history qualification. Git 2.17's `rev-list --missing=print` disables lazy fetch before parsing revisions; its exact commit output and ancestry boundary can establish direct commit identity and ancestry. Check the local input trees of each outgoing patch before materialization, and reject missing objects. Also qualify the current HEAD and index before staging a dirty diff, even when B..HEAD is empty; pair indexed-object traversal with the maintained single-worktree selector so unrelated indexes remain outside scope. Preserve the caller's separate ability to obtain prerequisites explicitly; do not reject a valid promisor repository once required proof objects are local.
+
+**Regression verification:** Use real repositories and a local bare promisor endpoint. Advance the source after cloning and require rejection with no `fetch` in Git's execution trace and no newly downloaded commit. Explicitly supply the prerequisite objects as the fixture caller, then require successful admission without publisher fetch. A standard Git bundle import keeps that positive control independent of an older client's experimental promisor-fetch implementation. Separately remove an outgoing blob and require patch validation to stop before publication without retrieving it. Remove a dirty-at-base input blob and require failure before staging, with work preserved and no fetch. Retain a positive fixture whose foreign linked-worktree index contains an unrelated missing object.
+
+## Ambient Diff Representations Conceal Actual Secret-Bearing Content
+
+**Description:** Git's text conversion and presentation mechanisms can replace a secret-bearing patch with harmless output or hide added lines from a line-oriented scanner. Disabling external diff alone does not disable textconv. Binary attributes, forced color, rename-only output or suppressed side-history roots can create related input gaps.
+
+**Verified fix:** In the explicitly qualified mode, share canonical actual-content diff arguments between staged-diff capture, its race hash and outgoing-history scans. Disable textconv/external drivers and masking presentation, retain relevant root patches, and use parent gitlink summaries rather than child-repository expansion. Preserve the scanner's existing pattern policy. Do not claim a legacy/default-path repair when the hardening is mode-specific; the independently reproduced historical gap is tracked in git-commits-push Issue #20.
+
+**Regression verification:** Use real repositories and bare remotes with a masking converter, binary attributes, forced color, rename-only changes and a hidden side root. Require secret rejection and no publication. Keep a safe-content control proving the same raw staged-diff hash survives planning through commit/publication and bounded message/provider/structural retries. Require changed index, worktree or untracked input to stop before further inference, without resetting a raced index. Preserve the existing context cap and attempt budgets. Exercise dirty and clean installed launchers, require no inference before rejection, and verify sanitized diagnostics and preserved local work.
