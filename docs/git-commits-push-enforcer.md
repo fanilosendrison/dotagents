@@ -1,3 +1,13 @@
+---
+okf_version: "1.0"
+kind: "KnowledgeAsset"
+asset_type: "documentation"
+name: "git-commits-push-enforcer"
+version: "1.0.0"
+domain: "agent-enforcement"
+severity: "strict"
+---
+
 # Git Commits Push Enforcer
 
 Blocks direct raw Git mutations and forces commits through the `/git-commits-push` skill. Detection and enforcement logic is centralized in the shared core:
@@ -49,6 +59,14 @@ optional static arguments. The installed runtime remains the authority for CLI
 argument semantics. Shell wrappers, environment prefixes, control operators,
 redirections, backgrounding, expansion, substitution, globbing, retired
 checkout launches, and noncanonical executable forms are rejected.
+
+Conditional creation uses the same shell boundary, without recognizer grammar changes:
+
+```bash
+"$HOME/.local/bin/git-commits-push" --repository "/absolute/exact/task-worktree" --push-remote "origin" --push-ref "refs/heads/feat/example" --create-if-absent --base-ref "refs/heads/main" --base-sha "<full-authorized-base-OID>"
+```
+
+The caller resolves authorized literal arguments and verifies a compatible installed runtime (0.10.0 or later) before using these flags. Static recognition is not semantic authorization: the runtime owns complete-group validation, absent-destination qualification and persisted resume authority. The enforcer adds no creation permission, reserved-ref-name policy, transport implementation or permit-protocol change. Tests cover static creation commands and rejection of dynamic bases, wrappers and raw Git mutations.
 
 Slash-form skill references are valid only as interactive harness input. When
 an agent emits `/git-commits-push` inside a Bash tool call, the enforcer blocks

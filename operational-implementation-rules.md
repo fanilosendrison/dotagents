@@ -1,3 +1,13 @@
+---
+okf_version: "1.0"
+kind: "KnowledgeAsset"
+asset_type: "directive"
+name: "operational-implementation-rules"
+version: "1.0.0"
+domain: "engineering"
+severity: "strict"
+---
+
 # Operational Implementation Rules
 
 You are bound by these operational rules for every task. Read them carefully.
@@ -273,6 +283,12 @@ changes only workspace placement; it does not authorize overwriting unrelated
 user state.
 
 ---
+
+### Authorized task-branch publication
+
+When a mandate and repository policy authorize publication to an identified new task branch, treat conditional creation of that branch from the authorized base as part of the publication. Use a compatible installed publisher with explicit creation authority; do not request an additional manual bootstrap. Resolve the exact repository, remote, destination ref, source ref and full base OID from the caller's authority, never by invention or ambient defaults.
+
+This rule grants no permission to create or recreate an authoritative or protected ref not already covered by the mandate, and does not override a repository-specific prohibition. Do not infer authority from a ref's name, including `main` or `master`. Rights or observation unavailability remains a legitimate stop; expected task-branch absence alone is not a blocker when creation is authorized and compatible support is installed. Follow the publisher skill at the shared gateway root (`skills/git-commits-push/SKILL.md`) for the complete opt-in group, existing-destination mode and persisted-resume distinction.
 
 ## 3. Strict Prohibitions (What You Must NEVER Do)
 
