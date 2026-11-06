@@ -13,6 +13,31 @@ const RETIRED_PROJECT_LAUNCH =
 	'cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start';
 const CANONICAL_BINARY_LAUNCH = '"$HOME/.local/bin/git-commits-push"';
 
+const CREATE_LAUNCH = `${CANONICAL_BINARY_LAUNCH} --repository "/tmp/task worktree" --push-remote "origin" --push-ref "refs/heads/feat/task" --create-if-absent --base-ref "refs/heads/main" --base-sha "${"a".repeat(40)}"`;
+
+describe("conditional creation shell boundary", () => {
+	test("accepts static complete creation arguments without owning CLI semantics", () => {
+		assert.equal(recognizeGitCommitsPushCommand(CREATE_LAUNCH), "binary-launch");
+		assert.equal(evaluateEnforcement({ command: CREATE_LAUNCH, legacyBypassSet: false, trustedSkillMarkerSet: false }).action, "allow");
+	});
+	test("refuses dynamic authority, wrappers and raw publication", () => {
+		for (const command of [
+			CREATE_LAUNCH.replace(`"${"a".repeat(40)}"`, '"$BASE_SHA"'),
+			CREATE_LAUNCH.replace(`"${"a".repeat(40)}"`, '"$(git rev-parse HEAD)"'),
+			`env ${CREATE_LAUNCH}`, `timeout 60 ${CREATE_LAUNCH}`,
+			`${CREATE_LAUNCH} && git push`, `${CREATE_LAUNCH} > /tmp/result`,
+			"git push origin HEAD:refs/heads/feat/task",
+		]) {
+			assert.equal(recognizeGitCommitsPushCommand(command), null, command);
+			// Recognition refusal means no canonical-launch sanction. Wrapper intent
+			// detection is a separate existing boundary, not extended by these flags.
+			if (command.startsWith("git ") || command.startsWith(CANONICAL_BINARY_LAUNCH)) {
+				assert.equal(evaluateEnforcement({ command, legacyBypassSet: false, trustedSkillMarkerSet: false }).action, "block", command);
+			}
+		}
+	});
+});
+
 describe("recognizeGitCommitsPushCommand", () => {
 	test("accepts the canonical installed binary with static arguments", () => {
 		for (const command of [

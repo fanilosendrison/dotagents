@@ -154,6 +154,16 @@ describe("git-commits-push path guard shell boundary", () => {
 		);
 	});
 
+	test("preserves the complete static creation request through the shell boundary", () => {
+		const command = `${CANONICAL_LAUNCH} --repository "${physicalWorktree}" --push-remote origin --push-ref refs/heads/feat/task --create-if-absent --base-ref refs/heads/main --base-sha ${"a".repeat(40)}`;
+		const result = runProbe(command, true);
+		assert.equal(result.allowed, true);
+		assert.equal(result.rewritten, false);
+		assert.equal(result.newCommand, command);
+		assert.equal(result.executionError, null);
+		assert.equal(result.stdout, `repository=${physicalWorktree}\ntoplevel=${physicalWorktree}\n`);
+	});
+
 	test("does not sanction a launcher-like command the recognizer refuses", () => {
 		const command = `${CANONICAL_LAUNCH} --repository "${physicalWorktree}" > "${physicalWorktree}/out.txt"`;
 
