@@ -1,4 +1,5 @@
 import { SECURITY_RULES } from "./security-rules.ts";
+import { commandSubstitutionViolation, dangerousShellCommand } from "./shell-command-policy.ts";
 import type { ValidationResult } from "./types.ts";
 import { homedir } from "node:os";
 
@@ -60,6 +61,15 @@ export class BashValidator {
 				result.action = "deny";
 				return result;
 			}
+		}
+
+		const substitutionViolation = commandSubstitutionViolation(command);
+		if (substitutionViolation !== null) {
+			result.isValid = false;
+			result.severity = "CRITICAL";
+			result.violations.push(`❌ ${substitutionViolation}`);
+			result.action = "deny";
+			return result;
 		}
 
 		const dangerousCmd = this.containsDangerousCommand(command);
@@ -182,16 +192,6 @@ export class BashValidator {
 			return mainCommand;
 		}
 
-		for (const dangerous of DANGEROUS_COMMANDS) {
-			const pattern = new RegExp(
-				`(?:^|[;|&\\n]|\\$\\(|\`)\\s*${dangerous}\\b`,
-				"i",
-			);
-			if (pattern.test(command)) {
-				return dangerous;
-			}
-		}
-
-		return null;
+		return dangerousShellCommand(command, DANGEROUS_COMMANDS);
 	}
 }
