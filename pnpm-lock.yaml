@@ -14,6 +14,9 @@ importers:
       js-yaml:
         specifier: 4.3.1
         version: 4.3.1
+      sh-syntax:
+        specifier: 0.8.1
+        version: 0.8.1
     devDependencies:
       '@types/js-yaml':
         specifier: ^4.0.9
@@ -103,6 +106,10 @@ packages:
     resolution: {integrity: sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==}
     hasBin: true
 
+  sh-syntax@0.8.1:
+    resolution: {integrity: sha512-c4KP1Vfc4/KeND5HrMtq3Y7KQH6BFM4BfkSB+tufTO1lnMF9CeqglIdRbko7aoVxpl3nbG6qI4zvFsp3QHetdQ==}
+    engines: {node: '>=18.0.0'}
+
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
@@ -133,6 +140,8 @@ snapshots:
   js-yaml@4.3.1:
     dependencies:
       argparse: 2.0.1
+
+  sh-syntax@0.8.1: {}
 
   typescript@5.9.3: {}
 
