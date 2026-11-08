@@ -1606,3 +1606,28 @@ and malformed object output.
 **Verified fix:** Replace the unsupported numeric assumption with an independent transition oracle. Capture actual committed SQLite snapshots and lifetime-bound process absence; join registration, authorization, actual START delivery, supervisor spawn and clearing by immutable execution identity. Reconstruct snapshot continuity using matching states and per-process sequences, not cross-process log append order. Preserve descriptor identity through recovery and reject missing transitions, adoption, replay and unexplained generations. Keep instrumentation test-only and all production behavior and deadlines unchanged.
 
 **Regression verification:** Run the real supervisor-death scenario and an explicit owner-death control against temporary repositories and bare remotes. Require the normal generation-2 and recovery/readmission generation-3 routes to retain exactly two authorized execution chains, proven boundary death, no overlap and exact publication. Independent negative vectors must reject omitted adoption, wrong groups, pre-existence absence, early START, missing receipt and hidden executions. Positive vectors retain heartbeat changes and shuffled observation order. This establishes the qualified routes; it does not reconstruct an uninstrumented historical failure.
+
+## Greedy Substitution Rules Treat Git Object Bytes as Commands
+
+**Description:** A Bash guard can reject a legitimate fast-forward/revision-check
+sequence because a greedy substitution regex spans two separate substitutions
+and finds `dd` inside a Git object identity between them. A raw backtick-boundary
+check can independently mistake a closing backtick and following argument for
+a new dangerous executable.
+
+**Verified fix:** Use a maintained Bash parser to establish command-substitution
+boundaries and executable positions. Apply the existing `rm`/`dd` denial to
+actual calls, preserving nested calls and recognized execution wrappers. Keep
+unresolved executable/source expressions and parsing failures fail-closed;
+never evaluate input to discover its meaning. Retain other destructive-command,
+protected-path and modification-permission checks. Pin the parser dependency
+and preserve the package-manager policy.
+
+**Regression verification:** First reproduce the exact cross-substitution
+object-identity false positive through the public validator. Require safe
+argument, quoting, heredoc and separate-substitution controls to pass real Bash
+syntax validation, then execute a harmless accepted sequence in Bash. Require
+actual `rm`/`dd`, nested/wrapped calls, dynamic executables and malformed
+substitutions to remain denied, with existing enforcer tests and typechecks
+passing. Unrelated Loop Clean controller timeouts remain separately tracked
+in dotagents Issue #9, not represented as a passing full suite.

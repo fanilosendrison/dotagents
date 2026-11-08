@@ -103,13 +103,54 @@ All three runtimes share the same rules defined in `~/.agents/agent-enforcers/co
 - **PRIVILEGE_COMMANDS**: `sudo`, `su`, `passwd`, `chpasswd`, `usermod`, `chmod`, `chown`, `chgrp`, `setuid`, `setgid`
 - **NETWORK_COMMANDS**: `nc`, `netcat`, `nmap`, `telnet`, `ssh-keygen`, `iptables`, `ufw`, `firewall-cmd`, `ipfw`
 - **SYSTEM_COMMANDS**: `systemctl`, `service`, `kill`, `killall`, `pkill`, `mount`, `umount`, `swapon`, `swapoff`
-- **DANGEROUS_PATTERNS**: 50+ regex patterns covering destructive writes, pipes to shell, crypto miners, docker prunes, kernel module loading, cron injection, credential dumping, Prisma destructive resets, and more
+- **DANGEROUS_PATTERNS**: regex patterns covering destructive writes, pipes to shell, crypto miners, docker prunes, kernel module loading, cron injection, credential dumping, Prisma destructive resets, and more
+- **Shell command policy**: `shell-command-policy.ts` uses the pinned `sh-syntax` Bash parser (based on `mvdan/sh`) for executable positions and command-substitution boundaries.
 
 The historical `CRITICAL_COMMANDS` name does not itself determine severity. A
 bare command-name match returns `HIGH` with `action: "ask"`; a matching
 `DANGEROUS_PATTERNS` entry produces the `CRITICAL` denial.
 
 The Pi extension does not add its own patterns — it imports the shared core validator directly.
+
+### Shell substitutions and executable positions
+
+The former greedy `rm`/`dd` substitution patterns could match two independent
+substitutions and mistake `dd` in a Git object identity between them for an
+executed command. Closing backticks could also trigger a false HIGH result.
+The maintained parser now owns the shell grammar; the shared policy examines
+actual call expressions rather than raw argument substrings.
+
+Inside a command substitution, static `rm` and `dd` invocations remain CRITICAL,
+including nested substitutions, pipelines, literal quoting/escaping, and the
+recognized `builtin`, `command`, `env`, `exec`, `nohup`, `sudo`, `busybox` and
+`toybox` wrappers. Static shell `-c` and `eval` sources are parsed, including
+when an outer interpreter executes a quoted source containing substitutions.
+`eval --` is handled explicitly. Bash/POSIX-shell sources use supported exact
+`-c`, `-lc` or `-cl` layouts; other option layouts (including `+` options)
+fail closed instead of mistaking an option for the executed source. Static sudo
+environment assignments are skipped before identifying its executable. `env -S`/`--split-string` is denied
+rather than approximating its splitting semantics. Recognized unsupported shell
+dialects (`zsh`, `ksh`, `ash`, `mksh`), including multicall applets, are denied
+rather than interpreting them with Bash semantics. Expansion-capable
+unquoted executable words, including brace expansions, remain unresolved.
+Unresolved executable/source expressions, unsupported wrapper options, parse
+failures and nested evaluated source deeper than 16 remain denied. Static
+arguments, single-quoted source and quoted heredocs are not executed by this
+analysis. No shell expansion is run to determine a command name.
+
+HIGH command discovery also uses executable AST positions, preserving direct
+command-name checks and a conservative textual fallback on malformed input.
+All other critical patterns, protected-path checks and modification-tool
+permissions remain in force. This is a bounded syntactic policy, not a sandbox
+or proof of the behavior of arbitrary programs, aliases, sourced files or the
+execution environment. Other existing regex checks can still conservatively
+reject text; this change does not promise to eliminate every false positive.
+
+The dependency and lockfile pin `sh-syntax` exactly. No package-manager security
+exception or lifecycle script is required by frozen installation. The regression
+suite is `command-validator/src/core/__tests__/substitution-policy.test.ts`;
+it exercises the public validator, checks safe cases with real Bash syntax
+validation and executes a harmless regression case in a real Bash process.
 
 ### Protected path write blocking
 
@@ -206,7 +247,8 @@ command-validator/
         ├── tool-validator.ts          ← ToolPermissionValidator — blocks write tools without /go
         ├── tool-rules.ts              ← RESTRICTED_TOOLS list (write, edit, etc.)
         ├── security-rules.ts          ← CRITICAL/HIGH/DANGEROUS_PATTERNS rules
-        └── __tests__/validator.test.ts
+        ├── shell-command-policy.ts    ← Parser-backed executable/substitution policy
+        └── __tests__/                 ← Validator, runtime-contract and substitution regressions
 ```
 
 **Dependency:** `tool-validator.ts` imports `isPermissionGranted` from `~/.agents/agent-enforcers/permission-enforcer/src/core/state.ts`.
