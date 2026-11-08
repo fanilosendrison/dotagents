@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 export const FIXED_TEST_TIMEOUT_MILLISECONDS = 30_000;
 export const EXPECTED_NODE_TEST_FILES = Object.freeze([
 	"command-validator/src/core/__tests__/runtime-contract.test.ts",
+	"command-validator/src/core/__tests__/substitution-policy.test.ts",
 	"command-validator/src/core/__tests__/validator.test.ts",
 	"git-commits-push-enforcer/src/core/__tests__/raw-git-mutation.test.ts",
 	"git-commits-push-enforcer/src/core/__tests__/trust-store.test.ts",
