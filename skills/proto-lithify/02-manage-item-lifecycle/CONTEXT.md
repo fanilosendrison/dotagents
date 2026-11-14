@@ -4,6 +4,8 @@ kind: "AgentWorkflowStep"
 step_id: 2
 name: "Manage GitHub Engineering Project item lifecycle"
 role_description: "Truthful lifecycle, handoff, resumption, and completion manager"
+inputs: []
+outputs: []
 ---
 
 # Manage GitHub Engineering Project item lifecycle
@@ -11,6 +13,7 @@ role_description: "Truthful lifecycle, handoff, resumption, and completion manag
 ## Contents
 
 - [Revalidate before execution](#revalidate-before-execution)
+- [Handle changes to governing sources and inputs](#handle-changes-to-governing-sources-and-inputs)
 - [Keep status truthful](#keep-status-truthful)
 - [Record blocking precisely](#record-blocking-precisely)
 - [Preserve partial work](#preserve-partial-work)
@@ -29,11 +32,64 @@ role_description: "Truthful lifecycle, handoff, resumption, and completion manag
 4. For pickup and resumption, apply the
    [executable mandate completeness criterion](../03-create-or-reuse-issue/CONTEXT.md#executable-mandate-completeness).
    Consult that criterion only; this does not select the Issue-creation workflow.
-5. Revalidate the problem against current content.
+5. Revalidate the problem against current content and apply the
+   [source-change procedure](#handle-changes-to-governing-sources-and-inputs).
 6. Inspect the worktree and preserve unrelated local or staged changes.
 7. Explain the strategy and satisfy the active permission protocol.
 8. Enter the profile's active role only when execution actually begins.
 9. Re-read the item and report the transition.
+
+## Handle changes to governing sources and inputs
+
+Apply this procedure when a source consumed by a mandate changes, is renamed,
+replaced, withdrawn or becomes inaccessible. Revalidate applicability at pickup,
+resumption and before completion, including changes since the mandate's baseline
+or last validated handoff. Cover every relevant input, not only plans or product
+contracts.
+
+1. Establish the source's responsibility, applicable revision and scope through
+   the repository's authority and adoption/change rules. Identify the accepted
+   decision when replacement or withdrawal requires one. A new file, unchanged
+   path, newer version or descriptive status label does not establish authority
+   or supersession. Do not invent a missing transition rule.
+2. Distinguish the mandate's historical baseline from currently applicable
+   instructions. An older source may remain explicitly incorporated; a pinned
+   reference alone does not waive current authority. A reference must identify
+   which use is intended.
+3. Compare the relevant old and new requirements, definitions, assumptions,
+   dependencies and validation obligations. Identify affected mandates and
+   downstream consumers of their results, including work already in progress.
+   Use Git and native work relationships; neither a text search nor matching
+   identifiers proves semantic coverage or absence of impact.
+4. Record the impact assessment in the Issue owning the change, or in the current
+   Issue when assessing an external change, with exact references, affected
+   scope, required decisions and reasons for preserving or revising mandates.
+   Link the assessment from affected work when needed for independent pickup or
+   handoff; do not maintain another work registry.
+5. Preserve an unaffected mandate's baseline when its applicability is justified.
+   For affected work, update the body, necessary references and acceptance only
+   within accepted authority, then revalidate readiness and completion claims.
+   Never bulk-repin, clone the hierarchy or reopen completed work merely because
+   a source changed. An Issue edit cannot accept a technical decision that
+   belongs in another artifact.
+6. Treat undetermined impact as unresolved, not as absence of impact. Do not
+   present an affected mandate as executable during an incompatible transition
+   or continue the action whose authority or inputs cannot be established.
+   Apply the profile's unready/blocked conditions without blocking independent
+   work or relabeling an ordinary in-scope repair. Coordinate with an active
+   executor; do not take over its work or treat a field edit as proof it stopped.
+7. Preserve historical results with their original subjects and assumptions.
+   Distinguish an invalid original conclusion from a valid conclusion that no
+   longer applies to a new subject. Reassess the former resolution when evidence
+   invalidates it; justify transfer separately for the latter. Record an accepted
+   withdrawal or supersession of a mandate without claiming its original
+   objective was achieved; report a missing lifecycle disposition rather than
+   inventing one.
+
+These are agent workflow obligations, not an automatic semantic checker or an
+atomic transaction across Git and GitHub. A successful check or field mutation
+establishes only its verified scope, not the legitimacy of an adoption or the
+absence of every contradiction.
 
 ## Keep status truthful
 
@@ -160,10 +216,11 @@ validation record needed by future executors.
 
 ## Complete accurately
 
-Re-read the latest Issue and comments, verify every criterion, run all mandated
-validation, preserve unrelated changes, link the implementation or decision
-artifact, record residual risks, and verify final Issue, Pull Request, and
-Project state.
+Re-read the latest Issue and comments, apply the
+[source-change procedure](#handle-changes-to-governing-sources-and-inputs), verify
+every criterion, run all mandated validation, preserve unrelated changes, link
+the implementation or decision artifact, record residual risks, and verify final
+Issue, Pull Request, and Project state.
 
 Do not close an Issue merely because files were written. Do not leave completed
 work active or reviewable work unstarted.

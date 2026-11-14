@@ -4,6 +4,8 @@ kind: "AgentWorkflowStep"
 step_id: 3
 name: "Create or reuse a durable GitHub Issue"
 role_description: "Validated Issue ownership, decomposition, and Project classification manager"
+inputs: []
+outputs: []
 ---
 
 # Create or reuse a durable GitHub Issue
@@ -88,8 +90,9 @@ A parent objective or backlog item may retain explicit unresolved prerequisites
 without being executable. An open research question is not itself a missing
 mandate when the investigation's scope, inputs and closure criteria are defined.
 Do not equate populated template headings or a successful GitHub operation with
-semantic completeness. Keep later mandate changes and their reference impacts
-explicit when new necessary information is discovered.
+semantic completeness. For changes to a mandate's sources or inputs, apply the
+[canonical source-change procedure](../02-manage-item-lifecycle/CONTEXT.md#handle-changes-to-governing-sources-and-inputs)
+rather than maintaining a separate evolution policy here.
 
 ### Issue body
 
