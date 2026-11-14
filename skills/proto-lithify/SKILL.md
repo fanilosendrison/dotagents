@@ -6,6 +6,8 @@ metadata:
   okf_version: "1.0"
   kind: "AgentSkill"
   domain: "github-work-management"
+  entry_points:
+    - "Operate a repository-declared GitHub Engineering Project"
 ---
 
 # Proto-Lithify
@@ -19,7 +21,7 @@ Read the target repository's `AGENTS.md` and Engineering Project profile before 
 Require the profile to provide:
 - Project owner, title, number, URL, and visibility;
 - default repository for unqualified Issue numbers;
-- technical authority order;
+- technical authorities by responsibility and any declared precedence;
 - exact field names, option spellings, and meanings;
 - exact workflow-status mapping and any blocked-state override;
 - current Project views and their intended use;
@@ -30,12 +32,20 @@ If a profile is absent or incomplete, ask for the missing routing information or
 
 ## Preserve technical authority
 
-Use Issues and Project fields only as the authority for tracked-work existence, classification, scheduling, and workflow state when the profile says so.
-Never treat an Issue, comment, field, discussion, or Pull Request as technical or product authority.
+Use Issues for task-specific operational mandates: scope, inputs, deliverables
+and acceptance under the applicable technical sources. Use Issues and Project
+fields for tracked-work existence, classification, scheduling and workflow state
+as assigned by the repository profile. Never treat an Issue, comment, field,
+discussion or Pull Request as technical or product authority.
 
-Apply the repository's declared authority order.
-Revalidate requested outcomes against the current source, tests, specifications, architecture, and accepted decisions.
-Report conflicts and record accepted technical decisions in the repository artifact that owns them.
+Resolve authority for the responsibility concerned through the repository's
+declared sources and governance mechanisms. Apply only its declared precedence;
+do not invent a universal hierarchy, infer authority from silence or select a
+convenient winner when authority is unresolved. Do not require a particular
+governance provider in repositories that have not adopted it.
+Revalidate requested outcomes against the current source, tests, specifications,
+architecture and accepted decisions. Report conflicts and record accepted
+technical decisions in the repository artifact that owns them.
 
 A direct user request selects work. It does not ratify proposed semantics, satisfy unresolved dependencies, waive tests, or make an unready item executable.
 
@@ -87,7 +97,7 @@ Before the first GitHub operation:
 Load only the context required for the current operation:
 
 - For Project or item inspection and every Project field mutation, read [`01-inspect-project/CONTEXT.md`](01-inspect-project/CONTEXT.md).
-- For pickup, execution, status changes, blocking, partial work, handoff, resumption, review, completion, reclassification, or relationship changes, also read [`02-manage-item-lifecycle/CONTEXT.md`](02-manage-item-lifecycle/CONTEXT.md).
+- For pickup, execution, source changes affecting mandates, status changes, blocking, partial work, handoff, resumption, review, completion, reclassification, or relationship changes, also read [`02-manage-item-lifecycle/CONTEXT.md`](02-manage-item-lifecycle/CONTEXT.md).
 - For creating, reusing, or decomposing durable Issues, also read [`03-create-or-reuse-issue/CONTEXT.md`](03-create-or-reuse-issue/CONTEXT.md).
 
 If work enters another branch later, load its context at that point.
