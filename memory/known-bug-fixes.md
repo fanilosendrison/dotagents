@@ -1191,6 +1191,27 @@ preserves schema semantics. Require the semantic oracle to remain green, the
 actual exact-artifact owners to emit their diagnostics, and the pure evidence
 classifier to accept both facts while preserving the original raw run.
 
+## Python JSON Schema Patterns Diverge from No-Flags ECMAScript
+
+**Description:** Python regex dollar can accept a final LF that native ECMAScript
+rejects. Replacing search with fullmatch alone is insufficient: wildcard dots
+also differ on CR/LS/PS and on supplementary characters, since no-flags ECMAScript
+consumes UTF16 units rather than Python Unicode code points.
+
+**Verified bounded fix:** Admit only an explicitly qualified expression catalogue.
+Evaluate its anchored expressions with complete matching over a private UTF16-unit
+view and the exact ECMAScript wildcard LineTerminator exclusions. Preserve input
+strings and separate schema character-count constraints. Keep the validator and
+reference evaluation local; reject unqualified regex-bearing surfaces such as
+patternProperties rather than delegating them to historical Python callbacks.
+
+**Regression verification:** Compare native JavaScript at every actual operator
+position, including supplementary/lone/paired surrogates and wider valid negated
+classes. Retain canonical complete-object witnesses with recomputed identities.
+Test root/nested unknown keywords, reference evolution, global callback isolation
+and positive preservation. A finite catalogue qualification is not universal
+regex support or proof of operational authorization safety.
+
 ## Regex Backtracking Broadens a Malformed Structured Prefix
 
 **Description:** A regex that recognizes a hierarchical token with optional
@@ -1311,6 +1332,38 @@ every schema date-time field and runtime receipt timestamp, impossible calendar
 values, missing timezones, offsets, lowercase T/Z, nullable fields, and epoch
 zero. Retain a syntactically valid out-of-window case to prove chronology checks
 remain active after instant validation.
+
+## RFC3339 Dependency Accepts a Final LF Through a Regex Anchor
+
+**Description:** A registered date-time checker can reject impossible calendars
+but still accept a timestamp followed by LF because Python regex `$` matches
+before a final newline. JSON round-trip preserves that LF, so canonical JSON
+framing does not remove the invalid timestamp character.
+
+**Verified bounded fix:** Reject LF in a checker-local adapter before delegating
+unchanged input to the maintained calendar/offset validator. Preserve registration
+and positive/negative qualification; do not trim input or mutate global checkers.
+This fixes final-LF acceptance only. It does not qualify full RFC3339 support:
+`rfc3339-validator==0.1.4` separately rejects valid leap seconds.
+
+**Regression verification:** Exercise the real schema validator with valid UTC,
+offset, fractional and lowercase forms, then append LF, CRLF, whitespace, NUL
+and junk. Preserve exact JSON bytes and prove RED before the adapter and GREEN
+afterward. Independently retain positive leap-second controls; their failure
+must remain a separate unresolved conformance gap.
+
+**Follow-up — established leap events and year zero:** A bounded offline adapter
+can retain the maintained ordinary lexical validator, use its full-match grammar
+plus standard-library Gregorian month lengths for the library-excluded year zero,
+and handle explicit seconds60 separately. Compare integer UTC-minute boundaries
+against a byte-pinned official IANA/IERS transition table; never replace the
+asserted second or normalize returned input. Distinguish malformed calendars from
+out-of-table capability errors, including extreme-year arithmetic boundaries.
+Document provenance, expiry and explicit reviewed updates rather than claiming
+universal future knowledge. Qualification covered all27 established insertions,
+all2879 numeric minute offsets, all four-digit ordinary years, exact schema length
+limits, missing/corrupt data and unchanged independent failure witnesses. This
+qualifies the bounded timestamp adapter, not unrelated wire contracts.
 
 ## Protocol Deadlines Become Flaky When Coupled to Real Transport Latency
 
@@ -1631,3 +1684,364 @@ actual `rm`/`dd`, nested/wrapped calls, dynamic executables and malformed
 substitutions to remain denied, with existing enforcer tests and typechecks
 passing. Unrelated Loop Clean controller timeouts remain separately tracked
 in dotagents Issue #9, not represented as a passing full suite.
+## Identical Git CAS Proposals Collapse Into Successful No-Ops
+
+**Description:** Concurrent workers can construct identical child commits from
+one parent when logical contents, messages and second-resolution timestamps
+match. A non-forced update to the already-current SHA can succeed as a no-op,
+so both workers incorrectly report a winning reservation.
+
+**Verified fix:** Bind a fresh cryptographically generated transaction nonce to
+each proposed commit message without changing logical state bytes. Read back the
+exact proposed ref and record before reporting success. A failed or ambiguous
+reservation cannot authorize a later execution step. This does not establish
+provider exactly-once inference.
+
+**Regression verification:** Use real Git objects and refs with fixed timestamps,
+a deterministic nonce generator and an explicitly scheduled competing update.
+Accept current-SHA no-ops in the transport oracle, require distinct sibling
+proposals and one winning reservation, and retain sequential-transition and
+immutable historical-record controls.
+
+## Unsigned Runtime Metadata Cannot Establish Execution Authority
+
+**Description:** An adapter can treat missing metadata as a reason to skip its
+binding check, or accept a caller's armed boolean as proof of a durable
+reservation. Valid packet hashes alone do not authenticate execution authority.
+
+**Verified construction fix:** Require complete canonical metadata and capacity
+bindings. Under an explicitly accepted trusted-workflow assumption, reserve and
+observe the authoritative journal before requesting purpose-bound OIDC identity.
+Verify issuer, signature, claims and the complete envelope-digest audience, then
+persist an exclusive per-attempt consumption marker before model transport.
+Never infer journal state from job identity alone or automatically recreate lost
+consumption state. Keep tokens outside model input, argv, environment and evidence.
+
+**Regression verification:** Use synthetic signing keys with real JWT validation,
+actual local Git reservations and separate-process filesystem consumers. Test
+missing/forged/stale bindings, rejected issuers and keys, successful reservation
+before issuance, replay across runs/directories and interruption at both fsync
+boundaries. Require zero unauthorized runner calls and one valid fake call.
+Offline construction does not qualify live OIDC, remote dependencies, protected
+bootstrap or Codespace durability; those remain separate deployment gates.
+
+## Preferred Reconstruction Failure Hides Valid Historical Evidence
+
+**Description:** PREPARED recovery can attempt a newly preferred representation
+before reconstructing the historical one. An eager compact-only observation or
+proof failure then aborts recovery even when exact legacy evidence is available.
+
+**Verified fix:** Reconstruct legacy first in isolation and accept only its exact
+journal-bound manifest identity. Perform compact observations lazily only when
+needed and applicable. Every candidate still requires an exact evidence match;
+new-packet compact failure never grants an unbound legacy fallback.
+
+**Regression verification:** Retain a valid additions-only legacy packet using
+Git diff.noprefix with a root-level path. Prove compact failure, successful exact
+legacy recovery without compact observations, rejection when neither identity
+matches, and continued fail-closed behavior for new compact construction.
+
+## Routing Context Must Match Paired Assurance Producers
+
+**Description:** Adding a trusted environment value only at invocation can make
+its sanitizer report a removed key absent from preflight evidence. Strict
+post-capture equality then correctly invalidates an otherwise authorized run.
+
+**Verified fix:** Supply the same authenticated routing context to both trusted
+producer processes through the same safely quoted delivery mechanism. Keep the
+value out of the model child and retain strict evidence equality; do not edit
+receipts to hide inconsistent observation or treat routing context as authority.
+
+**Regression verification:** Execute actual workflow command construction into
+real preflight and invocation producers with fake API/runtime/model boundaries,
+then consume their independent receipts with the real assurance validator. Cover
+both admitted modes, native-context absence, safe serialization, invalid
+execution authority with zero runner calls, and genuine environment mismatch.
+Where accepted authority separates execution and evidence, a falsified assurance
+receipt can leave transport authorized while still requiring INVALID evidence
+and blocked acceptance. Preserve that distinction explicitly. An inert live
+diagnostic can verify delivery, but does not qualify OIDC or provider transport.
+
+## Shallow CI Omits Historical Oracle Objects
+
+**Description:** A regression oracle can compare against an exact historical Git
+object successfully in a full local checkout, then fail in depth-one CI because
+the required commit is not present in the primary checkout. Existence on the
+server and local test PASS do not establish CI fixture availability.
+
+**Verified fix:** Supply a separate detached, exact-commit, depth-one checkout.
+Before testing, verify its commit, tree, expected file blob and actual bytes.
+Pass its path through a narrowly scoped test-only environment variable. Reject
+an invalid explicit fixture rather than falling back. Permit local object reads
+only against the same verified immutable identities. Preserve the complete
+structural equality oracle; never use the current file as its own baseline.
+
+**Regression verification:** Reproduce the original test failure in a shallow
+primary checkout lacking the historical object. Require the corrected test to
+pass using the independent pinned fixture while that primary history remains
+absent. Reject mutated, missing, symlinked or attached fixtures. Verify the exact
+CI checkout and all validation steps, not merely earlier local suite results.
+
+## Process Observers Count Copy Arguments as Executed Scripts
+
+**Description:** A process observer that matches a script path anywhere in argv
+can count file-copy or hash commands as executions. A completion counter may
+then stop before observing the actual workload, making evidence incomplete.
+
+**Verified fix:** Require the expected interpreter executable and the exact
+script argument position, accounting only for explicitly supported interpreter
+flags. Join observations to the workload's reported PID and process birth
+identity. Preserve the faulty observations as incomplete evidence, not launches.
+
+**Regression verification:** Reject copy, hash, shell and Python `-c` argv that
+mention the script; accept direct and unbuffered Python script execution. Repeat
+the bounded live workload with fresh isolated fixtures and verify that every
+reported launcher PID, child parent PID, and completion matches independently.
+
+## GitHub Deep Ref Queries Return Names Relative to Their Prefix
+
+**Description:** A GraphQL ref inventory can select a deep `refPrefix` while
+assuming each returned node name still includes the branch namespace. Real
+provider names are relative to the selected prefix, so requiring the omitted
+prefix rejects valid qualification refs before the complete-history scan.
+
+**Verified fix:** Bind one exact namespace to query, relative-name validation,
+full-ref reconstruction and exact claim filtering. Append the provider name to
+that complete namespace without stripping or heuristically accepting another
+representation. Preserve qualification refs in complete inventory/drift checks
+while decoding only exact direct claim names. Reject unsafe names and retain
+repository identity, pagination/count, duplicate, target and second-inventory
+checks.
+
+**Regression verification:** First reproduce rejection with provider-shaped
+relative qualification and claim names. Require the corrected production adapter
+to agree with an independent REST ref inventory and return a complete real
+read-only history decision. Exercise matching-intent decoding, inventory-only
+qualification refs, full-name rejection, pagination and drift. Exact-tree Ubuntu
+CI passes the complete suite with all required Linux cases and zero skips. This
+read-only qualification grants no runtime dispatch or live lifecycle authority.
+
+## Workflow Dispatch Wire Values and Diagnostics Must Stay Separate from Authority
+
+**Description:** A concrete GitHub Actions dispatch client can serialize an
+internal numeric generation directly into REST inputs, unlike the official
+CLI's string input map, while collapsing every refusal and transport exception
+into one undiagnosable unresolved result. A missing historical response cannot
+establish which compatibility or transport failure actually occurred.
+
+**Verified fix:** Serialize workflow input values as strings only at the REST
+boundary; keep internal and journal generation types unchanged. Retain a closed
+immutable diagnostic with status, body digest/length and an allowlisted transport
+class, never raw provider material. Preserve the original consumed opportunity
+and independent ACK authentication; diagnostics and reporting failures create no
+retry permission. Permanently retain an already ambiguous reservation rather
+than replaying it to diagnose the past.
+
+**Regression verification:** Reproduce the actual serialized-body mismatch
+before correction. Exercise exact/malformed 200, 204, 4xx/5xx, transport failures,
+privacy, genuine ACK versus diagnostic rejection, second-call refusal and sink
+failure. Qualify the corrected wire once with a job-scoped GITHUB_TOKEN using
+Actions write against an exact inert default stub: HTTP200, one new attempt1 run
+and a skipped job. Verify exact-tree full Ubuntu CI without required skips and
+restore the isolated caller branch to inert bytes. Probe success qualifies the
+new boundary, not the unretained historical HTTP cause or a live broker attempt.
+
+## Failed GitHub Reads Become False Claim Absence
+
+**Description:** Treating any nonzero `gh api` exit as a missing ref can trigger
+speculative object/ref creation after an authentication, network or server
+failure. Checking only a matching commit SHA in a capability probe is also
+insufficient: different repositories can contain the same Git object, while an
+explicit wrong repository/ref identity remains contradictory evidence.
+
+**Verified fix:** Use status-bearing `gh api --include` transport and distinct
+present, authenticated-absent and unknown outcomes. Require independently
+concordant repository/credential identity and effective scoped Git-read evidence
+before accepting a ref-specific 404. Share exact ref/repository/type/SHA checks
+across present, capability and creation-base reads; validate parent/content
+identity and classify parsing resource limits as unknown. Unknown fails before
+further mutation or authorization. Lost POST acknowledgement/readback never
+creates a retry entitlement; already accepted effects remain durable. A 404
+does not prove historical non-deletion or resistance to privileged rollback.
+
+**Regression verification:** Preserve the historical RED inputs. Use real local
+Git objects/refs and the actual CLI against an inert loopback transport to
+observe requests, successful effects and grants separately. Cover wrong-scope
+responses with equal SHAs, private/permission ambiguity, status/exit conflicts,
+partial/corrupt/deep JSON, lost POST outcomes, competing creators, original and
+extended wire histories and consumed-attempt refusal. Verify zero new effects
+after unknown and rerun the full suite plus exact-SHA CI and independent review.
+
+## Local Packet Guards Amplify Complete Remote Authentication
+
+**Description:** A packet or historical verifier can invoke a provider-backed
+freshness callback for every hash, file observation, private write and inventory
+entry. Each callback can reconstruct journal, Actions and dispatch provenance,
+turning a bounded local workload into thousands of network reads and causing
+terminal timeout even after a durable preparation commitment.
+
+**Verified fix:** Separate original immutable binding, local byte integrity and
+mutable effect currentness. Use an original-instance, non-serializable phase
+scope for local checks; preserve fresh journal/runtime confrontation at source,
+upload/return, metadata/readback and mutation boundaries. Historical local
+callbacks may reuse exact independently authenticated immutable bindings, but
+explicit trust verification must still revalidate revocable injected authority.
+Neither cached data nor a local scope replaces the original one-use decision,
+expected-old CAS or restart refusal. Keep diagnostics outside domain identities.
+
+**Regression verification:** Count real provider calls in complete production-form
+composition, first retain RED count ceilings, then prove that tenfold local work
+adds no complete remote authentication. Exercise moved refs, cancelled or wrong
+Workers/jobs/principals/executables, phase transfer, copying/serialization, restart,
+upload races and a competing CAS. Preserve the explicit historical trust-revocation
+oracle. Qualify direct historical reconstruction under preselected read/time
+budgets without ad-hoc response memoization, require exact packet/receipt continuity
+and zero effects, then run full exact-tree Ubuntu CI and independent review. A
+corrected historical replay never rewrites the original Worker terminal outcome.
+
+## Unlabelled Git Ancestry Loses Immutable Child Bindings
+
+**Description:** A response validator can check object roles, blob sizes and an
+acyclic ancestry graph yet accept two aliases of the same immutable tree that
+name different children at the same relative path. Flat and nested descriptions
+can then permit further writes or authorization despite explicitly conflicting
+facts. Discarding sparse paths also hides a contradiction when a later response
+finally identifies their containing prefix.
+
+**Verified fix:** Keep one canonical validator and a copied, proposal-local table
+binding exact tree identity and relative Git path to mode, kind and child ID.
+Retain sparse rooted paths; reconcile suffixes only when an explicitly observed
+prefix supplies its identity, including across successive acknowledgements.
+Combine submitted and observed facts before further progress. Do not invent
+missing IDs, fetch a graph, normalize Git path names, reject compatible partial
+lists or change existing helper return shapes.
+
+**Regression verification:** Preserve unchanged actual-CLI/native-Git REDs for
+flat/nested claims and controller progress. Require zero subsequent requests,
+objects, ref changes or grants after contradiction, retaining legitimate earlier
+effects. Test deferred prefixes in every order, mode/type conflicts, exact names,
+valid shared DAGs, partial metadata, copied maps and compatibility projections.
+Verify full-suite and exact-SHA CI plus independent review; this is bounded
+software correctness, not live issuer/model or malicious-service qualification.
+
+## Authenticated Result Storage Does Not Establish Faithful Result Projection
+
+**Description:** A recovery validator can accept a correctly signed storage
+statement and exact artifact hashes while the public result contradicts its
+honest embedded validation: for example, NO_GO becomes GO or anchored findings
+disappear. Binding storage to the original execution run also prevents valid
+recovery uploads from later jobs.
+
+**Verified candidate correction:** Keep immutable execution/evidence identity,
+authenticated actual storage provenance and exact result content distinct.
+Reconstruct validation from retained terminal bytes, then confront every
+normative result field with the accepted result constructor and original attempt
+metadata; preserve permitted non-authoritative extensions. Use canonical typed
+comparisons rather than Boolean/integer-coercing equality. Confront all relevant
+artifact observations and chronology, and preserve exact publication receipt
+identity and creator-only posting authority across recovery.
+
+**Regression verification:** In an offline candidate model, combine real JWT
+verification with synthetic issuer keys, genuine local ZIP/evidence validation
+and injected provider transports. Require coherent freshly signed forged results,
+provider-ID aliases, inconsistent or drifting metadata and replacement comments
+to refuse before new effects. Retain valid original/recovery uploads, honest
+NO_GO and concurrent one-owner controls. Preserve historical REDs and obtain
+full-suite/exact-SHA CI and independent rereview. This verifies the candidate
+contract/model only, not a deployed runtime or live issuer/job custody.
+
+## Qualification Bypasses the Runtime's Platform Toolchain Selection
+
+**Description:** Direct contributor tests can hit subprocess watchdogs while the
+canonical launcher completes the same work because qualification omitted the
+runtime's maintained platform prerequisite. On legacy Darwin, direct MacPorts
+Git launches showed hundreds of milliseconds of parent-side cost while native
+Git work was short; the officially selected Apple Git removed that excess.
+Machine load alone did not establish the cause.
+
+**Verified fix:** Reuse the exact maintained platform selector in source and
+compiled test entrypoints, preserve literal arguments and restore process-local
+PATH afterward. Do not change Git trust policy, introduce a shell workaround,
+reduce test workload or increase watchdogs to compensate.
+
+**Regression verification:** Compare identical operation counts under both
+profiles, poison ambient Git to prove selector sensitivity, and run the complete
+suite under the supported profile. Retain all original timeout outcomes and
+require exact-SHA CI plus actual installed-runtime qualification.
+
+## A Direct-Child Timeout Does Not Settle a Qualification Process Tree
+
+**Description:** Killing a package-manager parent can leave shell/test descendants
+running after the controller records a timeout. A root exit zero also does not
+prove descendant quiescence. Failure after acquiring an inert controller can
+leak its IPC lifetime unless cleanup protection begins immediately.
+
+**Verified fix:** Reuse a lifetime-bound, identity-checked execution controller;
+retain actual command results, residual observations and complete group absence.
+Protect every post-acquisition failure, recheck cancellation after READY before
+START, and refuse partial, interrupted or indeterminate completion. Parse
+conditional-fixture inputs using the fixture's actual list semantics rather
+than accepting a nonempty string of separators.
+
+**Regression verification:** Use real child/grandchild processes for parent
+timeout, residual-child refusal, evidence-write failure and cancellation during
+READY. Verify no unauthorized START, no false PASS and no remaining owned group.
+Keep this claim within the cooperative POSIX-group boundary; it is not proof
+against arbitrary detached escape or privileged cloning.
+
+## Unauthenticated Marker Copies Poison Publication Ambiguity Checks
+
+**Description:** A receipt-backed result reader can reject a legitimate published
+result when an unrelated commenter copies its public publication marker. Counting
+marker matches before authenticating their canonical body and bound actor makes
+an untrusted comment an availability authority.
+
+**Verified fix:** Share the canonical-body and actor attribution predicate between
+publication observation and retrieval. Count only attributable canonical matches,
+then independently verify the receipt-designated comment, Issue and immutable
+metadata. Preserve rejection of real attributable duplicates and never convert
+an intent without an observed receipt into a reported result.
+
+**Regression verification:** Reproduce the attack on the base and correction with
+independently constructed fixtures. Cover marker-only and wrong-author canonical
+copies, altered journaled bodies, contradictory identities, missing receipts or
+comments, real duplicates, historical supersession and incomplete pagination.
+Keep exact-candidate full-suite CI distinct from independent bounded acceptance.
+
+## Whole-Text Thinking Cleanup Can Corrupt Structured JSON
+
+**Description:** A thinking-tag regex applied before JSON parsing can cross string
+and field boundaries. Valid provider JSON can lose a required field while staying
+syntactically valid, so a downstream schema error does not prove the provider
+omitted the field.
+
+**Verified fix:** Disable thinking-tag stripping for structured commit-plan JSON
+using the maintained runtime option. Preserve the existing fence policy and
+strict schema, message, membership and publication gates. Reject external
+non-JSON wrappers within the existing attempt budget. Disable unfiltered runtime
+logging and project typed provider failures into bounded content-free diagnostics.
+
+**Regression verification:** Compare raw and returned JSON in independent
+cross-field and literal-tag fixtures, retain genuinely missing-field refusals,
+and exercise malformed provider envelopes and long error bodies with private
+canaries. Require exact-SHA CI and independent whole-subject acceptance. Missing
+historical responses still leave the historical omission origin undetermined.
+
+## Unreferenced Cleanup Timers Can Lose Termination Authority
+
+**Description:** After supervisor death and IPC loss, unreferenced cleanup timers
+may allow a Node controller to exit while resistant descendants remain alive.
+An eventual test PASS can conceal that premature loss of the cleanup identity.
+
+**Verified fix:** Keep polling and escalation timers referenced during shutdown;
+retain the original deadlines, signals, positive quiescence and fencing rules.
+Also reject empty, malformed, ambiguous or incoherent successful process tables
+as unknown, rather than silently converting them into an empty group. Validate
+controller and inspection identities before excluding the inspection child.
+
+**Regression verification:** Use actual connected/disconnected controllers,
+owner SIGKILL, resistant children/grandchildren, early quiescence, inert START,
+real zombies and injected unknown observations. Track birth identities and real
+group absence; distinguish post-verdict investigator cleanup from recovery.
+Keep positive controller-only and descendant-table oracles. A coherent table is
+bounded observation evidence, not proof of absolute OS completeness.
