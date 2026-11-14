@@ -8,6 +8,17 @@ role_description: "Truthful lifecycle, handoff, resumption, and completion manag
 
 # Manage GitHub Engineering Project item lifecycle
 
+## Contents
+
+- [Revalidate before execution](#revalidate-before-execution)
+- [Keep status truthful](#keep-status-truthful)
+- [Record blocking precisely](#record-blocking-precisely)
+- [Preserve partial work](#preserve-partial-work)
+- [Resume from live evidence](#resume-from-live-evidence)
+- [Keep classifications and relationships accurate](#keep-classifications-and-relationships-accurate)
+- [Communicate material transitions](#communicate-material-transitions)
+- [Complete accurately](#complete-accurately)
+
 ## Revalidate before execution
 
 1. Read the Issue, comments, relationships, dependencies, acceptance criteria,
@@ -15,11 +26,14 @@ role_description: "Truthful lifecycle, handoff, resumption, and completion manag
 2. Read live Project fields and their profile-defined meanings.
 3. Read every controlling repository source required by `AGENTS.md` and the
    Issue.
-4. Revalidate the problem against current content.
-5. Inspect the worktree and preserve unrelated local or staged changes.
-6. Explain the strategy and satisfy the active permission protocol.
-7. Enter the profile's active role only when execution actually begins.
-8. Re-read the item and report the transition.
+4. For pickup and resumption, apply the
+   [executable mandate completeness criterion](../03-create-or-reuse-issue/CONTEXT.md#executable-mandate-completeness).
+   Consult that criterion only; this does not select the Issue-creation workflow.
+5. Revalidate the problem against current content.
+6. Inspect the worktree and preserve unrelated local or staged changes.
+7. Explain the strategy and satisfy the active permission protocol.
+8. Enter the profile's active role only when execution actually begins.
+9. Re-read the item and report the transition.
 
 ## Keep status truthful
 

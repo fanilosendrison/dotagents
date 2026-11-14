@@ -8,6 +8,15 @@ role_description: "Validated Issue ownership, decomposition, and Project classif
 
 # Create or reuse a durable GitHub Issue
 
+## Contents
+
+- [Decide whether separate work exists](#decide-whether-separate-work-exists)
+- [Revalidate and search](#revalidate-and-search)
+- [Write a complete Issue](#write-a-complete-issue)
+  - [Executable mandate completeness](#executable-mandate-completeness)
+  - [Issue body](#issue-body)
+- [Add and classify](#add-and-classify)
+
 ## Decide whether separate work exists
 
 Create or reuse a separate Issue only when validated work must persist beyond
@@ -46,7 +55,46 @@ closed or appears satisfied, revalidate before reopening or replacing it.
 
 ## Write a complete Issue
 
-Use the repository profile's template when present. Otherwise include:
+### Executable mandate completeness
+
+Make each Issue intended for independent execution the single operational entry
+point for its work. Put its task-specific mandate in its body and provide the
+necessary information directly or through explicit references. A fresh authorized
+agent, starting from that Issue and the applicable repository instructions, must
+be able to identify the work, required inputs, expected outputs, acceptance and
+validation without reconstructing this mandate from an originating conversation,
+an unreferenced plan, inaccessible private notes, or implicit inheritance from a
+mutable parent.
+
+Reference the owning contracts, plans and shared execution or validation rules
+instead of copying their prescriptions into each Issue. Keep task-specific
+requirements and acceptance explicit. Preserve the skill's technical-authority
+boundary: an operational entry point is not a new product authority.
+
+For each necessary reference, identify its purpose, relevant section or scope,
+and exact revision when correctness depends on it. Link required decisions and
+handoffs explicitly. Verify that the intended authorized executor can retrieve
+the required material; a locator alone does not establish access or sufficiency.
+Preserve confidentiality rather than publishing private context to fill a gap.
+
+Before treating the mandate as independently executable, check that its body,
+native prerequisites and explicit references lead to one coherent task. Identify
+missing, inaccessible, ambiguous or conflicting inputs instead of inventing them.
+Resolve or explicitly bound those gaps within the authorized scope before
+execution, without silently reducing the requested outcome. Use the repository's
+unready or blocked role when its conditions apply.
+
+A parent objective or backlog item may retain explicit unresolved prerequisites
+without being executable. An open research question is not itself a missing
+mandate when the investigation's scope, inputs and closure criteria are defined.
+Do not equate populated template headings or a successful GitHub operation with
+semantic completeness. Keep later mandate changes and their reference impacts
+explicit when new necessary information is discovered.
+
+### Issue body
+
+Apply the criterion above with the repository profile's template when present.
+Otherwise include:
 
 ```markdown
 ## Problem
@@ -66,6 +114,10 @@ proposed behavior.
 ## Scope
 
 Define included work and exclusions.
+
+## Inputs and deliverables
+
+Identify required inputs, expected outputs and their owning locations or references.
 
 ## Dependencies
 
