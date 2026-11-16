@@ -78,6 +78,9 @@ and exact revision when correctness depends on it. Link required decisions and
 handoffs explicitly. Verify that the intended authorized executor can retrieve
 the required material; a locator alone does not establish access or sufficiency.
 Preserve confidentiality rather than publishing private context to fill a gap.
+Apply the lifecycle's [interpretation-sensitive reuse rules](../02-manage-item-lifecycle/CONTEXT.md#reuse-interpretation-sensitive-material)
+when references supply definitions or conclusions; do not maintain a second
+terminology or historical-context procedure in the Issue.
 
 Before treating the mandate as independently executable, check that its body,
 native prerequisites and explicit references lead to one coherent task. Identify
