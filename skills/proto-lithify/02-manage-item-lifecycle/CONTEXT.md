@@ -14,6 +14,7 @@ outputs: []
 
 - [Revalidate before execution](#revalidate-before-execution)
 - [Handle changes to governing sources and inputs](#handle-changes-to-governing-sources-and-inputs)
+- [Reuse interpretation-sensitive material](#reuse-interpretation-sensitive-material)
 - [Keep status truthful](#keep-status-truthful)
 - [Record blocking precisely](#record-blocking-precisely)
 - [Preserve partial work](#preserve-partial-work)
@@ -90,6 +91,34 @@ These are agent workflow obligations, not an automatic semantic checker or an
 atomic transaction across Git and GitHub. A successful check or field mutation
 establishes only its verified scope, not the legitimacy of an adoption or the
 absence of every contradiction.
+
+## Reuse interpretation-sensitive material
+
+Before using a definition, conclusion, review or handoff as a premise, identify
+its owning source, relevant scope and exact revision when meaning depends on
+it. Follow the repository's terminology and reproduction policy. Where that
+policy requires reference-only use, link directly to the owning passage instead
+of copying, paraphrasing or generating another definition. Do not turn an index,
+a summary or an Issue into the owner of meaning.
+
+Reference a shared source context once where it makes a document or mandate
+independently usable; identify material departures explicitly. Do not require a
+universal header on ordinary comments. A durable result, review or handoff must
+identify the exact artifact and scope it concerns, directly or through an
+explicit, retrievable revision-bound reference.
+
+Do not assign an old message the context of its parent's current mutable body,
+the latest glossary or the message date. Recover the source actually identified
+for that use. If its interpretation cannot be established, preserve the gap;
+do not reuse the claim as established. Continue independent or explicitly
+conditional analysis only within its declared scope.
+
+Keep distinct meanings, model-local definitions and competing proposals
+separate. Matching words or identifiers do not establish semantic identity.
+Apply the [source-change procedure](#handle-changes-to-governing-sources-and-inputs)
+when a required source changes; preserve old result contexts without silently
+repointing them or retroactively rewriting discussions. A verified link or
+publication establishes neither interpretation completeness nor claim truth.
 
 ## Keep status truthful
 
