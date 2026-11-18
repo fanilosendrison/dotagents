@@ -30,11 +30,10 @@ While `~/.claude/skills/` is a direct symlink, `~/.agents/`, `~/.codex/` and `~/
 > ⚠️ **PATH-GUARD WARNING**: You must **NEVER** write directly to the physical git repos (`~/Developper/Projects/dot*`). If you attempt to write there, the `path-guard` enforcer will intentionally intercept your action. Your command will be either **strictly blocked** or **silently redirected** to the `~/.` gateways. **This is normal and expected behavior.** Do not try to bypass or hack around this restriction; simply follow the rules and use the `~/.` gateways.
 
 **You must edit directly** through these `~/.` paths. 
-**To commit your changes**, simply run the commit orchestrator which will auto-discover modified repos:
-
-```bash
-"$HOME/.local/bin/git-commits-push"
-```
+**To commit your changes**, follow `skills/git-commits-push/SKILL.md` and use the
+canonical installed publisher. Ordinary invocation processes only the exact
+current worktree; it does not discover sibling repositories. Detached task
+worktrees require the explicitly authorized targeted mode described by that skill.
 
 
 ---
