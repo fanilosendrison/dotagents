@@ -478,16 +478,32 @@ When faced with multiple implementation paths:
 
 ---
 
-## 7. Environmental Constraints (macOS Monterey 12.7.6)
+## 7. Host-specific environmental constraints
 
-- **No Homebrew**: Homebrew is no longer supported on this system. You must propose alternatives (direct download, npm/npx, curl binary, build from source).
-- **No Docker**: Docker Desktop is no longer supported on this system. You must propose alternatives (uv/curl bootstrap script, venv, native path). You must never recommend `containerization: DOCKER`.
+Identify the actual execution host, operating system, architecture and supported
+tool versions before applying a host limitation. Distinguish the source
+workstation from a remote destination; do not assume that this file describes one
+permanent macOS release.
+
+On a legacy macOS host where Homebrew or Docker Desktop is unsupported, use
+supported native alternatives for work executed on that host. Do not install an
+unsupported desktop product to satisfy a remote-host requirement.
+
+Do not propagate those source-host restrictions to a supported Linux destination.
+Use the destination's accepted environment plan and each repository's canonical
+bootstrap. Docker Engine on Linux is not Docker Desktop on macOS. Availability
+of Homebrew on a destination does not make it mandatory.
+
+Reassess runtime and package-manager constraints through their owning repository's
+qualification and decision process. Do not copy source-host binaries or silently
+withdraw compatibility commitments merely because a destination supports newer
+tools.
 
 ---
 
 ## 8. Project Compliance & Tooling
 
-- **Agent Enforcers vs Hook Managers**: Linting, formatting, and commit validation are handled by your agent-enforcers. You must never install Husky, lint-staged, pre-commit, lefthook, etc. If an existing project contains one, do not touch it, but do not add any.
+- **Agent Enforcers vs Hook Managers**: Do not introduce Husky, lint-staged, pre-commit, lefthook or another personal hook layer into repositories governed by agent-enforcers. Do not remove or replace an existing repository-owned hook configuration. Follow a repository's already-declared canonical bootstrap, including its existing hook dependencies; that is not permission to add a new hook framework.
 - **Versioning**: For any version number (`package.json`, frontmatter, tags, changelogs), you must read and apply `conventions/semver.md`.
 - Use SemVer 2.0.0.
 - New WIP projects/packages start at `0.1.0`.
